@@ -9,6 +9,7 @@ import {
   primaryKey,
   foreignKey,
   boolean,
+  unique,
 } from 'drizzle-orm/pg-core';
 
 export const user = pgTable('User', {
@@ -19,13 +20,27 @@ export const user = pgTable('User', {
 
 export type User = InferSelectModel<typeof user>;
 
+export const agent = pgTable(
+  'Agent',
+  {
+    id: uuid().primaryKey().notNull().defaultRandom(),
+    agentName: text().notNull(),
+    systemPrompt: text().notNull(),
+    createdAt: timestamp().notNull().defaultNow(),
+    userId: uuid().notNull().references(() => user.id),
+  },
+  (table) => ({
+    uniqueUserName: unique().on(table.agentName, table.userId),
+  })
+);
+
+export type Agent = InferSelectModel<typeof agent>;
+
 export const chat = pgTable('Chat', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   createdAt: timestamp('createdAt').notNull(),
   title: text('title').notNull(),
-  userId: uuid('userId')
-    .notNull()
-    .references(() => user.id),
+  userId: uuid('userId').notNull().references(() => user.id),
   visibility: varchar('visibility', { enum: ['public', 'private'] })
     .notNull()
     .default('private'),
@@ -35,9 +50,8 @@ export type Chat = InferSelectModel<typeof chat>;
 
 export const message = pgTable('Message', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
-  chatId: uuid('chatId')
-    .notNull()
-    .references(() => chat.id),
+  chatId: uuid('chatId').notNull().references(() => chat.id),
+  agentId: uuid('agentId').references(() => agent.id),
   role: varchar('role').notNull(),
   content: json('content').notNull(),
   createdAt: timestamp('createdAt').notNull(),
@@ -48,19 +62,13 @@ export type Message = InferSelectModel<typeof message>;
 export const vote = pgTable(
   'Vote',
   {
-    chatId: uuid('chatId')
-      .notNull()
-      .references(() => chat.id),
-    messageId: uuid('messageId')
-      .notNull()
-      .references(() => message.id),
+    chatId: uuid('chatId').notNull().references(() => chat.id),
+    messageId: uuid('messageId').notNull().references(() => message.id),
     isUpvoted: boolean('isUpvoted').notNull(),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.chatId, table.messageId] }),
-    };
-  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.chatId, table.messageId] }),
+  }),
 );
 
 export type Vote = InferSelectModel<typeof vote>;
@@ -72,18 +80,13 @@ export const document = pgTable(
     createdAt: timestamp('createdAt').notNull(),
     title: text('title').notNull(),
     content: text('content'),
-    kind: varchar('text', { enum: ['text', 'code'] })
-      .notNull()
+    kind: varchar('text', { enum: ['text', 'code'] }).notNull()
       .default('text'),
-    userId: uuid('userId')
-      .notNull()
-      .references(() => user.id),
+    userId: uuid('userId').notNull().references(() => user.id),
   },
-  (table) => {
-    return {
-      pk: primaryKey({ columns: [table.id, table.createdAt] }),
-    };
-  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.id, table.createdAt] }),
+  }),
 );
 
 export type Document = InferSelectModel<typeof document>;
