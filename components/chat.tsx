@@ -2,13 +2,14 @@
 
 import type { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
+import { useSearchParams } from 'next/navigation';
 import { AnimatePresence } from 'framer-motion';
 import { useState } from 'react';
-import useSWR, { useSWRConfig } from 'swr';
+import useSWR, { SWRConfig, useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
 
 import { ChatHeader } from '@/components/chat-header';
-import type { Vote } from '@/lib/db/schema';
+import type { Agent, Vote } from '@/lib/db/schema';
 import { fetcher } from '@/lib/utils';
 
 import { Block, type UIBlock } from './block';
@@ -19,6 +20,7 @@ import { VisibilityType } from './visibility-selector';
 
 export function Chat({
   id,
+  agents,
   initialMessages,
   selectedModelId,
   selectedVisibilityType,
@@ -26,11 +28,15 @@ export function Chat({
 }: {
   id: string;
   initialMessages: Array<Message>;
-  selectedModelId: string;
+  agents: Agent[];
   selectedVisibilityType: VisibilityType;
+  selectedModelId: string;
   isReadonly: boolean;
 }) {
+  const searchParams = useSearchParams();
   const { mutate } = useSWRConfig();
+
+  const agentId = searchParams.get('agentId') || agents[0]?.id || null;
 
   const {
     messages,
@@ -45,7 +51,7 @@ export function Chat({
     data: streamingData,
   } = useChat({
     id,
-    body: { id, modelId: selectedModelId },
+    body: { id, modelId: selectedModelId, agentId },
     initialMessages,
     onFinish: () => {
       mutate('/api/history');
@@ -53,7 +59,7 @@ export function Chat({
   });
 
   const { width: windowWidth = 1920, height: windowHeight = 1080 } =
-    useWindowSize();
+    useWindowSize({ initializeWithValue: false });
 
   const [block, setBlock] = useState<UIBlock>({
     documentId: 'init',
@@ -78,15 +84,21 @@ export function Chat({
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
 
   return (
-    <>
+    <SWRConfig
+      value={{
+        fallback: {
+          '/api/agents': agents,
+        },
+      }}
+    >
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
           chatId={id}
+          selectedAgentId={agentId}
           selectedModelId={selectedModelId}
           selectedVisibilityType={selectedVisibilityType}
           isReadonly={isReadonly}
         />
-
         <Messages
           chatId={id}
           block={block}
@@ -98,7 +110,6 @@ export function Chat({
           reload={reload}
           isReadonly={isReadonly}
         />
-
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
           {!isReadonly && (
             <MultimodalInput
@@ -117,7 +128,6 @@ export function Chat({
           )}
         </form>
       </div>
-
       <AnimatePresence>
         {block?.isVisible && (
           <Block
@@ -140,8 +150,7 @@ export function Chat({
           />
         )}
       </AnimatePresence>
-
       <BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
-    </>
+    </SWRConfig>
   );
 }

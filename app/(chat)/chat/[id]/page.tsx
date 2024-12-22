@@ -4,12 +4,11 @@ import { notFound } from 'next/navigation';
 import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat';
 import { DEFAULT_MODEL_NAME, models } from '@/lib/ai/models';
-import { getChatById, getMessagesByChatId } from '@/lib/db/queries';
+import { getAgentsByUserId, getChatById, getMessagesByChatId } from '@/lib/db/queries';
 import { convertToUIMessages } from '@/lib/utils';
 
 export default async function Page(props: { params: Promise<{ id: string }> }) {
-  const params = await props.params;
-  const { id } = params;
+  const { id } = await props.params;
   const chat = await getChatById({ id });
 
   if (!chat) {
@@ -18,15 +17,13 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const session = await auth();
 
-  if (chat.visibility === 'private') {
-    if (!session || !session.user) {
-      return notFound();
-    }
-
-    if (session.user.id !== chat.userId) {
-      return notFound();
-    }
+  
+  if (session?.user?.id !== chat.userId) {
+    return notFound();
   }
+
+  const agentsFromDb =
+    session?.user?.id ? await getAgentsByUserId({ userId: session?.user.id }) : [];
 
   const messagesFromDb = await getMessagesByChatId({
     id,
@@ -41,6 +38,7 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
   return (
     <Chat
       id={chat.id}
+      agents={agentsFromDb}
       initialMessages={convertToUIMessages(messagesFromDb)}
       selectedModelId={selectedModelId}
       selectedVisibilityType={chat.visibility}

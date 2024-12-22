@@ -404,7 +404,7 @@ export async function updateAgent({
   }
 }
 
-export async function deleteAgent({ id }: { id: string }) {
+export async function deleteAgentById({ id }: { id: string }) {
   try {
     return await db.delete(agent).where(eq(agent.id, id));
   } catch (error) {

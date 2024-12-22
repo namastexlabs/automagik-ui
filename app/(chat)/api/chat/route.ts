@@ -12,11 +12,12 @@ import { customModel } from '@/lib/ai';
 import { models } from '@/lib/ai/models';
 import {
   codePrompt,
-  systemPrompt,
+  defaultSystemPrompt,
   updateDocumentPrompt,
 } from '@/lib/ai/prompts';
 import {
   deleteChatById,
+  getAgentById,
   getChatById,
   getDocumentById,
   saveChat,
@@ -84,6 +85,7 @@ export async function POST(request: Request) {
   }
 
   const chat = await getChatById({ id });
+  const systemPrompt = agentId && (await getAgentById({ id: agentId }))?.systemPrompt;
 
   if (!chat) {
     const title = await generateTitleFromUserMessage({ message: userMessage });
@@ -107,7 +109,7 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: customModel(model.apiIdentifier),
-    system: systemPrompt,
+    system: systemPrompt || defaultSystemPrompt,
     messages: coreMessages,
     maxSteps: 5,
     experimental_activeTools: allTools,
