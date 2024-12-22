@@ -20,6 +20,7 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
+import { useSearchParams } from 'next/navigation';
 
 import { sanitizeUIMessages } from '@/lib/utils';
 
@@ -64,7 +65,8 @@ function PureMultimodalInput({
     chatRequestOptions?: ChatRequestOptions,
   ) => void;
   className?: string;
-}) {
+}) {;
+  const searchParams = useSearchParams();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
 
@@ -111,7 +113,7 @@ function PureMultimodalInput({
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
   const submitForm = useCallback(() => {
-    window.history.replaceState({}, '', `/chat/${chatId}`);
+    window.history.replaceState({}, '', `/chat/${chatId}?${searchParams}`);
 
     handleSubmit(undefined, {
       experimental_attachments: attachments,
@@ -130,6 +132,7 @@ function PureMultimodalInput({
     setLocalStorageInput,
     width,
     chatId,
+    searchParams,
   ]);
 
   const uploadFile = async (file: File) => {

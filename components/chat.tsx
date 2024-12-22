@@ -2,11 +2,12 @@
 
 import type { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
+import { useSearchParams } from 'next/navigation';
 import { useState } from 'react';
-import useSWR, { useSWRConfig } from 'swr';
+import useSWR, { SWRConfig, useSWRConfig } from 'swr';
 
 import { ChatHeader } from '@/components/chat-header';
-import type { Vote } from '@/lib/db/schema';
+import type { Agent, Vote } from '@/lib/db/schema';
 import { fetcher } from '@/lib/utils';
 
 import { Block } from './block';
@@ -17,6 +18,7 @@ import { useBlockSelector } from '@/hooks/use-block';
 
 export function Chat({
   id,
+  agents,
   initialMessages,
   selectedModelId,
   selectedVisibilityType,
@@ -24,11 +26,15 @@ export function Chat({
 }: {
   id: string;
   initialMessages: Array<Message>;
-  selectedModelId: string;
+  agents: Agent[];
   selectedVisibilityType: VisibilityType;
+  selectedModelId: string;
   isReadonly: boolean;
 }) {
+  const searchParams = useSearchParams();
   const { mutate } = useSWRConfig();
+
+  const agentId = searchParams.get('agentId') || agents[0]?.id || null;
 
   const {
     messages,
@@ -42,7 +48,7 @@ export function Chat({
     reload,
   } = useChat({
     id,
-    body: { id, modelId: selectedModelId },
+    body: { id, modelId: selectedModelId, agentId },
     initialMessages,
     experimental_throttle: 100,
     onFinish: () => {
@@ -59,15 +65,21 @@ export function Chat({
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
 
   return (
-    <>
+    <SWRConfig
+      value={{
+        fallback: {
+          '/api/agents': agents,
+        },
+      }}
+    >
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
           chatId={id}
+          selectedAgentId={agentId}
           selectedModelId={selectedModelId}
           selectedVisibilityType={selectedVisibilityType}
           isReadonly={isReadonly}
         />
-
         <Messages
           chatId={id}
           isLoading={isLoading}
@@ -78,7 +90,6 @@ export function Chat({
           isReadonly={isReadonly}
           isBlockVisible={isBlockVisible}
         />
-
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
           {!isReadonly && (
             <MultimodalInput
@@ -97,7 +108,6 @@ export function Chat({
           )}
         </form>
       </div>
-
       <Block
         chatId={id}
         input={input}
@@ -114,6 +124,6 @@ export function Chat({
         votes={votes}
         isReadonly={isReadonly}
       />
-    </>
+    </SWRConfig>
   );
 }
