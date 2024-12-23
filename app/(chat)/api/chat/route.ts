@@ -56,8 +56,13 @@ export async function POST(request: Request) {
     id,
     messages,
     modelId,
-  }: { id: string; messages: Array<Message>; modelId: string } =
-    await request.json();
+    agentId,
+  }: {
+    id: string;
+    messages: Array<Message>;
+    modelId: string;
+    agentId: string | null;
+  } = await request.json();
 
   const session = await auth();
 
@@ -89,7 +94,7 @@ export async function POST(request: Request) {
 
   await saveMessages({
     messages: [
-      { ...userMessage, id: userMessageId, createdAt: new Date(), chatId: id },
+      { ...userMessage, id: userMessageId, createdAt: new Date(), agentId, chatId: id },
     ],
   });
 
