@@ -1,12 +1,13 @@
-import { Dispatch, memo, SetStateAction } from 'react';
-import { UIBlock } from './block';
+import { type Dispatch, memo, type SetStateAction } from 'react';
+import type { ChatRequestOptions, Message } from 'ai';
+
+import type { Vote } from '@/lib/db/schema';
+import type { UIBlock } from './block';
 import { PreviewMessage } from './message';
 import { useScrollToBottom } from './use-scroll-to-bottom';
-import { Vote } from '@/lib/db/schema';
-import { ChatRequestOptions, Message } from 'ai';
 
 interface BlockMessagesProps {
-  chatId: string;
+  chatId?: string;
   block: UIBlock;
   setBlock: Dispatch<SetStateAction<UIBlock>>;
   isLoading: boolean;

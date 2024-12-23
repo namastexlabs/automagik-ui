@@ -1,6 +1,6 @@
 'use client';
 
-import { ReactNode, useMemo, useState } from 'react';
+import { type ReactNode, useMemo, useState } from 'react';
 import { Button } from '@/components/ui/button';
 import {
   DropdownMenu,
@@ -45,7 +45,7 @@ export function VisibilitySelector({
   className,
   selectedVisibilityType,
 }: {
-  chatId: string;
+  chatId?: string;
   selectedVisibilityType: VisibilityType;
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
@@ -70,6 +70,7 @@ export function VisibilitySelector({
         )}
       >
         <Button
+          disabled={!chatId}
           variant="outline"
           className="hidden md:flex md:px-2 md:h-[34px]"
         >

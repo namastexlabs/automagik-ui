@@ -10,17 +10,12 @@ import { z } from 'zod';
 import { auth } from '@/app/(auth)/auth';
 import { customModel } from '@/lib/ai';
 import { models } from '@/lib/ai/models';
-import {
-  codePrompt,
-  defaultSystemPrompt,
-  updateDocumentPrompt,
-} from '@/lib/ai/prompts';
+import { codePrompt, updateDocumentPrompt } from '@/lib/ai/prompts';
 import {
   deleteChatById,
   getAgentById,
   getChatById,
   getDocumentById,
-  saveChat,
   saveDocument,
   saveMessages,
   saveSuggestions,
@@ -31,8 +26,6 @@ import {
   getMostRecentUserMessage,
   sanitizeResponseMessages,
 } from '@/lib/utils';
-
-import { generateTitleFromUserMessage } from '../../actions';
 
 export const maxDuration = 60;
 
@@ -57,12 +50,10 @@ export async function POST(request: Request) {
     id,
     messages,
     modelId,
-    agentId,
   }: {
     id: string;
     messages: Array<Message>;
     modelId: string;
-    agentId: string | null;
   } = await request.json();
 
   const session = await auth();
@@ -77,6 +68,18 @@ export async function POST(request: Request) {
     return new Response('Model not found', { status: 404 });
   }
 
+  const chat = await getChatById({ id });
+
+  if (!chat || chat.userId !== session.user.id) {
+    return new Response('Chat not found', { status: 404 });
+  }
+
+  const agent = await getAgentById({ id: chat.agentId });
+
+  if (!agent) {
+    return new Response('Unexpected error', { status: 500 });
+  }
+
   const coreMessages = convertToCoreMessages(messages);
   const userMessage = getMostRecentUserMessage(coreMessages);
 
@@ -84,19 +87,10 @@ export async function POST(request: Request) {
     return new Response('No user message found', { status: 400 });
   }
 
-  const chat = await getChatById({ id });
-  const systemPrompt = agentId && (await getAgentById({ id: agentId }))?.systemPrompt;
-
-  if (!chat) {
-    const title = await generateTitleFromUserMessage({ message: userMessage });
-    await saveChat({ id, userId: session.user.id, title });
-  }
-
   const userMessageId = generateUUID();
-
   await saveMessages({
     messages: [
-      { ...userMessage, id: userMessageId, createdAt: new Date(), agentId, chatId: id },
+      { ...userMessage, id: userMessageId, createdAt: new Date(), chatId: chat.id },
     ],
   });
 
@@ -109,7 +103,7 @@ export async function POST(request: Request) {
 
   const result = streamText({
     model: customModel(model.apiIdentifier),
-    system: systemPrompt || defaultSystemPrompt,
+    system: agent.systemPrompt,
     messages: coreMessages,
     maxSteps: 5,
     experimental_activeTools: allTools,
@@ -429,10 +423,9 @@ export async function POST(request: Request) {
 
                 return {
                   id: messageId,
-                  chatId: id,
+                  chatId: chat.id,
                   role: message.role,
                   content: message.content,
-                  agentId: null,
                   createdAt: new Date(),
                 };
               },
@@ -472,6 +465,10 @@ export async function DELETE(request: Request) {
 
   try {
     const chat = await getChatById({ id });
+    
+    if (!chat) {
+      return new Response('Chat not found', { status: 404 });
+    }
 
     if (chat.userId !== session.user.id) {
       return new Response('Unauthorized', { status: 401 });

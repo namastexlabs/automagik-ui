@@ -31,7 +31,7 @@ const PurePreviewMessage = ({
   reload,
   isReadonly,
 }: {
-  chatId: string;
+  chatId?: string;
   message: Message;
   block: UIBlock;
   setBlock: Dispatch<SetStateAction<UIBlock>>;

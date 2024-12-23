@@ -16,9 +16,8 @@ import {
   message,
   vote,
   agent,
-  Agent,
 } from './schema';
-import { BlockKind } from '@/components/block';
+import type { BlockKind } from '@/components/block';
 
 // Optionally, if not using email/pass login, you can
 // use the Drizzle adapter for Auth.js / NextAuth
@@ -63,18 +62,23 @@ export async function saveChat({
   id,
   userId,
   title,
+  agentId,
 }: {
   id: string;
   userId: string;
   title: string;
+  agentId: string;
 }) {
   try {
-    return await db.insert(chat).values({
+    const [createdChat] = await db.insert(chat).values({
       id,
       createdAt: new Date(),
       userId,
       title,
-    });
+      agentId,
+    }).returning();
+
+    return createdChat;
   } catch (error) {
     console.error('Failed to save chat in database');
     throw error;
@@ -93,13 +97,19 @@ export async function deleteChatById({ id }: { id: string }) {
   }
 }
 
-export async function getChatsByUserId({ id }: { id: string }) {
+export async function getChats({
+  userId,
+  agentId,
+}: { userId: string; agentId?: string }) {
   try {
-    return await db
-      .select()
-      .from(chat)
-      .where(eq(chat.userId, id))
-      .orderBy(desc(chat.createdAt));
+    return await db.query.chat.findMany({
+      where: (chat, { and, eq }) =>
+        and(
+          eq(chat.userId, userId),
+          agentId ? eq(chat.agentId, agentId) : undefined,
+        ),
+      orderBy: (chat, { desc }) => [desc(chat.createdAt)],
+    });
   } catch (error) {
     console.error('Failed to get chats by user from database');
     throw error;
@@ -108,8 +118,9 @@ export async function getChatsByUserId({ id }: { id: string }) {
 
 export async function getChatById({ id }: { id: string }) {
   try {
-    const [selectedChat] = await db.select().from(chat).where(eq(chat.id, id));
-    return selectedChat;
+    return await db.query.chat.findFirst({
+      where: (chat, { eq }) => eq(chat.id, id),
+    });
   } catch (error) {
     console.error('Failed to get chat by id from database');
     throw error;

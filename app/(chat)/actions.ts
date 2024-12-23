@@ -1,6 +1,11 @@
 'use server';
 
-import { generateText, type CoreMessage } from 'ai';
+import {
+  convertToCoreMessages,
+  generateText,
+  type Message,
+  type CoreMessage,
+} from 'ai';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 
@@ -11,12 +16,14 @@ import {
   getAgentById,
   getMessageById,
   saveAgent,
+  saveChat,
   updateChatVisiblityById,
 } from '@/lib/db/queries';
-import { VisibilityType } from '@/components/visibility-selector';
+import type { VisibilityType } from '@/components/visibility-selector';
 import { auth } from '@/app/(auth)/auth';
-import { Agent } from '@/lib/db/schema';
+import type { Agent, Chat } from '@/lib/db/schema';
 import { notFound } from 'next/navigation';
+import { generateUUID, getMostRecentUserMessage } from '@/lib/utils';
 
 export type SaveAgentActionState = {
   status: 'failed' | 'invalid_data' | 'success' | 'idle' | 'in_progress';
@@ -68,6 +75,41 @@ export async function updateChatVisibility({
   visibility: VisibilityType;
 }) {
   await updateChatVisiblityById({ chatId, visibility });
+}
+
+export async function createChat({
+  agentId,
+  messages,
+}: {
+  agentId: string;
+  messages: Message[];
+}): Promise<Chat | null> {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return notFound();
+    }
+
+    const coreMessages = convertToCoreMessages(messages);
+    const userMessage = getMostRecentUserMessage(coreMessages);
+
+    if (!userMessage) {
+      return null;
+    }
+
+    const chat = await saveChat({
+      id: generateUUID(),
+      userId: session.user.id,
+      agentId: agentId,
+      title: await generateTitleFromUserMessage({ message: userMessage }),
+    });
+
+    return chat;
+  } catch (error) {
+    console.error('Failed to create chat', error);
+    return null;
+  }
 }
 
 export async function createAgent(

@@ -8,7 +8,7 @@ import type {
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 
-import type { Message as DBMessage, Document } from '@/lib/db/schema';
+import type { Chat, Message as DBMessage, Document } from '@/lib/db/schema';
 
 export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -221,4 +221,8 @@ export function getMessageIdFromAnnotations(message: Message) {
 
   // @ts-expect-error messageIdFromServer is not defined in MessageAnnotation
   return annotation.messageIdFromServer;
+}
+
+export function getSelectedAgent(searchParams: URLSearchParams, chat?: Chat) {
+  return chat?.agentId ?? searchParams.get('agentId');
 }

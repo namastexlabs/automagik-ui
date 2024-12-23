@@ -1,12 +1,11 @@
 'use client'
 
-import { useState } from "react";
+import { useActionState } from "react";
 import Form from "next/form";
-import { DialogTrigger } from "@radix-ui/react-dialog";
+import { toast } from "sonner";
+import { useSWRConfig } from "swr";
 
-import { PlusIcon } from "@/components/icons";
-import { Agent } from "@/lib/db/schema";
-import { Button } from "@/components/ui/button";
+import type { Agent } from "@/lib/db/schema";
 import {
   Dialog,
   DialogContent,
@@ -14,40 +13,56 @@ import {
   DialogHeader,
   DialogTitle
 } from "@/components/ui/dialog";
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 import { Label } from "@/components/ui/label";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { SubmitButton } from "@/components/submit-button";
+import { createAgent, type SaveAgentActionState } from "@/app/(chat)/actions";
 
-export function AgentFormDialog({ agent, formAction, isSuccessful }: {
-  isSuccessful: boolean;
+export function AgentFormDialog({
+  onSuccess,
+  agent,
+  isOpen,
+  setOpen,
+}: {
+  onSuccess: (agent: Agent) => void;
   agent?: Agent | null;
-  formAction: (payload: FormData) => void;
-}) {  
-	const [open, setOpen] = useState(false);
+  isOpen: boolean;
+  setOpen: (isOpen: boolean) => void;
+}) {
+  const { mutate } = useSWRConfig();
 
-  const onSubmit = (formData: FormData) => {
-    setOpen(false);
-    formAction(formData);
-  };
+  const [formState, formAction] = useActionState<SaveAgentActionState, FormData>(
+    async (previousState, formData) =>  {
+      const toastId = toast.loading('Creating agent...');
+      setOpen(false);
+
+      const state = await createAgent(previousState, formData)
+      toast.dismiss(toastId);
+
+      if (state.status === 'failed') {
+        toast.error('Unexpected error, please try again!');
+      } else if (state.status === 'invalid_data') {
+        toast.error('Failed validating your submission!');
+      } else if (state.status === 'success' && state.data) {
+        toast.success('Agent created successfully')
+        mutate<Agent[], Agent>('/api/agents', state.data, {
+          populateCache: (data, agents = []) => {
+            return [...agents, data];
+          },
+          revalidate: false,
+        });
+
+        onSuccess(state.data);
+      }
+
+      return state
+    },
+    { status: 'idle', data: null },
+  );
 
 	return (
-		<Dialog open={open} onOpenChange={setOpen}>
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <DialogTrigger asChild>
-            <Button
-              variant="ghost"
-              type="button"
-              className="relative ml-2 p-2 h-fit"
-            >
-              <PlusIcon />
-            </Button>
-          </DialogTrigger>
-        </TooltipTrigger>
-        <TooltipContent>New Agent</TooltipContent>
-      </Tooltip>
+		<Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogContent>
         <DialogHeader>
           <DialogTitle>
@@ -57,10 +72,13 @@ export function AgentFormDialog({ agent, formAction, isSuccessful }: {
             Create a new agent with a system prompt
           </DialogDescription>
         </DialogHeader>
-        <Form action={onSubmit}>
+        <Form action={formAction}>
             <div className="flex flex-col gap-8 py-3">
               <div className="flex flex-col gap-4">
-                <Label htmlFor="agentName" className="text-zinc-600 font-normal dark:text-zinc-400">
+                <Label
+                  htmlFor="agentName"
+                  className="text-zinc-600 font-normal dark:text-zinc-400"
+                >
                   Agent Name
                 </Label>
                 <Input
@@ -74,20 +92,27 @@ export function AgentFormDialog({ agent, formAction, isSuccessful }: {
                 />
               </div>
               <div className="flex flex-col gap-4">
-                <Label className="text-zinc-600 font-normal dark:text-zinc-400">
+                <Label
+                  htmlFor="systemPrompt"
+                  className="text-zinc-600 font-normal dark:text-zinc-400"
+                >
                   System Prompt
                 </Label>
                 <Textarea
                   id="systemPrompt"
                   name="systemPrompt"
-                  className="bg-muted text-md md:text-sm md:h-[150px]"
+                  className="bg-muted text-md md:text-sm md:h-[140px]"
                   placeholder="You are a useful assistant"
                   required
                   defaultValue={agent?.systemPrompt}
                 />
               </div>
             </div>
-            <SubmitButton isSuccessful={isSuccessful}>Save</SubmitButton>
+            <div className="flex justify-end mt-3">
+              <SubmitButton isSuccessful={formState.status === 'success'}>
+                Save
+              </SubmitButton>
+            </div>
           </Form>
       </DialogContent>
     </Dialog>
