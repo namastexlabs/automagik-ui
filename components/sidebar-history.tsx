@@ -2,7 +2,7 @@
 
 import { isToday, isYesterday, subMonths, subWeeks } from 'date-fns';
 import Link from 'next/link';
-import { useParams, usePathname, useRouter } from 'next/navigation';
+import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
 import type { User } from 'next-auth';
 import { memo, useEffect, useState } from 'react';
 import { toast } from 'sonner';
@@ -31,7 +31,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuPortal,
-  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -47,7 +46,7 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import type { Chat } from '@/lib/db/schema';
-import { fetcher } from '@/lib/utils';
+import { fetcher, getSelectedAgent } from '@/lib/utils';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 
 type GroupedChats = {
@@ -149,17 +148,37 @@ export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
   return true;
 });
 
-export function SidebarHistory({ user }: { user: User | undefined }) {
+export function SidebarHistory({
+  user,
+  initialChat,
+}: {
+  user: User | undefined;
+  initialChat?: Chat;
+}) {
+  const searchParams = useSearchParams();
   const { setOpenMobile } = useSidebar();
   const { id } = useParams();
   const pathname = usePathname();
+
+  const { data: chat, isLoading: isLoadingChat } = useSWR<Chat>(
+    id ? `/api/chat/${id}` : null,
+    fetcher,
+    { fallbackData: initialChat, revalidateOnMount: false },
+  );
+
+  const agentId = getSelectedAgent(searchParams, chat);
+
   const {
     data: history,
     isLoading,
     mutate,
-  } = useSWR<Array<Chat>>(user ? '/api/history' : null, fetcher, {
-    fallbackData: [],
-  });
+  } = useSWR<Array<Chat>>(
+    user && agentId
+      ? `/api/history?agentId=${agentId}`
+      : null,
+    fetcher,
+    { fallbackData: [] },
+  );
 
   useEffect(() => {
     mutate();
@@ -168,6 +187,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const router = useRouter();
+
   const handleDelete = async () => {
     const deletePromise = fetch(`/api/chat?id=${deleteId}`, {
       method: 'DELETE',
@@ -189,7 +209,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     setShowDeleteDialog(false);
 
     if (deleteId === id) {
-      router.push('/');
+      router.push(`/?agentId=${agentId}`);
     }
   };
 
@@ -205,7 +225,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     );
   }
 
-  if (isLoading) {
+  if (isLoading || isLoadingChat) {
     return (
       <SidebarGroup>
         <div className="px-2 py-1 text-xs text-sidebar-foreground/50">

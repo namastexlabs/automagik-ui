@@ -74,7 +74,7 @@ function PureBlock({
   votes,
   isReadonly,
 }: {
-  chatId: string;
+  chatId?: string;
   input: string;
   setInput: (input: string) => void;
   isLoading: boolean;
@@ -88,12 +88,7 @@ function PureBlock({
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
-  handleSubmit: (
-    event?: {
-      preventDefault?: () => void;
-    },
-    chatRequestOptions?: ChatRequestOptions,
-  ) => void;
+  handleSubmit: () => void;
   reload: (
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
@@ -333,7 +328,6 @@ function PureBlock({
 
                 <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
                   <MultimodalInput
-                    chatId={chatId}
                     input={input}
                     setInput={setInput}
                     handleSubmit={handleSubmit}

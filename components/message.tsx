@@ -29,7 +29,7 @@ const PurePreviewMessage = ({
   reload,
   isReadonly,
 }: {
-  chatId: string;
+  chatId?: string;
   message: Message;
   vote: Vote | undefined;
   isLoading: boolean;

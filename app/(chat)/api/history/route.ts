@@ -1,14 +1,31 @@
 import { auth } from '@/app/(auth)/auth';
-import { getChatsByUserId } from '@/lib/db/queries';
+import { getAgentById, getChats } from '@/lib/db/queries';
 
-export async function GET() {
+export async function GET(request: Request) {
   const session = await auth();
+  const { searchParams } = new URL(request.url);
+  const agentId = searchParams.get('agentId');
 
-  if (!session || !session.user) {
+  if (!session?.user?.id) {
     return Response.json('Unauthorized!', { status: 401 });
   }
 
-  // biome-ignore lint: Forbidden non-null assertion.
-  const chats = await getChatsByUserId({ id: session.user.id! });
+  if (!agentId) {
+    return Response.json('agentId is required!', { status: 400 });
+  }
+
+  const agent = await getAgentById({
+    id: agentId,
+  });
+
+  if (!agent || agent.userId !== session.user.id) {
+    return Response.json('Agent not found', { status: 404 });
+  }
+
+  const chats = await getChats({
+    userId: session.user.id,
+    agentId,
+  });
+
   return Response.json(chats);
 }

@@ -20,7 +20,6 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-import { useSearchParams } from 'next/navigation';
 
 import { sanitizeUIMessages } from '@/lib/utils';
 
@@ -28,11 +27,9 @@ import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { SuggestedActions } from './suggested-actions';
 import equal from 'fast-deep-equal';
 
 function PureMultimodalInput({
-  chatId,
   input,
   setInput,
   isLoading,
@@ -45,7 +42,6 @@ function PureMultimodalInput({
   handleSubmit,
   className,
 }: {
-  chatId: string;
   input: string;
   setInput: (value: string) => void;
   isLoading: boolean;
@@ -58,15 +54,9 @@ function PureMultimodalInput({
     message: Message | CreateMessage,
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
-  handleSubmit: (
-    event?: {
-      preventDefault?: () => void;
-    },
-    chatRequestOptions?: ChatRequestOptions,
-  ) => void;
+  handleSubmit: () => void;
   className?: string;
 }) {;
-  const searchParams = useSearchParams();
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
 
@@ -113,26 +103,21 @@ function PureMultimodalInput({
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
   const submitForm = useCallback(() => {
-    window.history.replaceState({}, '', `/chat/${chatId}?${searchParams}`);
+    if (input.length === 0) {
+      return;
+    }
 
-    handleSubmit(undefined, {
-      experimental_attachments: attachments,
-    });
-
-    setAttachments([]);
+    handleSubmit();
     setLocalStorageInput('');
 
     if (width && width > 768) {
       textareaRef.current?.focus();
     }
   }, [
-    attachments,
     handleSubmit,
-    setAttachments,
     setLocalStorageInput,
     width,
-    chatId,
-    searchParams,
+    input,
   ]);
 
   const uploadFile = async (file: File) => {
@@ -190,12 +175,6 @@ function PureMultimodalInput({
 
   return (
     <div className="relative w-full flex flex-col gap-4">
-      {messages.length === 0 &&
-        attachments.length === 0 &&
-        uploadQueue.length === 0 && (
-          <SuggestedActions append={append} chatId={chatId} />
-        )}
-
       <input
         type="file"
         className="fixed -top-4 -left-4 size-0.5 opacity-0 pointer-events-none"
@@ -271,6 +250,7 @@ function PureMultimodalInput({
 export const MultimodalInput = memo(
   PureMultimodalInput,
   (prevProps, nextProps) => {
+    if (prevProps.handleSubmit !== nextProps.handleSubmit) return false;
     if (prevProps.input !== nextProps.input) return false;
     if (prevProps.isLoading !== nextProps.isLoading) return false;
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
