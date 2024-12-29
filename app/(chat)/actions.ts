@@ -12,8 +12,10 @@ import { z } from 'zod';
 import { customModel } from '@/lib/ai';
 import {
   deleteAgentById,
+  deleteChatById,
   deleteMessagesByChatIdAfterTimestamp,
   getAgentById,
+  getChatById,
   getMessageById,
   saveAgent,
   saveChat,
@@ -83,7 +85,7 @@ export async function createChat({
 }: {
   agentId: string;
   messages: Message[];
-}): Promise<Chat | null> {
+}): Promise<{ status: 'failed' | 'success', data?: Chat }> {
   try {
     const session = await auth();
 
@@ -95,7 +97,7 @@ export async function createChat({
     const userMessage = getMostRecentUserMessage(coreMessages);
 
     if (!userMessage) {
-      return null;
+      return { status: 'failed' };
     }
 
     const chat = await saveChat({
@@ -105,10 +107,29 @@ export async function createChat({
       title: await generateTitleFromUserMessage({ message: userMessage }),
     });
 
-    return chat;
+    return { status: 'success', data: chat };
   } catch (error) {
     console.error('Failed to create chat', error);
-    return null;
+    return { status: 'failed' };
+  }
+}
+
+export async function deleteChat({
+  id
+}: { id: string }): Promise<{ status: 'failed' | 'success' }> {
+  const session = await auth();
+  const chat = await getChatById({ id });
+
+  if (!session?.user?.id || !chat || chat.userId !== session.user.id) {
+    return notFound();
+  }
+
+  try {
+    await deleteChatById({ id });
+    return { status: 'success' };
+  } catch (error) {
+    console.error('Failed to delete chat', error);
+    return { status: 'failed' };
   }
 }
 

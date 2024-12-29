@@ -78,7 +78,7 @@ function PureMessages({
 export const Messages = memo(PureMessages, (prevProps, nextProps) => {
   if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.isLoading && nextProps.isLoading) return false;
-  if (prevProps.messages.length !== nextProps.messages.length) return false;
+  if (prevProps.messages !== nextProps.messages) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
 
   return true;
