@@ -6,11 +6,11 @@ import { useCallback, useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
 import { toast } from 'sonner';
-import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 
 import { ChatHeader } from '@/components/chat-header';
 import type { Agent, Chat as ChatType, Vote } from '@/lib/db/schema';
-import { fetcher, getSelectedAgent } from '@/lib/utils';
+import { fetcher } from '@/lib/utils';
 import { createChat } from '@/app/(chat)/actions';
 
 import { Block } from './block';
@@ -18,17 +18,17 @@ import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import { useBlockSelector } from '@/hooks/use-block';
 import type { VisibilityType } from './visibility-selector';
-import { AgentFormDialog } from './agent-form-dialog';
+import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 
 export function Chat({
-  initialChat,
+  chat,
   initialAgents,
   initialMessages,
   selectedModelId,
   selectedVisibilityType,
   isReadonly,
 }: {
-  initialChat?: ChatType;
+  chat?: ChatType;
   initialMessages: Array<Message>;
   initialAgents: Agent[];
   selectedVisibilityType: VisibilityType;
@@ -37,36 +37,18 @@ export function Chat({
 }) {
   const { mutate } = useSWRConfig();
   const router = useRouter();
-  const pathname = usePathname();
-  const searchParams = useSearchParams();
   const { id } = useParams() as { id?: string };
   const { width: windowWidth = 1920, height: windowHeight = 1080 } =
     useWindowSize({ initializeWithValue: false });
 
-  const [isOpenAgentDialog, setOpenAgentDialog] = useState(false);
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  const { addTab, tabs } = useAgentTabs();
 
-  const { data: chat } = useSWR<ChatType>(
-    id ? `/api/chat/${id}` : null,
-    fetcher,
-    {
-      fallbackData: initialChat,
-      revalidateOnMount: false
-    },
-  );
+  const { currentTab, setTab } = useCurrentAgentTab();
 
   const { data: votes } = useSWR<Array<Vote>>(
     chat?.id ? `/api/vote?chatId=${chat.id}` : null,
     fetcher,
-  );
-
-  const { data: agents = [] } = useSWR<Array<Agent>>(
-    '/api/agents',
-    fetcher,
-    {
-      fallbackData: initialAgents,
-      revalidateOnMount: false,
-    },
   );
 
   const {
@@ -88,25 +70,68 @@ export function Chat({
   });
 
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
-  const initialAgentId = getSelectedAgent(searchParams, chat);
-  const agentId = initialAgentId || agents[0]?.id || null;
 
-  useEffect(() => {
-    if (pathname !== '/' || isLoading) {
-      return;
+  const { data: agents = [] } = useSWR<Array<Agent>>(
+    '/api/agents',
+    fetcher,
+    {
+      fallbackData: initialAgents,
+      revalidateOnMount: false,
+    },
+  );
+
+  const [openAgentListDialog, setOpenAgentListDialog] = useState(false);
+  const [agentDialogState, setAgentDialogState] = useState<{
+    agentId: string | null;
+    isOpen: boolean;
+  }>({ isOpen: false, agentId: null });
+
+  const changeAgentDialog = useCallback(
+    (isOpen: boolean, agentId: string | null = null) => {
+      setAgentDialogState({
+        agentId,
+        isOpen,
+      });
+    },
+    []
+  );
+
+  const getOrCreateChat = useCallback(async (messages: Message[], tab: string) => {
+    if (!chat) {
+      const { status, data } = await createChat({
+        agentId: tab,
+        messages,
+      });
+
+      if (status === 'failed' || !data) {
+        return null;
+      }
+
+      mutate(`/api/history?agentId=${tab}`, data, {
+        revalidate: false,
+        populateCache: (data, history = []) => {
+          return [data, ...history];
+        },
+      });
+
+      return data;
     }
 
-    if (agentId === initialAgents[0]?.id && !initialAgentId) {
-      router.push(`/?agentId=${agentId}`);
-    }
-  }, [agentId, initialAgentId, initialAgents, router, pathname, isLoading]);
-
-  const changeAgentDialog = (open: boolean) => setOpenAgentDialog(open);
+    return chat;
+  }, [chat, mutate]);
 
   const onSubmit = useCallback(
-    async (currentAgentId: string | null = agentId) => {
-      if (!currentAgentId) {
-        changeAgentDialog(true);
+    async (currentAgent: string | null = currentTab, currentAgents = agents, currentTabs = tabs) => {        
+      if (currentAgents.length === 0) {
+        setAgentDialogState({
+          agentId: null,
+          isOpen: true,
+        });
+        return;
+      }
+
+      if (currentTabs.length === 0 || !currentAgent) {
+        setOpenAgentListDialog(true);
         return;
       }
 
@@ -119,17 +144,10 @@ export function Chat({
         }
       
 
-      let data = chat || null;
+      const data = await getOrCreateChat([...messages, message], currentAgent);
       if (!data) {
-        data = await createChat({
-          messages: [...messages, message],
-          agentId: currentAgentId,
-        });
-
-        if (!data) {
-          toast.error('Something went wrong, please try again!');
-          return;
-        }
+        toast.error('Something went wrong, please try again!');
+        return;
       }
 
       setInput('');
@@ -147,37 +165,51 @@ export function Chat({
       }
     },
     [
-      agentId,
+      tabs,
       chat,
+      currentTab,
       input,
+      attachments,
+      setInput,
+      append,
+      selectedModelId,
       messages,
       router,
-      selectedModelId,
-      attachments,
-      append,
-      setInput,
+      agents,
+      getOrCreateChat,
     ]
   );
 
-  const onSaveAgent = (agent: Agent) => {
-    if (!agentId) {
-      onSubmit(agent.id);
-    } else {
-      router.push(`/?agentId=${agent.id}`);
+  useEffect(() => {
+    if (currentTab) {
+      return;
     }
-  }
+
+    const hasAgentForChat = !!id && agents.some((agent) => agent.id === chat?.agentId);
+    if (chat?.agentId && hasAgentForChat && id === chat.id) {
+      if (tabs.includes(chat.agentId)) {
+        setTab(chat.agentId);
+      }
+    } else {
+      router.push('/');
+      setTab(tabs[0] || null);
+    }
+  }, [tabs, router, currentTab, setTab, addTab, chat, id, agents]);
 
   return (
     <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
-          chatId={chat?.id}
           agents={agents}
-          selectedAgentId={agentId}
+          chatId={chat?.id}
           selectedModelId={selectedModelId}
           selectedVisibilityType={selectedVisibilityType}
           isReadonly={isReadonly}
-          openAgentDialog={() => changeAgentDialog(true)}
+          openAgentListDialog={openAgentListDialog}
+          agentDialog={agentDialogState}
+          changeAgentDialog={changeAgentDialog}
+          changeAgentListDialog={setOpenAgentListDialog}
+          onSubmit={onSubmit}
         />
         <Messages
           chatId={chat?.id}
@@ -199,9 +231,7 @@ export function Chat({
               stop={stop}
               attachments={attachments}
               setAttachments={setAttachments}
-              messages={messages}
               setMessages={setMessages}
-              append={append}
             />
           )}
         </form>
@@ -221,11 +251,6 @@ export function Chat({
         reload={reload}
         votes={votes}
         isReadonly={isReadonly}
-      />
-      <AgentFormDialog
-        onSuccess={onSaveAgent}
-        isOpen={isOpenAgentDialog}
-        setOpen={changeAgentDialog}
       />
     </>
   );

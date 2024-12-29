@@ -9,9 +9,10 @@ import { convertToUIMessages } from '@/lib/utils';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
+import { AgentTabsProvider } from '@/components/agent-tabs-provider';
 
-export default async function Page(props: { params: Promise<{ id: string }> }) {
-  const { id } = await props.params;
+export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+  const { id } = await params;
   const chat = await getChatById({ id });
 
   if (!chat) {
@@ -20,7 +21,6 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
 
   const session = await auth();
 
-  
   if (session?.user?.id !== chat.userId) {
     return notFound();
   }
@@ -40,19 +40,21 @@ export default async function Page(props: { params: Promise<{ id: string }> }) {
     DEFAULT_MODEL_NAME;
 
   return (
-    <SidebarProvider defaultOpen={!isCollapsed}>
-      <AppSidebar user={session?.user} initialChat={chat} />
-      <SidebarInset>
-        <Chat
-          initialChat={chat}
-          initialAgents={agentsFromDb}
-          initialMessages={convertToUIMessages(messagesFromDb)}
-          selectedModelId={selectedModelId}
-          selectedVisibilityType={chat.visibility}
-          isReadonly={session?.user?.id !== chat.userId}
-        />
-        <DataStreamHandler id={id} />
-      </SidebarInset>
-  </SidebarProvider>
+    <AgentTabsProvider>
+      <SidebarProvider defaultOpen={!isCollapsed}>
+        <AppSidebar user={session?.user} />
+        <SidebarInset>
+          <Chat
+            chat={chat}
+            initialAgents={agentsFromDb}
+            initialMessages={convertToUIMessages(messagesFromDb)}
+            selectedModelId={selectedModelId}
+            selectedVisibilityType={chat.visibility}
+            isReadonly={session?.user?.id !== chat.userId}
+          />
+          <DataStreamHandler id={id} />
+        </SidebarInset>
+      </SidebarProvider>
+    </AgentTabsProvider>
   );
 }

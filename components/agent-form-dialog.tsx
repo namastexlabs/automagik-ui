@@ -1,6 +1,6 @@
 'use client'
 
-import { useActionState } from "react";
+import { useActionState, useEffect, useRef } from "react";
 import Form from "next/form";
 import { toast } from "sonner";
 import { useSWRConfig } from "swr";
@@ -24,46 +24,48 @@ export function AgentFormDialog({
   agent,
   isOpen,
   setOpen,
+  openAgentListDialog,
 }: {
   onSuccess: (agent: Agent) => void;
   agent?: Agent | null;
   isOpen: boolean;
   setOpen: (isOpen: boolean) => void;
+  openAgentListDialog: boolean;
 }) {
   const { mutate } = useSWRConfig();
+  const onSuccessRef = useRef(onSuccess);
 
   const [formState, formAction] = useActionState<SaveAgentActionState, FormData>(
-    async (previousState, formData) =>  {
-      const toastId = toast.loading('Creating agent...');
-      setOpen(false);
-
-      const state = await createAgent(previousState, formData)
-      toast.dismiss(toastId);
-
-      if (state.status === 'failed') {
-        toast.error('Unexpected error, please try again!');
-      } else if (state.status === 'invalid_data') {
-        toast.error('Failed validating your submission!');
-      } else if (state.status === 'success' && state.data) {
-        toast.success('Agent created successfully')
-        mutate<Agent[], Agent>('/api/agents', state.data, {
-          populateCache: (data, agents = []) => {
-            return [...agents, data];
-          },
-          revalidate: false,
-        });
-
-        onSuccess(state.data);
-      }
-
-      return state
-    },
+    createAgent,
     { status: 'idle', data: null },
   );
 
+  useEffect(() => {
+    onSuccessRef.current = onSuccess;
+  }, [onSuccess]);
+
+  useEffect(() => {
+    if (formState.status === 'failed') {
+      toast.error('Unexpected error, please try again!');
+    } else if (formState.status === 'invalid_data') {
+      toast.error('Failed validating your submission!');
+    } else if (formState.status === 'success' && formState.data) {
+      toast.success('Agent created successfully')
+      mutate<Agent[], Agent>('/api/agents', formState.data, {
+        populateCache: (data, agents = []) => {
+          return [...agents, data];
+        },
+        revalidate: false,
+      });
+
+      setOpen(false);
+      onSuccessRef.current(formState.data);
+    }
+  }, [formState, setOpen, mutate]);
+
 	return (
 		<Dialog open={isOpen} onOpenChange={setOpen}>
-      <DialogContent>
+      <DialogContent hideOverlay={openAgentListDialog}>
         <DialogHeader>
           <DialogTitle>
             {agent ? `Update ${agent.agentName}` : 'New Agent'}

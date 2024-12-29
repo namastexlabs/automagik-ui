@@ -2,9 +2,9 @@
 
 import { isToday, isYesterday, subMonths, subWeeks } from 'date-fns';
 import Link from 'next/link';
-import { useParams, usePathname, useRouter, useSearchParams } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import type { User } from 'next-auth';
-import { memo, useEffect, useState } from 'react';
+import { memo, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
@@ -46,8 +46,10 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import type { Chat } from '@/lib/db/schema';
-import { fetcher, getSelectedAgent } from '@/lib/utils';
+import { fetcher } from '@/lib/utils';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
+import { useCurrentAgentTab } from '@/contexts/agent-tabs';
+import { deleteChat } from '@/app/(chat)/actions';
 
 type GroupedChats = {
   today: Chat[];
@@ -148,68 +150,57 @@ export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
   return true;
 });
 
-export function SidebarHistory({
-  user,
-  initialChat,
-}: {
-  user: User | undefined;
-  initialChat?: Chat;
-}) {
-  const searchParams = useSearchParams();
+export function SidebarHistory({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
   const { id } = useParams();
-  const pathname = usePathname();
-
-  const { data: chat, isLoading: isLoadingChat } = useSWR<Chat>(
-    id ? `/api/chat/${id}` : null,
-    fetcher,
-    { fallbackData: initialChat, revalidateOnMount: false },
-  );
-
-  const agentId = getSelectedAgent(searchParams, chat);
+  const { currentTab } = useCurrentAgentTab();
 
   const {
     data: history,
     isLoading,
     mutate,
   } = useSWR<Array<Chat>>(
-    user && agentId
-      ? `/api/history?agentId=${agentId}`
+    user && currentTab
+      ? `/api/history?agentId=${currentTab}`
       : null,
     fetcher,
-    { fallbackData: [] },
+    {
+      fallbackData: [],
+      revalidateOnFocus: false,
+    },
   );
-
-  useEffect(() => {
-    mutate();
-  }, [pathname, mutate]);
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const router = useRouter();
 
   const handleDelete = async () => {
-    const deletePromise = fetch(`/api/chat?id=${deleteId}`, {
-      method: 'DELETE',
-    });
+    let status: 'success' | 'failed' | undefined;
+    const loadingToastId = toast.loading('Deleting chat...');
+    try {
+      const payload = await deleteChat({
+        id: deleteId as string,
+      });
 
-    toast.promise(deletePromise, {
-      loading: 'Deleting chat...',
-      success: () => {
-        mutate((history) => {
-          if (history) {
-            return history.filter((h) => h.id !== id);
-          }
-        });
-        return 'Chat deleted successfully';
-      },
-      error: 'Failed to delete chat',
-    });
+      status = payload.status;
+    } finally {
+      toast.dismiss(loadingToastId);
 
-    setShowDeleteDialog(false);
+      if (status === 'success') {
+        toast.success('Chat deleted successfully');
 
-    if (deleteId === id) {
-      router.push(`/?agentId=${agentId}`);
+        if (deleteId === id) {
+          router.push('/');
+        }
+
+        mutate((history = []) => (
+          history.filter((chat) => chat.id !== deleteId)
+        ));
+
+        setShowDeleteDialog(false);
+      } else if (status === 'failed') {
+        toast.error('Failed to delete chat');
+      }
     }
   };
 
@@ -225,7 +216,7 @@ export function SidebarHistory({
     );
   }
 
-  if (isLoading || isLoadingChat) {
+  if (isLoading) {
     return (
       <SidebarGroup>
         <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
