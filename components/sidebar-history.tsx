@@ -160,9 +160,7 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     isLoading,
     mutate,
   } = useSWR<Array<Chat>>(
-    user && currentTab
-      ? `/api/history?agentId=${currentTab}`
-      : null,
+    user && currentTab ? `/api/history?agentId=${currentTab}` : null,
     fetcher,
     {
       fallbackData: [],
@@ -193,9 +191,9 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
           router.push('/');
         }
 
-        mutate((history = []) => (
-          history.filter((chat) => chat.id !== deleteId)
-        ));
+        mutate((history = []) =>
+          history.filter((chat) => chat.id !== deleteId),
+        );
 
         setShowDeleteDialog(false);
       } else if (status === 'failed') {

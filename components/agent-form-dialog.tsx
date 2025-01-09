@@ -68,29 +68,32 @@ export function AgentFormDialog({
       <DialogContent hideOverlay={openAgentListDialog}>
         <DialogHeader>
           <DialogTitle>
-            {agent ? `Update ${agent.agentName}` : 'New Agent'}
+            {agent ? `Update ${agent.name}` : 'New Agent'}
           </DialogTitle>
           <DialogDescription>
-            Create a new agent with a system prompt
+            {agent
+              ? 'Update an existing agent'
+              : 'Create a new agent with a system prompt'}
           </DialogDescription>
         </DialogHeader>
         <Form action={formAction}>
+          <input type="hidden" name="id" value={agent?.id} />
             <div className="flex flex-col gap-8 py-3">
               <div className="flex flex-col gap-4">
                 <Label
-                  htmlFor="agentName"
+                htmlFor="name"
                   className="text-zinc-600 font-normal dark:text-zinc-400"
                 >
                   Agent Name
                 </Label>
                 <Input
-                  id="agentName"
-                  name="agentName"
+                id="name"
+                name="name"
                   className="bg-muted text-md md:text-sm"
                   placeholder="Content Writer"
                   required
                   autoFocus
-                  defaultValue={agent?.agentName}
+                defaultValue={agent?.name}
                 />
               </div>
               <div className="flex flex-col gap-4">
@@ -118,5 +121,5 @@ export function AgentFormDialog({
           </Form>
       </DialogContent>
     </Dialog>
-	)
+  );
 }

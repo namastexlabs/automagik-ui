@@ -6,7 +6,7 @@ import type { Agent } from '@/lib/db/schema';
 import { AgentTabs } from '@/components/agent-tabs';
 import {
   VisibilitySelector,
-  type VisibilityType
+  type VisibilityType,
 } from '@/components/visibility-selector';
 
 export function ChatHeader({
@@ -32,8 +32,8 @@ export function ChatHeader({
     isOpen: boolean;
   };
   changeAgentDialog: (isOpen: boolean, agentId?: string) => void;
-  changeAgentListDialog: (isOpen: boolean) => void
-  onSubmit: (agentId?: string, agents?: Agent[], tabs?: string[]) => void
+  changeAgentListDialog: (isOpen: boolean) => void;
+  onSubmit: (agentId?: string, agents?: Agent[], tabs?: string[]) => void;
 }) {
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">

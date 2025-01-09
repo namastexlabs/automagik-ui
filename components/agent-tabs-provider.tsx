@@ -1,7 +1,7 @@
-'use client'
+'use client';
 
-import { useMemo, useState } from "react";
-import { useLocalStorage } from "usehooks-ts";
+import { useMemo, useState } from 'react';
+import { useLocalStorage } from 'usehooks-ts';
 
 import {
   AgentTabsContext,
@@ -22,26 +22,36 @@ export function AgentTabsProvider({
 
   const currentTabcontext = useMemo(
     (): CurrentAgentTabContextValue => ({
-    currentTab,
-    setTab: (id: string | null) => {
-      setTab(id);
-      if (id) {
-        setTabCookie(id);
-      } else {
-        resetTabCookie();
-      }
-    },
+      currentTab,
+      setTab: (id: string | null) => {
+        setTab(id);
+        if (id) {
+          setTabCookie(id);
+        } else {
+          resetTabCookie();
+        }
+      },
     }),
     [currentTab],
   );
 
-  const tabsContext = useMemo((): AgentTabsContextValue => ({
-    tabs,
-    addTab: (tab: string) => setTabs((state) => [...state, tab]),
-    removeTab: (tab: string) => setTabs(
-      (state) => state.filter((t) => t !== tab)
-    ),
-  }), [tabs, setTabs]);
+  const tabsContext = useMemo(
+    (): AgentTabsContextValue => ({
+      tabs,
+      addTab: (tab: string) => setTabs((state) => [...state, tab]),
+      removeTab: (tab: string) =>
+        setTabs((state) => state.filter((t) => t !== tab)),
+      toggleTab: (tab: string) =>
+        setTabs((state) => {
+          if (state.includes(tab)) {
+            return state.filter((t) => t !== tab);
+          } else {
+            return [...state, tab];
+          }
+        }),
+    }),
+    [tabs, setTabs],
+  );
 
   return (
     <AgentTabsContext.Provider value={tabsContext}>
@@ -49,5 +59,5 @@ export function AgentTabsProvider({
         {children}
       </CurrentAgentTabContext.Provider>
     </AgentTabsContext.Provider>
-  )
+  );
 }

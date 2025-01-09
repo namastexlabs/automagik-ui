@@ -1,13 +1,17 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { EditIcon, PlusIcon, TrashIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
 
-import { deleteAgent } from "@/app/(chat)/actions";
-import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip';
+import { deleteAgent } from '@/app/(chat)/actions';
+import {
+  Tooltip,
+  TooltipTrigger,
+  TooltipContent,
+} from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import type{ Agent } from '@/lib/db/schema';
+import type { Agent } from '@/lib/db/schema';
 import {
   Dialog,
   DialogContent,
@@ -44,8 +48,27 @@ export function AgentListDialog({
   const router = useRouter();
   const { mutate } = useSWRConfig();
   const [agentDelete, setAgentDelete] = useState<string | null>(null);
-  const { tabs, addTab, removeTab } = useAgentTabs();
+  const { tabs, removeTab, toggleTab } = useAgentTabs();
   const { currentTab, setTab } = useCurrentAgentTab();
+
+  const sortedAgents = useMemo(
+    () =>
+      agents.toSorted((a, b) => {
+        const tabIndexA = tabs.indexOf(a.id);
+        if (tabIndexA === -1) {
+          return 1;
+        }
+
+        const tabIndexB = tabs.indexOf(b.id);
+        if (tabIndexB === -1) {
+          return -1;
+        }
+
+        return tabIndexA - tabIndexB;
+      }),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [agents, isOpenAgentListDialog],
+  );
 
   const handleDelete = async (agentId: string) => {
     toast.promise(deleteAgent({ id: agentId }), {
@@ -53,7 +76,7 @@ export function AgentListDialog({
       success: () => {
         removeTab(agentId);
         mutate('/api/agents', (agents: Agent[] = []) => {
-          const newAgents =  agents.filter((agent) => agent.id !== agentId);
+          const newAgents = agents.filter((agent) => agent.id !== agentId);
 
           if (newAgents.length === 0) {
             router.push('/');
@@ -75,16 +98,16 @@ export function AgentListDialog({
   };
 
   const handleCheckboxChange = (agentId: string, isChecked: boolean) => {
-    if (isChecked) {
-      addTab(agentId);
-    } else {
-      removeTab(agentId);
+    if (isChecked && tabs.length === 0) {
+      setTab(agentId);
     }
+
+    toggleTab(agentId);
   };
 
   return (
     <Dialog open={isOpenAgentListDialog} onOpenChange={openAgentListDialog}>
-      <DialogContent>
+      <DialogContent className="w-[600px]">
         <DialogHeader>
           <DialogTitle>Agents</DialogTitle>
           <DialogDescription>
@@ -92,21 +115,39 @@ export function AgentListDialog({
           </DialogDescription>
         </DialogHeader>
         <div className="flex flex-col gap-3 pt-3 max-h-[40vh] overflow-y-auto">
-          {agents.map(agent => (
-            <div key={agent.id} className="flex justify-between items-center px-2 py-1 rounded-md border hover:border-zinc-300">
+          {sortedAgents.map((agent) => (
+            // biome-ignore lint/a11y/useKeyWithClickEvents: This is already interactive with the checkbox
+            // biome-ignore lint/nursery/noStaticElementInteractions: This is already interactive with the checkbox
+            <div
+              key={`${agent.id} ${tabs.includes(agent.id)}`}
+              onClick={() =>
+                tabs.includes(agent.id)
+                  ? handleCheckboxChange(agent.id, false)
+                  : handleCheckboxChange(agent.id, true)
+              }
+              className="flex justify-between items-center px-2 py-1 rounded-md border hover:border-zinc-300 cursor-pointer"
+            >
               <div className="flex items-center space-x-3">
                 <Checkbox
+                  key={tabs.includes(agent.id) ? 'checked' : 'unchecked'}
+                  checked={tabs.includes(agent.id)}
                   id={agent.id}
-                  checked={tabs.includes(agent.id)} 
-                  onCheckedChange={(isChecked) => (
+                  onClick={(e) => {
+                    e.stopPropagation();
+                  }}
+                  onCheckedChange={(isChecked) =>
                     handleCheckboxChange(
-                      agent.id, isChecked !== 'indeterminate' && !!isChecked
+                      agent.id,
+                      isChecked !== 'indeterminate' && !!isChecked,
                     )
-                  )}
+                  }
                   className={`size-6 ${tabs.includes(agent.id) ? 'bg-black text-white' : 'bg-black border border-zinc-400'}`}
                 />
-                <Label htmlFor={agent.id} className="w-[350px] cursor-pointer truncate">
-                  {agent.agentName}
+                <Label
+                  htmlFor={agent.id}
+                  className="w-[350px] truncate cursor-pointer"
+                >
+                  {agent.name}
                 </Label>
               </div>
               <div className="flex item-center space-x-2">
@@ -116,7 +157,10 @@ export function AgentListDialog({
                       type="button"
                       variant="ghost"
                       className="size-8 p-1"
-                      onClick={() => openAgentDialog(agent.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        openAgentDialog(agent.id);
+                      }}
                     >
                       <EditIcon />
                     </Button>
@@ -129,7 +173,10 @@ export function AgentListDialog({
                       type="button"
                       variant="ghost"
                       className="hover:bg-destructive size-8 p-1"
-                      onClick={() => setAgentDelete(agent.id)}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        setAgentDelete(agent.id);
+                      }}
                     >
                       <TrashIcon />
                     </Button>
@@ -193,4 +240,4 @@ export function AgentListDialog({
       </DialogContent>
     </Dialog>
   );
-};
+}
