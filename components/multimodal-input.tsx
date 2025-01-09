@@ -44,7 +44,7 @@ function PureMultimodalInput({
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
   handleSubmit: () => void;
   className?: string;
-}) {;
+}) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
 
@@ -101,12 +101,7 @@ function PureMultimodalInput({
     if (width && width > 768) {
       textareaRef.current?.focus();
     }
-  }, [
-    handleSubmit,
-    setLocalStorageInput,
-    width,
-    input,
-  ]);
+  }, [handleSubmit, setLocalStorageInput, width, input]);
 
   const uploadFile = async (file: File) => {
     const formData = new FormData();

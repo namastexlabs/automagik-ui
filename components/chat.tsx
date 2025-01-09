@@ -64,16 +64,16 @@ export function Chat({
   } = useChat({
     id: chat?.id,
     initialMessages,
+    body: {
+      id: chat?.id,
+      modelId: selectedModelId,
+    },
   });
 
-  const { data: agents = [] } = useSWR<Array<Agent>>(
-    '/api/agents',
-    fetcher,
-    {
-      fallbackData: initialAgents,
-      revalidateOnMount: false,
-    },
-  );
+  const { data: agents = [] } = useSWR<Array<Agent>>('/api/agents', fetcher, {
+    fallbackData: initialAgents,
+    revalidateOnMount: false,
+  });
 
   const [openAgentListDialog, setOpenAgentListDialog] = useState(false);
   const [agentDialogState, setAgentDialogState] = useState<{
@@ -103,35 +103,42 @@ export function Chat({
         isOpen,
       });
     },
-    []
+    [],
   );
 
-  const getOrCreateChat = useCallback(async (messages: Message[], tab: string) => {
-    if (!chat) {
-      const { status, data } = await createChat({
-        agentId: tab,
-        messages,
-      });
+  const getOrCreateChat = useCallback(
+    async (messages: Message[], tab: string) => {
+      if (!chat) {
+        const { status, data } = await createChat({
+          agentId: tab,
+          messages,
+        });
 
-      if (status === 'failed' || !data) {
-        return null;
+        if (status === 'failed' || !data) {
+          return null;
+        }
+
+        mutate(`/api/history?agentId=${tab}`, data, {
+          revalidate: false,
+          populateCache: (data, history = []) => {
+            return [data, ...history];
+          },
+        });
+
+        return data;
       }
 
-      mutate(`/api/history?agentId=${tab}`, data, {
-        revalidate: false,
-        populateCache: (data, history = []) => {
-          return [data, ...history];
-        },
-      });
-
-      return data;
-    }
-
-    return chat;
-  }, [chat, mutate]);
+      return chat;
+    },
+    [chat, mutate],
+  );
 
   const onSubmit = useCallback(
-    async (currentAgent: string | null = currentTab, currentAgents = agents, currentTabs = tabs) => {        
+    async (
+      currentAgent: string | null = currentTab,
+      currentAgents = agents,
+      currentTabs = tabs,
+    ) => {
       if (currentAgents.length === 0) {
         setAgentDialogState({
           agentId: null,
@@ -146,13 +153,12 @@ export function Chat({
       }
 
       const message: Message = {
-          id: generateId(),
-          createdAt: new Date(),
-          role: 'user',
-          content: input,
-          experimental_attachments: attachments,
-        }
-      
+        id: generateId(),
+        createdAt: new Date(),
+        role: 'user',
+        content: input,
+        experimental_attachments: attachments,
+      };
 
       const data = await getOrCreateChat([...messages, message], currentAgent);
       if (!data) {
@@ -187,7 +193,7 @@ export function Chat({
       router,
       agents,
       getOrCreateChat,
-    ]
+    ],
   );
 
   useEffect(() => {
@@ -195,7 +201,8 @@ export function Chat({
       return;
     }
 
-    const hasAgentForChat = !!id && agents.some((agent) => agent.id === chat?.agentId);
+    const hasAgentForChat =
+      !!id && agents.some((agent) => agent.id === chat?.agentId);
     if (chat?.agentId && hasAgentForChat && id === chat.id) {
       if (tabs.includes(chat.agentId)) {
         setTab(chat.agentId);
@@ -207,11 +214,13 @@ export function Chat({
   }, [tabs, router, currentTab, setTab, addTab, chat, id, agents]);
 
   return (
-    <SWRConfig value={{
-      fallback: {
-        '/api/agents': initialAgents,
-      }
-    }}>
+    <SWRConfig
+      value={{
+        fallback: {
+          '/api/agents': initialAgents,
+        },
+      }}
+    >
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
           agents={agents}
@@ -227,7 +236,6 @@ export function Chat({
         />
         <Messages
           chatId={chat?.id}
-          block={block}
           setBlock={setBlock}
           isLoading={isLoading}
           votes={votes}
