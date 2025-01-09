@@ -1,23 +1,14 @@
 import 'server-only';
 
 import { genSaltSync, hashSync } from 'bcrypt-ts';
-import { and, asc, desc, eq, gt, gte } from 'drizzle-orm';
+import { and, asc, eq, gt, gte, inArray } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
+import type { SzObject } from 'zodex';
 
-import {
-  user,
-  chat,
-  type User,
-  document,
-  type Suggestion,
-  suggestion,
-  type Message,
-  message,
-  vote,
-  agent,
-} from './schema';
 import type { BlockKind } from '@/components/block';
+
+import * as schema from './schema';
 
 // Optionally, if not using email/pass login, you can
 // use the Drizzle adapter for Auth.js / NextAuth
@@ -25,21 +16,14 @@ import type { BlockKind } from '@/components/block';
 
 // biome-ignore lint: Forbidden non-null assertion.
 const client = postgres(process.env.POSTGRES_URL!);
-const db = drizzle(client, {
-  schema: {
-    user,
-    chat,
-    document,
-    suggestion,
-    message,
-    vote,
-    agent,
-  }
-});
+export const db = drizzle(client, { schema });
 
-export async function getUser(email: string): Promise<Array<User>> {
+export async function getUser(email: string): Promise<Array<schema.User>> {
   try {
-    return await db.select().from(user).where(eq(user.email, email));
+    return await db
+      .select()
+      .from(schema.user)
+      .where(eq(schema.user.email, email));
   } catch (error) {
     console.error('Failed to get user from database');
     throw error;
@@ -51,7 +35,7 @@ export async function createUser(email: string, password: string) {
   const hash = hashSync(password, salt);
 
   try {
-    return await db.insert(user).values({ email, password: hash });
+    return await db.insert(schema.user).values({ email, password: hash });
   } catch (error) {
     console.error('Failed to create user in database');
     throw error;
@@ -70,13 +54,16 @@ export async function saveChat({
   agentId: string;
 }) {
   try {
-    const [createdChat] = await db.insert(chat).values({
+    const [createdChat] = await db
+      .insert(schema.chat)
+      .values({
       id,
       createdAt: new Date(),
       userId,
       title,
       agentId,
-    }).returning();
+      })
+      .returning();
 
     return createdChat;
   } catch (error) {
@@ -87,10 +74,10 @@ export async function saveChat({
 
 export async function deleteChatById({ id }: { id: string }) {
   try {
-    await db.delete(vote).where(eq(vote.chatId, id));
-    await db.delete(message).where(eq(message.chatId, id));
+    await db.delete(schema.vote).where(eq(schema.vote.chatId, id));
+    await db.delete(schema.message).where(eq(schema.message.chatId, id));
 
-    return await db.delete(chat).where(eq(chat.id, id));
+    return await db.delete(schema.chat).where(eq(schema.chat.id, id));
   } catch (error) {
     console.error('Failed to delete chat by id from database');
     throw error;
@@ -127,9 +114,11 @@ export async function getChatById({ id }: { id: string }) {
   }
 }
 
-export async function saveMessages({ messages }: { messages: Array<Message> }) {
+export async function saveMessages({
+  messages,
+}: { messages: Array<schema.Message> }) {
   try {
-    return await db.insert(message).values(messages);
+    return await db.insert(schema.message).values(messages);
   } catch (error) {
     console.error('Failed to save messages in database', error);
     throw error;
@@ -140,9 +129,9 @@ export async function getMessagesByChatId({ id }: { id: string }) {
   try {
     return await db
       .select()
-      .from(message)
-      .where(eq(message.chatId, id))
-      .orderBy(asc(message.createdAt));
+      .from(schema.message)
+      .where(eq(schema.message.chatId, id))
+      .orderBy(asc(schema.message.createdAt));
   } catch (error) {
     console.error('Failed to get messages by chat id from database', error);
     throw error;
@@ -161,16 +150,21 @@ export async function voteMessage({
   try {
     const [existingVote] = await db
       .select()
-      .from(vote)
-      .where(and(eq(vote.messageId, messageId)));
+      .from(schema.vote)
+      .where(and(eq(schema.vote.messageId, messageId)));
 
     if (existingVote) {
       return await db
-        .update(vote)
+        .update(schema.vote)
         .set({ isUpvoted: type === 'up' })
-        .where(and(eq(vote.messageId, messageId), eq(vote.chatId, chatId)));
+        .where(
+          and(
+            eq(schema.vote.messageId, messageId),
+            eq(schema.vote.chatId, chatId),
+          ),
+        );
     }
-    return await db.insert(vote).values({
+    return await db.insert(schema.vote).values({
       chatId,
       messageId,
       isUpvoted: type === 'up',
@@ -183,7 +177,10 @@ export async function voteMessage({
 
 export async function getVotesByChatId({ id }: { id: string }) {
   try {
-    return await db.select().from(vote).where(eq(vote.chatId, id));
+    return await db
+      .select()
+      .from(schema.vote)
+      .where(eq(schema.vote.chatId, id));
   } catch (error) {
     console.error('Failed to get votes by chat id from database', error);
     throw error;
@@ -204,14 +201,19 @@ export async function saveDocument({
   userId: string;
 }) {
   try {
-    return await db.insert(document).values({
+    const [createdDocument] = await db
+      .insert(schema.document)
+      .values({
       id,
       title,
       kind,
       content,
       userId,
       createdAt: new Date(),
-    });
+      })
+      .returning();
+
+    return createdDocument;
   } catch (error) {
     console.error('Failed to save document in database');
     throw error;
@@ -222,9 +224,9 @@ export async function getDocumentsById({ id }: { id: string }) {
   try {
     const documents = await db
       .select()
-      .from(document)
-      .where(eq(document.id, id))
-      .orderBy(asc(document.createdAt));
+      .from(schema.document)
+      .where(eq(schema.document.id, id))
+      .orderBy(asc(schema.document.createdAt));
 
     return documents;
   } catch (error) {
@@ -235,11 +237,10 @@ export async function getDocumentsById({ id }: { id: string }) {
 
 export async function getDocumentById({ id }: { id: string }) {
   try {
-    const [selectedDocument] = await db
-      .select()
-      .from(document)
-      .where(eq(document.id, id))
-      .orderBy(desc(document.createdAt));
+    const selectedDocument = await db.query.document.findFirst({
+      where: (document, { eq }) => eq(document.id, id),
+      orderBy: (document, { desc }) => [desc(document.createdAt)],
+    });
 
     return selectedDocument;
   } catch (error) {
@@ -257,17 +258,22 @@ export async function deleteDocumentsByIdAfterTimestamp({
 }) {
   try {
     await db
-      .delete(suggestion)
+      .delete(schema.suggestion)
       .where(
         and(
-          eq(suggestion.documentId, id),
-          gt(suggestion.documentCreatedAt, timestamp),
+          eq(schema.suggestion.documentId, id),
+          gt(schema.suggestion.documentCreatedAt, timestamp),
         ),
       );
 
     return await db
-      .delete(document)
-      .where(and(eq(document.id, id), gt(document.createdAt, timestamp)));
+      .delete(schema.document)
+      .where(
+        and(
+          eq(schema.document.id, id),
+          gt(schema.document.createdAt, timestamp),
+        ),
+      );
   } catch (error) {
     console.error(
       'Failed to delete documents by id after timestamp from database',
@@ -279,10 +285,10 @@ export async function deleteDocumentsByIdAfterTimestamp({
 export async function saveSuggestions({
   suggestions,
 }: {
-  suggestions: Array<Suggestion>;
+  suggestions: Array<schema.Suggestion>;
 }) {
   try {
-    return await db.insert(suggestion).values(suggestions);
+    return await db.insert(schema.suggestion).values(suggestions);
   } catch (error) {
     console.error('Failed to save suggestions in database');
     throw error;
@@ -297,8 +303,8 @@ export async function getSuggestionsByDocumentId({
   try {
     return await db
       .select()
-      .from(suggestion)
-      .where(and(eq(suggestion.documentId, documentId)));
+      .from(schema.suggestion)
+      .where(and(eq(schema.suggestion.documentId, documentId)));
   } catch (error) {
     console.error(
       'Failed to get suggestions by document version from database',
@@ -309,7 +315,10 @@ export async function getSuggestionsByDocumentId({
 
 export async function getMessageById({ id }: { id: string }) {
   try {
-    return await db.select().from(message).where(eq(message.id, id));
+    return await db
+      .select()
+      .from(schema.message)
+      .where(eq(schema.message.id, id));
   } catch (error) {
     console.error('Failed to get message by id from database');
     throw error;
@@ -325,9 +334,12 @@ export async function deleteMessagesByChatIdAfterTimestamp({
 }) {
   try {
     return await db
-      .delete(message)
+      .delete(schema.message)
       .where(
-        and(eq(message.chatId, chatId), gte(message.createdAt, timestamp)),
+        and(
+          eq(schema.message.chatId, chatId),
+          gte(schema.message.createdAt, timestamp),
+        ),
       );
   } catch (error) {
     console.error(
@@ -345,7 +357,10 @@ export async function updateChatVisiblityById({
   visibility: 'private' | 'public';
 }) {
   try {
-    return await db.update(chat).set({ visibility }).where(eq(chat.id, chatId));
+    return await db
+      .update(schema.chat)
+      .set({ visibility })
+      .where(eq(schema.chat.id, chatId));
   } catch (error) {
     console.error('Failed to update chat visibility in database');
     throw error;
@@ -357,7 +372,7 @@ export async function getAgentsByUserId({ userId }: { userId: string }) {
     return await db.query.agent.findMany({
       where: (agent, { eq }) => eq(agent.userId, userId),
       orderBy: (agent, { asc }) => [asc(agent.createdAt)],
-    })
+    });
   } catch (error) {
     console.error('Failed to get agents in database');
     throw error;
@@ -368,6 +383,15 @@ export async function getAgentById({ id }: { id: string }) {
   try {
     return await db.query.agent.findFirst({
       where: (agent, { eq }) => eq(agent.id, id),
+      with: {
+        tools: {
+          columns: {},
+          with: {
+            agent: true,
+            tool: true,
+          },
+        },
+      },
     });
   } catch (error) {
     console.error('Failed to get agents in database');
@@ -375,16 +399,20 @@ export async function getAgentById({ id }: { id: string }) {
   }
 }
 
-export async function saveAgent({
-  agentName,
+export async function createAgent({
+  name,
   systemPrompt,
-  userId
-}: { agentName: string; systemPrompt: string; userId: string }) {
+  userId,
+}: {
+  name: string;
+  systemPrompt: string;
+  userId: string;
+}) {
   try {
     const [createdAgent] = await db
-      .insert(agent)
+      .insert(schema.agent)
       .values({
-        agentName,
+        name,
         systemPrompt,
         userId,
       })
@@ -392,7 +420,7 @@ export async function saveAgent({
 
       return createdAgent;
   } catch (error) {
-    console.error(`Failed to create agent ${agentName} in database`);
+    console.error(`Failed to create agent ${name} in database`);
     throw error;
   }
 }
@@ -400,12 +428,16 @@ export async function saveAgent({
 export async function updateAgent({
   id,
   ...data
-}: { id: string; agentName?: string; systemPrompt?: string }) {
+}: {
+  id: string;
+  name?: string;
+  systemPrompt?: string;
+}) {
   try {
     const [updatedAgent] = await db
-      .update(agent)
+      .update(schema.agent)
       .set(data)
-      .where(eq(agent.id, id))
+      .where(eq(schema.agent.id, id))
       .returning();
 
     return updatedAgent;
@@ -417,9 +449,84 @@ export async function updateAgent({
 
 export async function deleteAgentById({ id }: { id: string }) {
   try {
-    return await db.delete(agent).where(eq(agent.id, id));
+    return await db.delete(schema.agent).where(eq(schema.agent.id, id));
   } catch (error) {
     console.error(`Failed to delete agent ${id} in database`);
     throw error;
   }
 }
+
+export async function getInternalTools() {
+  try {
+    return await db.query.tool.findMany({
+      where: (tool, { eq }) => eq(tool.source, 'internal'),
+    });
+  } catch (error) {
+    console.error('Failed to get internal tools in database');
+    throw error;
+  }
+}
+
+export async function getAllToolsById(ids: string[]) {
+  try {
+    return await db.query.tool.findMany({
+      where: (tool, { inArray }) => inArray(tool.id, ids),
+    });
+  } catch (error) {
+    console.error('Failed to get tools in database');
+    throw error;
+  }
+}
+
+export async function createTool(data: {
+  name: string;
+  verboseName: string;
+  description: string;
+  parameters: SzObject;
+  source: schema.Tool['source'];
+}) {
+  try {
+    const [createdTool] = await db.insert(schema.tool).values(data).returning();
+
+    return createdTool;
+  } catch (error) {
+    console.error(`Failed to create tool ${data.name} in database`);
+    throw error;
+  }
+}
+
+export async function updateTool({
+  id,
+  ...data
+}: {
+  id: string;
+  name?: string;
+  verboseName?: string;
+  description?: string;
+  parameters?: SzObject;
+  source?: schema.Tool['source'];
+  agentId?: string;
+}) {
+  try {
+    const [updatedTool] = await db
+      .update(schema.tool)
+      .set(data)
+      .where(eq(schema.tool.id, id))
+      .returning();
+
+    return updatedTool;
+  } catch (error) {
+    console.error(`Failed to update tool ${id} in database`);
+    throw error;
+  }
+}
+
+export async function deleteToolById({ id }: { id: string }) {
+  try {
+    return await db.delete(schema.tool).where(eq(schema.tool.id, id));
+  } catch (error) {
+    console.error(`Failed to delete tool ${id} in database`);
+    throw error;
+  }
+}
+

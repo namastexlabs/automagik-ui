@@ -4,13 +4,19 @@ import { notFound } from 'next/navigation';
 import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat';
 import { DEFAULT_MODEL_NAME, models } from '@/lib/ai/models';
-import { getAgentsByUserId, getChatById, getMessagesByChatId } from '@/lib/db/queries';
+import {
+  getAgentsByUserId,
+  getChatById,
+  getMessagesByChatId,
+} from '@/lib/db/queries';
 import { convertToUIMessages } from '@/lib/utils';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AgentTabsProvider } from '@/components/agent-tabs-provider';
 
-export default async function Page({ params }: { params: Promise<{ id: string }> }) {
+export default async function Page({
+  params,
+}: { params: Promise<{ id: string }> }) {
   const { id } = await params;
   const chat = await getChatById({ id });
 
@@ -24,8 +30,9 @@ export default async function Page({ params }: { params: Promise<{ id: string }>
     return notFound();
   }
 
-  const agentsFromDb =
-    session?.user?.id ? await getAgentsByUserId({ userId: session?.user.id }) : [];
+  const agentsFromDb = session?.user?.id
+    ? await getAgentsByUserId({ userId: session?.user.id })
+    : [];
 
   const messagesFromDb = await getMessagesByChatId({
     id,

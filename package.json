@@ -15,7 +15,8 @@
     "db:push": "drizzle-kit push",
     "db:pull": "drizzle-kit pull",
     "db:check": "drizzle-kit check",
-    "db:up": "drizzle-kit up"
+    "db:up": "drizzle-kit up",
+    "db:update-tools": "npx tsx --conditions=react-server lib/db/generate-internal-tools.ts"
   },
   "dependencies": {
     "@ai-sdk/openai": "1.0.6",
@@ -77,7 +78,8 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "usehooks-ts": "^3.1.0",
-    "zod": "^3.23.8"
+    "zod": "^3.23.8",
+    "zodex": "^0.18.2"
   },
   "devDependencies": {
     "@biomejs/biome": "1.9.4",

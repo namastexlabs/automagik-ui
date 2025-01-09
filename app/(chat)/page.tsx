@@ -7,7 +7,7 @@ import { getAgentsByUserId } from '@/lib/db/queries';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AgentTabsProvider } from '@/components/agent-tabs-provider';
-import { AGENT_COOKIE_KEY } from '@/lib/agents/agent-cookies';
+import { AGENT_COOKIE_KEY } from '@/lib/agents/cookies';
 
 export default async function Page() {
   const session = await auth();
@@ -16,8 +16,9 @@ export default async function Page() {
   const tabCookie = cookieStore.get(AGENT_COOKIE_KEY)?.value;
   const modelIdFromCookie = cookieStore.get('model-id')?.value;
 
-  const agentsFromDb =
-    session?.user?.id ? await getAgentsByUserId({ userId: session?.user.id }) : [];
+  const agentsFromDb = session?.user?.id
+    ? await getAgentsByUserId({ userId: session?.user.id })
+    : [];
 
   const selectedModelId =
     models.find((model) => model.id === modelIdFromCookie)?.id ||

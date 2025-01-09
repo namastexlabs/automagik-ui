@@ -8,19 +8,20 @@ import {
   CurrentAgentTabContext,
   type CurrentAgentTabContextValue,
   type AgentTabsContextValue,
-} from "@/contexts/agent-tabs";
-import { resetTabCookie, setTabCookie } from "@/lib/agents/agent-cookies";
+} from '@/contexts/agent-tabs';
+import { resetTabCookie, setTabCookie } from '@/lib/agents/cookies';
 
 export function AgentTabsProvider({
   children,
-  initialTab
-}: { children: React.ReactNode, initialTab?: string }) {
+  initialTab,
+}: { children: React.ReactNode; initialTab?: string }) {
   const [tabs, setTabs] = useLocalStorage<string[]>('agent-tabs', [], {
     initializeWithValue: false,
   });
   const [currentTab, setTab] = useState<string | null>(initialTab || null);
 
-  const currentTabcontext = useMemo((): CurrentAgentTabContextValue => ({
+  const currentTabcontext = useMemo(
+    (): CurrentAgentTabContextValue => ({
     currentTab,
     setTab: (id: string | null) => {
       setTab(id);
@@ -30,7 +31,9 @@ export function AgentTabsProvider({
         resetTabCookie();
       }
     },
-  }), [currentTab]);
+    }),
+    [currentTab],
+  );
 
   const tabsContext = useMemo((): AgentTabsContextValue => ({
     tabs,
