@@ -1,8 +1,22 @@
 import { memo, type SetStateAction } from 'react';
-
-import type { BlockKind, UIBlock } from './block';
-import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from './icons';
 import { toast } from 'sonner';
+
+import type {
+  InternalToolInvocationPayload,
+  InternalToolName,
+  InternalToolReturn,
+} from '@/lib/agents/tool-declarations/client';
+
+import type { UIBlock } from './block';
+import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from './icons';
+
+type DocumentToolName =
+  | InternalToolName.createDocument
+  | InternalToolName.updateDocument
+  | InternalToolName.requestSuggestions;
+
+type CreateDocumentInvocation =
+  InternalToolInvocationPayload<InternalToolName.createDocument>['args'];
 
 const getActionText = (
   type: 'create' | 'update' | 'request-suggestions',
@@ -22,20 +36,46 @@ const getActionText = (
   }
 };
 
-interface DocumentToolResultProps {
+const hasResult = (
+  state: InternalToolInvocationPayload['state'],
+  result: InternalToolReturn<DocumentToolName> | undefined,
+): result is InternalToolReturn<InternalToolName.createDocument> => {
+  return state === 'result' && !!result && !Object.hasOwn(result, 'error');
+};
+
+type DocumentToolResultProps = {
+  args: InternalToolInvocationPayload<DocumentToolName>['args'];
   type: 'create' | 'update' | 'request-suggestions';
-  result: { id: string; title: string; kind: BlockKind };
-  block: UIBlock;
+  result: InternalToolReturn<DocumentToolName> | undefined;
+  state: InternalToolInvocationPayload<DocumentToolName>['state'];
   setBlock: (value: SetStateAction<UIBlock>) => void;
   isReadonly: boolean;
-}
+};
 
 function PureDocumentToolResult({
   type,
+  state,
+  args,
   result,
   setBlock,
   isReadonly,
 }: DocumentToolResultProps) {
+  if (!hasResult(state, result)) {
+    const title =
+      args && 'title' in args
+        ? (args as CreateDocumentInvocation).title
+        : undefined;
+
+    return (
+      <DocumentToolCall
+        title={title}
+        type={type}
+        setBlock={setBlock}
+        isReadonly={isReadonly}
+      />
+    );
+  }
+
   return (
     <button
       type="button"
@@ -86,19 +126,14 @@ function PureDocumentToolResult({
 
 export const DocumentToolResult = memo(PureDocumentToolResult, () => true);
 
-interface DocumentToolCallProps {
-  type: 'create' | 'update' | 'request-suggestions';
-  args: { title: string };
-  setBlock: (value: SetStateAction<UIBlock>) => void;
-  isReadonly: boolean;
-}
-
 function PureDocumentToolCall({
   type,
-  args,
+  title,
   setBlock,
   isReadonly,
-}: DocumentToolCallProps) {
+}: Omit<DocumentToolResultProps, 'result' | 'state' | 'args'> & {
+  title?: string;
+}) {
   return (
     <button
       type="button"
@@ -139,7 +174,7 @@ function PureDocumentToolCall({
         </div>
 
         <div className="text-left">
-          {`${getActionText(type, 'present')} ${args.title ? `"${args.title}"` : ''}`}
+          {`${getActionText(type, 'present')} ${title ? `"${title}"` : ''}`}
         </div>
       </div>
 

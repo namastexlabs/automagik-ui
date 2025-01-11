@@ -3,27 +3,29 @@
 import type { ChatRequestOptions, Message } from 'ai';
 import cx from 'classnames';
 import { motion } from 'framer-motion';
+import equal from 'fast-deep-equal';
 import { memo, useState, type Dispatch, type SetStateAction } from 'react';
 
+import {
+  internalToolNames,
+  type InternalToolInvocationPayload,
+} from '@/lib/agents/tool-declarations/client';
 import type { Vote } from '@/lib/db/schema';
+import { cn } from '@/lib/utils';
 
 import type { UIBlock } from './block';
-import { DocumentToolCall, DocumentToolResult } from './document';
 import { PencilEditIcon, SparklesIcon } from './icons';
 import { Markdown } from './markdown';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
-import { Weather } from './weather';
-import equal from 'fast-deep-equal';
-import { cn } from '@/lib/utils';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { MessageEditor } from './message-editor';
+import { ToolInvocation } from './internal-tool-invocation';
 
-const PurePreviewMessage = ({
+function PurePreviewMessage({
   chatId,
   message,
-  block,
   setBlock,
   vote,
   isLoading,
@@ -33,7 +35,6 @@ const PurePreviewMessage = ({
 }: {
   chatId?: string;
   message: Message;
-  block: UIBlock;
   setBlock: Dispatch<SetStateAction<UIBlock>>;
   vote: Vote | undefined;
   isLoading: boolean;
@@ -44,7 +45,7 @@ const PurePreviewMessage = ({
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
-}) => {
+}) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
   return (
@@ -128,77 +129,19 @@ const PurePreviewMessage = ({
           {message.toolInvocations && message.toolInvocations.length > 0 && (
             <div className="flex flex-col gap-4">
               {message.toolInvocations.map((toolInvocation) => {
-                const { toolName, toolCallId, state, args } = toolInvocation;
-
-                if (state === 'result') {
-                  const { result } = toolInvocation;
-
-                  return (
-                    <div key={toolCallId}>
-                      {toolName === 'getWeather' ? (
-                        <Weather weatherAtLocation={result} />
-                      ) : toolName === 'createDocument' ? (
-                        <DocumentToolResult
-                          type="create"
-                          result={result}
-                          block={block}
-                          setBlock={setBlock}
-                          isReadonly={isReadonly}
-                        />
-                      ) : toolName === 'updateDocument' ? (
-                        <DocumentToolResult
-                          type="update"
-                          result={result}
-                          block={block}
-                          setBlock={setBlock}
-                          isReadonly={isReadonly}
-                        />
-                      ) : toolName === 'requestSuggestions' ? (
-                        <DocumentToolResult
-                          type="request-suggestions"
-                          result={result}
-                          block={block}
-                          setBlock={setBlock}
-                          isReadonly={isReadonly}
-                        />
-                      ) : (
-                        <pre>{JSON.stringify(result, null, 2)}</pre>
-                      )}
-                    </div>
-                  );
+                if (!internalToolNames.includes(toolInvocation.toolName)) {
+                  return null;
                 }
+
                 return (
-                  <div
-                    key={toolCallId}
-                    className={cx({
-                      skeleton: ['getWeather'].includes(toolName),
-                    })}
-                  >
-                    {toolName === 'getWeather' ? (
-                      <Weather />
-                    ) : toolName === 'createDocument' ? (
-                      <DocumentToolCall
-                        type="create"
-                        args={args}
-                        setBlock={setBlock}
-                        isReadonly={isReadonly}
-                      />
-                    ) : toolName === 'updateDocument' ? (
-                      <DocumentToolCall
-                        type="update"
-                        args={args}
-                        setBlock={setBlock}
-                        isReadonly={isReadonly}
-                      />
-                    ) : toolName === 'requestSuggestions' ? (
-                      <DocumentToolCall
-                        type="request-suggestions"
-                        args={args}
-                        setBlock={setBlock}
-                        isReadonly={isReadonly}
-                      />
-                    ) : null}
-                  </div>
+                  <ToolInvocation
+                    key={`${toolInvocation.toolCallId} ${toolInvocation.state}`}
+                    toolInvocation={
+                      toolInvocation as InternalToolInvocationPayload
+                    }
+                    setBlock={setBlock}
+                    isReadonly={isReadonly}
+                  />
                 );
               })}
             </div>
@@ -217,7 +160,7 @@ const PurePreviewMessage = ({
       </div>
     </motion.div>
   );
-};
+}
 
 export const PreviewMessage = memo(
   PurePreviewMessage,

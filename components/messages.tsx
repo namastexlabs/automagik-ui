@@ -9,7 +9,6 @@ import equal from 'fast-deep-equal';
 
 interface MessagesProps {
   chatId?: string;
-  block: UIBlock;
   setBlock: Dispatch<SetStateAction<UIBlock>>;
   isLoading: boolean;
   votes: Array<Vote> | undefined;
@@ -25,7 +24,6 @@ interface MessagesProps {
 
 function PureMessages({
   chatId,
-  block,
   setBlock,
   isLoading,
   votes,
@@ -49,7 +47,6 @@ function PureMessages({
           key={message.id}
           chatId={chatId}
           message={message}
-          block={block}
           setBlock={setBlock}
           isLoading={isLoading && messages.length - 1 === index}
           vote={
