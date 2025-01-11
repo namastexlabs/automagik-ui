@@ -57,11 +57,11 @@ export async function saveChat({
     const [createdChat] = await db
       .insert(schema.chat)
       .values({
-      id,
-      createdAt: new Date(),
-      userId,
-      title,
-      agentId,
+        id,
+        createdAt: new Date(),
+        userId,
+        title,
+        agentId,
       })
       .returning();
 
@@ -204,12 +204,12 @@ export async function saveDocument({
     const [createdDocument] = await db
       .insert(schema.document)
       .values({
-      id,
-      title,
-      kind,
-      content,
-      userId,
-      createdAt: new Date(),
+        id,
+        title,
+        kind,
+        content,
+        userId,
+        createdAt: new Date(),
       })
       .returning();
 
@@ -372,12 +372,22 @@ export async function getAgentsByUserId({ userId }: { userId: string }) {
     return await db.query.agent.findMany({
       where: (agent, { eq }) => eq(agent.userId, userId),
       orderBy: (agent, { asc }) => [asc(agent.createdAt)],
+      with: {
+        tools: {
+          columns: {},
+          with: {
+            tool: true,
+          },
+        },
+      },
     });
   } catch (error) {
     console.error('Failed to get agents in database');
     throw error;
   }
 }
+
+export type AgentWithTools = Awaited<ReturnType<typeof getAgentsByUserId>>[number];
 
 export async function getAgentById({ id }: { id: string }) {
   try {
@@ -387,7 +397,6 @@ export async function getAgentById({ id }: { id: string }) {
         tools: {
           columns: {},
           with: {
-            agent: true,
             tool: true,
           },
         },
@@ -418,7 +427,7 @@ export async function createAgent({
       })
       .returning();
 
-      return createdAgent;
+    return createdAgent;
   } catch (error) {
     console.error(`Failed to create agent ${name} in database`);
     throw error;
@@ -530,3 +539,46 @@ export async function deleteToolById({ id }: { id: string }) {
   }
 }
 
+export async function getAllAgentToTools(agentId: string) {
+  try {
+    return await db.query.agentsToTools.findMany({
+      where: (agentsToTools, { eq }) => eq(agentsToTools.agentId, agentId),
+    });
+  } catch (error) {
+    console.error(`Failed to get agent to tools in database`);
+    throw error;
+  }
+}
+
+export async function createAgentToTool(
+  data: {
+    agentId: string;
+    toolId: string;
+  }[],
+) {
+  try {
+    return await db.insert(schema.agentsToTools).values(data);
+  } catch (error) {
+    console.error(`Failed to create agent to tool in database`);
+    throw error;
+  }
+}
+
+export async function deleteAllAgentToTools(
+  agentId: string,
+  toolIds: string[],
+) {
+  try {
+    return await db
+      .delete(schema.agentsToTools)
+      .where(
+        and(
+          eq(schema.agentsToTools.agentId, agentId),
+          inArray(schema.agentsToTools.toolId, toolIds),
+        ),
+      );
+  } catch (error) {
+    console.error(`Failed to delete agent to tools in database`);
+    throw error;
+  }
+}

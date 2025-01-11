@@ -11,15 +11,21 @@ import { z } from 'zod';
 
 import { customModel } from '@/lib/ai';
 import {
+  createAgentToTool,
   deleteAgentById,
   deleteChatById,
   deleteMessagesByChatIdAfterTimestamp,
   getAgentById,
+  getAllToolsById,
   getChatById,
   getMessageById,
-  saveAgent,
+  createAgent,
   saveChat,
   updateChatVisiblityById,
+  updateAgent,
+  getAllAgentToTools,
+  deleteAllAgentToTools,
+  type AgentWithTools,
 } from '@/lib/db/queries';
 import type { VisibilityType } from '@/components/visibility-selector';
 import { auth } from '@/app/(auth)/auth';
@@ -29,13 +35,14 @@ import { generateUUID, getMostRecentUserMessage } from '@/lib/utils';
 
 export type SaveAgentActionState = {
   status: 'failed' | 'invalid_data' | 'success' | 'idle' | 'in_progress';
-  data: Agent | null
-}
+  data: AgentWithTools | null;
+};
 
 const agentFormSchema = z.object({
-  agentName: z.string(),
+  name: z.string(),
   systemPrompt: z.string(),
-})
+  tools: z.array(z.string()).default([]),
+});
 
 export async function saveModelId(model: string) {
   const cookieStore = await cookies();
@@ -85,7 +92,7 @@ export async function createChat({
 }: {
   agentId: string;
   messages: Message[];
-}): Promise<{ status: 'failed' | 'success', data?: Chat }> {
+}): Promise<{ status: 'failed' | 'success'; data?: Chat }> {
   try {
     const session = await auth();
 
@@ -115,7 +122,7 @@ export async function createChat({
 }
 
 export async function deleteChat({
-  id
+  id,
 }: { id: string }): Promise<{ status: 'failed' | 'success' }> {
   const session = await auth();
   const chat = await getChatById({ id });
@@ -133,14 +140,16 @@ export async function deleteChat({
   }
 }
 
-export async function createAgent(
+export async function saveAgent(
   _: SaveAgentActionState,
-  formData: FormData
+  formData: FormData,
 ): Promise<SaveAgentActionState> {
   try {
+    const id = formData.get('id') as string;
     const validatedData = agentFormSchema.parse({
-      agentName: formData.get('agentName'),
-      systemPrompt: formData.get('systemPrompt')
+      name: formData.get('name'),
+      systemPrompt: formData.get('systemPrompt'),
+      tools: formData.getAll('tools'),
     });
 
     const session = await auth();
@@ -149,15 +158,58 @@ export async function createAgent(
       return { status: 'failed', data: null };
     }
 
-    const agent = await saveAgent({ ...validatedData, userId: session.user.id });
+    const formTools = await getAllToolsById(validatedData.tools);
 
-    return { status: 'success', data: agent };
+    let agent: Agent;
+    if (id) {
+      agent = await updateAgent({
+        id,
+        name: validatedData.name,
+        systemPrompt: validatedData.systemPrompt,
+      });
+
+      const agentTools = await getAllAgentToTools(id);
+      const newTools = formTools.filter(
+        (tool) => !agentTools.find((at) => at.toolId === tool.id),
+      );
+      const deletedTools = agentTools.filter(
+        (at) => !formTools.find((tool) => tool.id === at.toolId),
+      );
+
+      if (newTools.length > 0) {
+        await createAgentToTool(
+          newTools.map((tool) => ({ agentId: id, toolId: tool.id })),
+        );
+      }
+
+      if (deletedTools.length > 0) {
+        await deleteAllAgentToTools(
+          id,
+          deletedTools.map(({ toolId }) => toolId),
+        );
+      }
+    } else {
+      agent = await createAgent({
+        ...validatedData,
+        userId: session.user.id,
+      });
+
+      await createAgentToTool(
+        formTools.map((tool) => ({ agentId: agent.id, toolId: tool.id })),
+      );
+    }
+
+    return { status: 'success', data: {
+      ...agent,
+      tools: formTools.map(tool => ({ tool })),
+    } };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data', data: null };
     }
 
-    return { status: 'failed', data: null }
+    console.error('Failed to save agent', error);
+    return { status: 'failed', data: null };
   }
 }
 

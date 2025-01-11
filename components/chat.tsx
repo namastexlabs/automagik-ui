@@ -4,13 +4,13 @@ import { generateId, type Attachment, type Message } from 'ai';
 import { useChat } from 'ai/react';
 import { AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
-import useSWR, { SWRConfig, useSWRConfig } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
 import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 
 import { ChatHeader } from '@/components/chat-header';
-import type { Agent, Chat as ChatType, Vote } from '@/lib/db/schema';
+import type { Chat as ChatType, Vote } from '@/lib/db/schema';
 import { fetcher } from '@/lib/utils';
 import { createChat } from '@/app/(chat)/actions';
 
@@ -20,6 +20,7 @@ import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import type { VisibilityType } from './visibility-selector';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
+import type { AgentWithTools } from '@/lib/db/queries';
 
 export function Chat({
   chat,
@@ -31,7 +32,7 @@ export function Chat({
 }: {
   chat?: ChatType;
   initialMessages: Array<Message>;
-  initialAgents: Agent[];
+  initialAgents: AgentWithTools[];
   selectedVisibilityType: VisibilityType;
   selectedModelId: string;
   isReadonly: boolean;
@@ -70,10 +71,14 @@ export function Chat({
     },
   });
 
-  const { data: agents = [] } = useSWR<Array<Agent>>('/api/agents', fetcher, {
-    fallbackData: initialAgents,
-    revalidateOnMount: false,
-  });
+  const { data: agents = [] } = useSWR<Array<AgentWithTools>>(
+    '/api/agents',
+    fetcher,
+    {
+      fallbackData: initialAgents,
+      revalidateOnMount: false,
+    },
+  );
 
   const [openAgentListDialog, setOpenAgentListDialog] = useState(false);
   const [agentDialogState, setAgentDialogState] = useState<{
@@ -214,13 +219,7 @@ export function Chat({
   }, [tabs, router, currentTab, setTab, addTab, chat, id, agents]);
 
   return (
-    <SWRConfig
-      value={{
-        fallback: {
-          '/api/agents': initialAgents,
-        },
-      }}
-    >
+    <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
           agents={agents}
@@ -281,6 +280,6 @@ export function Chat({
         )}
       </AnimatePresence>
       <BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
-    </SWRConfig>
+    </>
   );
 }

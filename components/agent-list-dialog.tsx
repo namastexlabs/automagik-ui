@@ -129,24 +129,10 @@ export function AgentListDialog({
             >
               <div className="flex items-center space-x-3">
                 <Checkbox
-                  key={tabs.includes(agent.id) ? 'checked' : 'unchecked'}
                   checked={tabs.includes(agent.id)}
-                  id={agent.id}
-                  onClick={(e) => {
-                    e.stopPropagation();
-                  }}
-                  onCheckedChange={(isChecked) =>
-                    handleCheckboxChange(
-                      agent.id,
-                      isChecked !== 'indeterminate' && !!isChecked,
-                    )
-                  }
-                  className={`size-6 ${tabs.includes(agent.id) ? 'bg-black text-white' : 'bg-black border border-zinc-400'}`}
+                  className="size-6"
                 />
-                <Label
-                  htmlFor={agent.id}
-                  className="w-[350px] truncate cursor-pointer"
-                >
+                <Label className="w-[350px] truncate cursor-pointer">
                   {agent.name}
                 </Label>
               </div>
