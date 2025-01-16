@@ -71,6 +71,13 @@
       "when": 1736442709896,
       "tag": "0009_normal_nicolaos",
       "breakpoints": true
+    },
+    {
+      "idx": 10,
+      "version": "7",
+      "when": 1736983146011,
+      "tag": "0010_silly_firebird",
+      "breakpoints": true
     }
   ]
 }

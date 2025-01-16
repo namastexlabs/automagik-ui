@@ -22,12 +22,13 @@ import { Skeleton } from './ui/skeleton';
 export function ToolsCombobox({
   selected,
   onChange,
+  formId,
 }: {
+  formId: string;
   selected: string[];
   onChange: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-
   const { data: tools = [], isLoading } = useSWR<Tool[]>('/api/tools', fetcher);
 
   const selectedTools = tools
@@ -39,7 +40,7 @@ export function ToolsCombobox({
     <input
       key={tool.id}
       readOnly
-      form="agent-form"
+      form={formId}
       id={tool.id}
       type="checkbox"
       name="tools"
@@ -83,12 +84,11 @@ export function ToolsCombobox({
         </PopoverTrigger>
         <PopoverContent className="mt-3 p-0 w-[400px]" align="start">
           {isLoading ? (
-            <div>
-              <Skeleton />
-              <Skeleton />
-              <Skeleton />
-              <Skeleton />
-              <Skeleton />
+            <div className="flex flex-col gap-2 p-2">
+              {Array.from({ length: 5 }).map((_, v) => (
+                // biome-ignore lint/suspicious/noArrayIndexKey: Array's order don't change
+                <Skeleton key={v} className="w-full h-4" />
+              ))}
             </div>
           ) : (
             <Command>

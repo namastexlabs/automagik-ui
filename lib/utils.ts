@@ -222,3 +222,21 @@ export function getMessageIdFromAnnotations(message: Message) {
   // @ts-expect-error messageIdFromServer is not defined in MessageAnnotation
   return annotation.messageIdFromServer;
 }
+
+export function getDiffRelation<PREVIOUS, CURRENT>(
+  prevItems: PREVIOUS[],
+  items: CURRENT[],
+  equalTo: (a: PREVIOUS, b: CURRENT) => boolean,
+) {
+  const newItems = items.filter(
+    (item) => !prevItems.find((prevItem) => equalTo(prevItem, item)),
+  );
+  const deletedItems = prevItems.filter(
+    (prevItem) => !items.find((item) => equalTo(prevItem, item)),
+  );
+
+  return [
+    deletedItems,
+    newItems,
+  ] as const;
+}

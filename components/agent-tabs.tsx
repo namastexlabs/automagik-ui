@@ -18,7 +18,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { AgentFormDialog } from '@/components/agent-form-dialog';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { setTabCookie } from '@/lib/agents/cookies';
-import type { AgentWithTools } from '@/lib/db/queries';
+import type { AgentData } from '@/lib/db/queries';
 
 export function AgentTabs({
   agents,
@@ -28,7 +28,7 @@ export function AgentTabs({
   agentDialog,
   onSubmit,
 }: {
-  agents: AgentWithTools[];
+  agents: AgentData[];
   changeAgentDialog: (isOpen: boolean, agentId?: string) => void;
   openAgentListDialog: boolean;
   changeAgentListDialog: (isOpen: boolean) => void;
@@ -36,7 +36,7 @@ export function AgentTabs({
     agentId: string | null;
     isOpen: boolean;
   };
-  onSubmit: (agentId?: string, agents?: AgentWithTools[], tabs?: string[]) => void;
+  onSubmit: (agentId?: string, agents?: AgentData[], tabs?: string[]) => void;
 }) {
   const router = useRouter();
   const { open } = useSidebar();
@@ -49,7 +49,7 @@ export function AgentTabs({
     .toSorted((a, b) => tabs.indexOf(a.id) - tabs.indexOf(b.id));
 
   const onSaveAgent = useCallback(
-    (agent: AgentWithTools) => {
+    (agent: AgentData) => {
       if (!openAgentListDialog) {
         if (agents.length === 0) {
           onSubmit(agent.id, [agent], [agent.id]);
