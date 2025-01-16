@@ -25,24 +25,24 @@ import {
   updateAgent,
   getAllAgentToTools,
   deleteAllAgentToTools,
-  type AgentData,
   getAllDynamicBlocks,
   deleteAllDynamicBlocks,
   createAllDynamicBlocks,
 } from '@/lib/db/queries';
 import type { VisibilityType } from '@/components/visibility-selector';
 import { auth } from '@/app/(auth)/auth';
-import type { Agent, Chat } from '@/lib/db/schema';
+import type { Agent, Chat, DynamicBlock } from '@/lib/db/schema';
 import { notFound } from 'next/navigation';
 import {
   generateUUID,
   getDiffRelation,
   getMostRecentUserMessage,
 } from '@/lib/utils';
+import { mapAgent, type ClientAgent } from '@/lib/data';
 
 export type SaveAgentActionState = {
   status: 'failed' | 'invalid_data' | 'success' | 'idle' | 'in_progress';
-  data: AgentData | null;
+  data: ClientAgent | null;
 };
 
 const agentFormSchema = z.object({
@@ -172,9 +172,9 @@ export async function saveAgent(
       return { status: 'failed', data: null };
     }
 
-    const formTools = await getAllToolsById(validatedData.tools);
-
     let agent: Agent;
+    let dynamicBlocks: DynamicBlock[] = [];
+    const formTools = await getAllToolsById(validatedData.tools);
     if (id) {
       const prevAgent = await getAgentById({ id });
 
@@ -195,9 +195,9 @@ export async function saveAgent(
         (a, b) => a.toolId === b.id,
       );
 
-      const agentDynamicBlocks = await getAllDynamicBlocks(id);
+      dynamicBlocks = await getAllDynamicBlocks(id);
       const [deletedDynamicBlocks, newDynamicBlocks] = getDiffRelation(
-        agentDynamicBlocks,
+        dynamicBlocks,
         validatedData.dynamicBlocks,
         (a, b) => a.name === b,
       );
@@ -216,11 +216,13 @@ export async function saveAgent(
       }
 
       if (newDynamicBlocks.length > 0) {
-        await createAllDynamicBlocks(
-          newDynamicBlocks.map((name) => ({
-            agentId: id,
-            name,
-          })),
+        dynamicBlocks.concat(
+          await createAllDynamicBlocks(
+            newDynamicBlocks.map((name) => ({
+              agentId: id,
+              name,
+            })),
+          ),
         );
       }
 
@@ -228,6 +230,10 @@ export async function saveAgent(
         await deleteAllDynamicBlocks(
           id,
           deletedDynamicBlocks.map(({ name }) => name),
+        );
+
+        dynamicBlocks = dynamicBlocks.filter(
+          (item) => !deletedDynamicBlocks.includes(item),
         );
       }
     } else {
@@ -238,14 +244,14 @@ export async function saveAgent(
 
       if (formTools.length > 0) {
         await createAllAgentToTools(
-          formTools.map((tool) => ({ agentId: id, toolId: tool.id })),
+          formTools.map((tool) => ({ agentId: agent.id, toolId: tool.id })),
         );
       }
 
       if (validatedData.dynamicBlocks.length > 0) {
-        await createAllDynamicBlocks(
+        dynamicBlocks = await createAllDynamicBlocks(
           validatedData.dynamicBlocks.map((name) => ({
-            agentId: id,
+            agentId: agent.id,
             name,
           })),
         );
@@ -254,11 +260,11 @@ export async function saveAgent(
 
     return {
       status: 'success',
-      data: {
+      data: mapAgent({
         ...agent,
         tools: formTools.map((tool) => ({ tool })),
-        dynamicBlocks: validatedData.dynamicBlocks.map((name) => ({ name })),
-      },
+        dynamicBlocks,
+      }),
     };
   } catch (error) {
     if (error instanceof z.ZodError) {

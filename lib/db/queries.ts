@@ -371,6 +371,7 @@ const AGENT_RELATION_QUERY = {
   dynamicBlocks: {
     columns: {
       name: true,
+      content: true,
     },
   },
   tools: {
@@ -519,6 +520,31 @@ export function deleteAllDynamicBlocks(agentId: string, names: string[]) {
   }
 }
 
+export async function updateDynamicBlock({
+  agentId,
+  name,
+  content,
+}: {
+  agentId: string;
+  name: string;
+  content: string;
+}) {
+  try {
+    return await db
+      .update(schema.dynamicBlock)
+      .set({ content })
+      .where(
+        and(
+          eq(schema.dynamicBlock.agentId, agentId),
+          eq(schema.dynamicBlock.name, name),
+        ),
+      );
+  } catch (error) {
+    console.error('Failed to update dynamic block in database');
+    throw error;
+  }
+}
+
 export async function getInternalTools() {
   try {
     return await db.query.tool.findMany({
@@ -611,7 +637,7 @@ export async function createAllAgentToTools(
   }[],
 ) {
   try {
-    return await db.insert(schema.agentsToTools).values(data);
+    return await db.insert(schema.agentsToTools).values(data).returning();
   } catch (error) {
     console.error(`Failed to create agent to tool in database`);
     throw error;

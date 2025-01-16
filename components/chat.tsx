@@ -20,7 +20,7 @@ import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import type { VisibilityType } from './visibility-selector';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
-import type { AgentData } from '@/lib/db/queries';
+import type { ClientAgent } from '@/lib/data';
 
 export function Chat({
   chat,
@@ -32,7 +32,7 @@ export function Chat({
 }: {
   chat?: ChatType;
   initialMessages: Array<Message>;
-  initialAgents: AgentData[];
+  initialAgents: ClientAgent[];
   selectedVisibilityType: VisibilityType;
   selectedModelId: string;
   isReadonly: boolean;
@@ -71,7 +71,7 @@ export function Chat({
     },
   });
 
-  const { data: agents = [] } = useSWR<AgentData[]>(
+  const { data: agents = [] } = useSWR<ClientAgent[]>(
     '/api/agents',
     fetcher,
     {

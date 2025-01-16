@@ -26,6 +26,7 @@ export const dynamicBlock = pgTable(
   {
     id: uuid('id').primaryKey().notNull().defaultRandom(),
     name: text('name').notNull(),
+    content: text('content').notNull().default('BLANK'),
     agentId: uuid('agentId')
       .notNull()
       .references(() => agent.id, { onDelete: 'cascade' }),

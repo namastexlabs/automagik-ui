@@ -13,6 +13,7 @@ import { convertToUIMessages } from '@/lib/utils';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AgentTabsProvider } from '@/components/agent-tabs-provider';
+import { mapAgent } from '@/lib/data';
 
 export default async function Page({
   params,
@@ -52,7 +53,7 @@ export default async function Page({
         <SidebarInset>
           <Chat
             chat={chat}
-            initialAgents={agentsFromDb}
+            initialAgents={agentsFromDb.map(mapAgent)}
             initialMessages={convertToUIMessages(messagesFromDb)}
             selectedModelId={selectedModelId}
             selectedVisibilityType={chat.visibility}

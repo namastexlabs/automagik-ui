@@ -8,6 +8,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AgentTabsProvider } from '@/components/agent-tabs-provider';
 import { AGENT_COOKIE_KEY } from '@/lib/agents/cookies';
+import { mapAgent } from '@/lib/data';
 
 export default async function Page() {
   const session = await auth();
@@ -31,7 +32,7 @@ export default async function Page() {
         <SidebarInset>
           <Chat
             initialMessages={[]}
-            initialAgents={agentsFromDb}
+            initialAgents={agentsFromDb.map(mapAgent)}
             selectedModelId={selectedModelId}
             selectedVisibilityType="private"
             isReadonly={false}

@@ -74,6 +74,14 @@ export function AgentListDialog({
     toast.promise(deleteAgent({ id: agentId }), {
       loading: 'Deleting agent...',
       success: () => {
+        if (agentId === currentTab) {
+          if (tabs.length === 1) {
+            setTab(null)
+          } else {
+            setTab(tabs[0] || null);
+          }
+        }
+
         removeTab(agentId);
         mutate('/api/agents', (agents: Agent[] = []) => {
           const newAgents = agents.filter((agent) => agent.id !== agentId);
@@ -85,10 +93,6 @@ export function AgentListDialog({
 
           return newAgents;
         });
-
-        if (agentId === currentTab) {
-          setTab(tabs[0] || null);
-        }
 
         setAgentDelete(null);
         return 'Agent deleted successfully';

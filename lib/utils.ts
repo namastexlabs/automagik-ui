@@ -229,10 +229,10 @@ export function getDiffRelation<PREVIOUS, CURRENT>(
   equalTo: (a: PREVIOUS, b: CURRENT) => boolean,
 ) {
   const newItems = items.filter(
-    (item) => !prevItems.find((prevItem) => equalTo(prevItem, item)),
+    (item) => !prevItems.some((prevItem) => equalTo(prevItem, item)),
   );
   const deletedItems = prevItems.filter(
-    (prevItem) => !items.find((item) => equalTo(prevItem, item)),
+    (prevItem) => !items.some((item) => equalTo(prevItem, item)),
   );
 
   return [

@@ -25,8 +25,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { SubmitButton } from '@/components/submit-button';
 import { saveAgent, type SaveAgentActionState } from '@/app/(chat)/actions';
 import { ToolsCombobox } from '@/components/tools-combobox';
-import type { AgentData } from '@/lib/db/queries';
 import { DynamicBlocks } from './dynamic-blocks';
+import type { ClientAgent } from '@/lib/data';
 
 export function AgentFormDialog({
   onSuccess,
@@ -35,8 +35,8 @@ export function AgentFormDialog({
   setOpen,
   openAgentListDialog,
 }: {
-  onSuccess: (agent: AgentData) => void;
-  agent?: AgentData | null;
+  onSuccess: (agent: ClientAgent) => void;
+  agent?: ClientAgent | null;
   isOpen: boolean;
   setOpen: (isOpen: boolean) => void;
   openAgentListDialog: boolean;
@@ -45,7 +45,7 @@ export function AgentFormDialog({
   const { mutate } = useSWRConfig();
   const onSuccessRef = useRef(onSuccess);
   const [selected, setSelected] = useState<string[]>(
-    agent?.tools.map(({ tool }) => tool.id) || [],
+    agent?.tools.map((tool) => tool.id) || [],
   );
 
   const [formState, formAction] = useActionState<
@@ -59,7 +59,7 @@ export function AgentFormDialog({
 
   useEffect(() => {
     if (['idle', 'failed', 'invalid_data'].includes(formState.status)) {
-      setSelected(agent?.tools.map(({ tool }) => tool.id) || []);
+      setSelected(agent?.tools.map((tool) => tool.id) || []);
     }
   }, [agent?.tools, formState]);
 
@@ -70,7 +70,7 @@ export function AgentFormDialog({
       toast.error('Failed validating your submission!');
     } else if (formState.status === 'success' && formState.data) {
       toast.success('Agent created successfully');
-      mutate<AgentData[], AgentData>('/api/agents', formState.data, {
+      mutate<ClientAgent[], ClientAgent>('/api/agents', formState.data, {
         populateCache: (data, agents = []) => {
           const hasAgent = agents.find((agent) => agent.id === data.id);
           if (hasAgent) {

@@ -2,20 +2,34 @@ import type { StreamData } from 'ai';
 import type { z } from 'zod';
 
 import type { Model } from '@/lib/ai/models';
+import type { AgentData } from '../db/queries';
 
 export type ToolRequestContext = {
   streamingData: StreamData;
   model: Model;
   userId: string;
+  agent: AgentData;
 };
 
 export type ToolDefinition<N extends string, R, P extends z.ZodTypeAny> = {
   name: N;
   verboseName: string;
   description: string;
+  dynamicDescription?: (context: ToolRequestContext) => string;
   parameters: P;
   execute: (params: z.infer<P>, context: ToolRequestContext) => Promise<R>;
 };
+
+export type DocumentExecuteReturn =
+  | {
+      id: string;
+      title: string;
+      kind: string;
+      content: string;
+    }
+  | {
+      error: string;
+    };
 
 export type WeatherAtLocation = {
   latitude: number;

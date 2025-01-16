@@ -78,6 +78,13 @@
       "when": 1736983146011,
       "tag": "0010_silly_firebird",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1737035952704,
+      "tag": "0011_living_wasp",
+      "breakpoints": true
     }
   ]
 }
