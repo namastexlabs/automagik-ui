@@ -1,8 +1,7 @@
 import 'server-only';
 import type { z } from 'zod';
-import type { CoreToolCall, CoreToolResult } from 'ai';
 
-import type { ToolDefinition } from '../types';
+import type { ToolDefinition, ToolInvocation } from '../types';
 import { createDocumentTool } from './create-document';
 import { updateDocumentTool } from './update-document';
 import { weatherTool } from './get-weather';
@@ -27,25 +26,6 @@ export type InternalToolArgs<K extends InternalToolName> =
     ? z.infer<ARGS>
     : never;
 
-export type InternalToolInvocationPayload<K extends InternalToolName = InternalToolName> =
-  InternalToolOptions[K] extends ToolDefinition<K, infer RESULT, infer ARGS>
-    ?
-        | ({
-            state: 'partial-call';
-          } & CoreToolCall<K, z.infer<ARGS>>)
-        | ({
-            state: 'call';
-          } & CoreToolCall<K, z.infer<ARGS>>)
-        | ({
-            state: 'result';
-          } & CoreToolResult<K, z.infer<ARGS>, RESULT>)
-    :
-        | ({
-            state: 'partial-call';
-          } & CoreToolCall<K, any>)
-        | ({
-            state: 'call';
-          } & CoreToolCall<K, any>)
-        | ({
-            state: 'result';
-          } & CoreToolResult<K, any, never>);
+export type InternalToolInvocationPayload<
+  K extends InternalToolName = InternalToolName,
+> = ToolInvocation<K, InternalToolOptions[K]>;

@@ -23,10 +23,11 @@ import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { SubmitButton } from '@/components/submit-button';
-import { saveAgent, type SaveAgentActionState } from '@/app/(chat)/actions';
+import { saveAgent } from '@/app/(chat)/actions';
 import { ToolsCombobox } from '@/components/tools-combobox';
 import { DynamicBlocks } from './dynamic-blocks';
 import type { ClientAgent } from '@/lib/data';
+import type { ActionStateData } from '@/app/types';
 
 export function AgentFormDialog({
   onSuccess,
@@ -49,7 +50,7 @@ export function AgentFormDialog({
   );
 
   const [formState, formAction] = useActionState<
-    SaveAgentActionState,
+  ActionStateData<ClientAgent>,
     FormData
   >(saveAgent, { status: 'idle', data: null });
 
@@ -72,7 +73,7 @@ export function AgentFormDialog({
       toast.success('Agent created successfully');
       mutate<ClientAgent[], ClientAgent>('/api/agents', formState.data, {
         populateCache: (data, agents = []) => {
-          const hasAgent = agents.find((agent) => agent.id === data.id);
+          const hasAgent = agents.some((agent) => agent.id === data.id);
           if (hasAgent) {
             return agents.map((agent) => {
               if (agent.id === data.id) {
@@ -90,7 +91,7 @@ export function AgentFormDialog({
       setOpen(false);
       onSuccessRef.current(formState.data);
     }
-  }, [formState, setOpen, mutate, setSelected, agent]);
+  }, [formState, setOpen, mutate, agent]);
 
   const resetBlocks = useCallback(
     (set: (blocks: string[]) => void) => {
@@ -101,7 +102,7 @@ export function AgentFormDialog({
     [formState, agent],
   );
 
-  const toggleTool = (toolId: string) => {
+  const toggleTool = useCallback((toolId: string) => {
     setSelected((selected) => {
       if (selected.includes(toolId)) {
         return selected.filter((id) => id !== toolId);
@@ -109,7 +110,7 @@ export function AgentFormDialog({
         return [...selected, toolId];
       }
     });
-  };
+  }, []);
 
   const form = `${formId}-form`;
 
@@ -128,8 +129,8 @@ export function AgentFormDialog({
         </DialogHeader>
         <Form id={form} action={formAction}>
           <input type="hidden" name="id" value={agent?.id} />
-          <div className="flex flex-col gap-8 py-3">
-            <div className="flex flex-col gap-4">
+          <div className="flex flex-col gap-5 py-3">
+            <div className="flex flex-col gap-2">
               <Label
                 htmlFor={`${formId}-name`}
                 className="text-zinc-600 font-normal dark:text-zinc-400"
@@ -146,7 +147,7 @@ export function AgentFormDialog({
                 defaultValue={agent?.name}
               />
             </div>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               <Label
                 htmlFor={`${formId}-blocks`}
                 className="text-zinc-600 font-normal dark:text-zinc-400"
@@ -155,7 +156,7 @@ export function AgentFormDialog({
               </Label>
               <DynamicBlocks formId={formId} onReset={resetBlocks} />
             </div>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               <Label
                 htmlFor={`${formId}-system-prompt`}
                 className="text-zinc-600 font-normal dark:text-zinc-400"
@@ -171,7 +172,7 @@ export function AgentFormDialog({
                 defaultValue={agent?.systemPrompt}
               />
             </div>
-            <div className="flex flex-col gap-4">
+            <div className="flex flex-col gap-2">
               <Label className="text-zinc-600 font-normal dark:text-zinc-400">
                 Tools
               </Label>

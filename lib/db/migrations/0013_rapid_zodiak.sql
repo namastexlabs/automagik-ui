@@ -1,0 +1,1 @@
+ALTER TABLE "Tool" ADD COLUMN "data" json DEFAULT '{}'::json NOT NULL;

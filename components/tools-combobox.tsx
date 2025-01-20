@@ -1,11 +1,11 @@
 'use client';
 
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { ChevronsUpDown } from 'lucide-react';
 import useSWR from 'swr';
 
 import { fetcher } from '@/lib/utils';
-import type { Tool } from '@/lib/db/schema';
+import type { ClientTool } from '@/lib/data';
 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Button } from './ui/button';
@@ -18,6 +18,7 @@ import {
 } from './ui/command';
 import { Checkbox } from './ui/checkbox';
 import { Skeleton } from './ui/skeleton';
+import { FlowFormDialog } from './ui/flow-form-dialog';
 
 export function ToolsCombobox({
   selected,
@@ -29,8 +30,15 @@ export function ToolsCombobox({
   onChange: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const { data: tools = [], isLoading } = useSWR<Tool[]>('/api/tools', fetcher);
+  const { data: tools = [], isLoading } = useSWR<ClientTool[]>(
+    '/api/tools',
+    fetcher,
+  );
 
+  const handleCreate = useCallback(
+    (tool: ClientTool) => onChange(tool.id),
+    [onChange],
+  );
   const selectedTools = tools
     .filter((tool) => selected.includes(tool.id))
     .map((tool) => tool.verboseName)
@@ -53,7 +61,7 @@ export function ToolsCombobox({
   const toolCommands = tools.map((tool) => (
     <CommandItem
       key={tool.id}
-      className="cursor-pointer"
+      className="cursor-pointer py-1 text-[0.85rem]"
       onSelect={() => onChange(tool.id)}
     >
       <Checkbox checked={selected.includes(tool.id)} />
@@ -72,7 +80,7 @@ export function ToolsCombobox({
             variant="outline"
             role="combobox"
             aria-expanded={open}
-            className="justify-between"
+            className="justify-between bg-muted"
           >
             <div className="w-full text-start">
               <span className="truncate block min-w-[200px] w-[440px]">
@@ -82,7 +90,7 @@ export function ToolsCombobox({
             <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
           </Button>
         </PopoverTrigger>
-        <PopoverContent className="mt-3 p-0 w-[400px]" align="start">
+        <PopoverContent className="mt-3 p-0 w-[400px] h-[200px]" align="start">
           {isLoading ? (
             <div className="flex flex-col gap-2 p-2">
               {Array.from({ length: 5 }).map((_, v) => (
@@ -93,8 +101,11 @@ export function ToolsCombobox({
           ) : (
             <Command>
               <CommandInput placeholder="Search tools..." />
-              <CommandEmpty>No results found.</CommandEmpty>
-              <CommandList>{toolCommands}</CommandList>
+              <CommandEmpty>No tools found</CommandEmpty>
+              <CommandList className="flex-1">{toolCommands}</CommandList>
+              <div className="flex bg-background border-t-2 p-1 w-full">
+                <FlowFormDialog onCreate={handleCreate} />
+              </div>
             </Command>
           )}
         </PopoverContent>
