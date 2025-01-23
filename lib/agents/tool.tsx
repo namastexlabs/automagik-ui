@@ -1,7 +1,7 @@
 import type { CoreTool } from 'ai';
 
-import type { Source, ToolData, ToolRequestContext } from './types';
-import type { InternalToolName } from './tool-declarations/client';
+import type { ToolRequestContext } from './types';
+import { castToolType, type InternalToolName } from './tool-declarations/client';
 import type { Tool } from '../db/schema';
 import { INTERNAL_TOOL_MAP } from './tool-declarations';
 import { dezerialize } from 'zodex';
@@ -12,14 +12,7 @@ export const getInternalTool = <K extends InternalToolName>(name: K) => {
   return INTERNAL_TOOL_MAP[name];
 };
 
-const castToolType = <T extends Source>(
-  source: T,
-  tool: Tool,
-): tool is Tool & { source: T; data: ToolData<T> } => {
-  return tool.source === source;
-};
-
-const getToolDefinitionBySource = (tool: Tool) => {
+export const getToolDefinitionBySource = (tool: Tool) => {
   switch (true) {
     case castToolType('langflow', tool):
       return createChatFlowTool(tool.data.flowId, tool);

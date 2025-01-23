@@ -87,43 +87,77 @@ function addToolMessageToChat({
 export function convertToUIMessages(
   messages: Array<DBMessage>,
 ): Array<Message> {
-  return messages.reduce((chatMessages: Array<Message>, message) => {
-    if (message.role === 'tool') {
-      return addToolMessageToChat({
-        toolMessage: message as CoreToolMessage,
-        messages: chatMessages,
-      });
-    }
+  const toolMessages = messages.filter(
+    (message) => message.role === 'tool',
+  ) as Array<CoreToolMessage>;
+  const userAssistantMessages = messages.reduce(
+    (chatMessages: Array<Message>, message) => {
+      if (message.role === 'tool') {
+        return chatMessages;
+      }
 
-    let textContent = '';
-    const toolInvocations: Array<ToolInvocation> = [];
+      let textContent = '';
+      const toolInvocations: Array<ToolInvocation> = [];
 
-    if (typeof message.content === 'string') {
-      textContent = message.content;
-    } else if (Array.isArray(message.content)) {
-      for (const content of message.content) {
-        if (content.type === 'text') {
-          textContent += content.text;
-        } else if (content.type === 'tool-call') {
-          toolInvocations.push({
-            state: 'call',
-            toolCallId: content.toolCallId,
-            toolName: content.toolName,
-            args: content.args,
-          });
+      if (typeof message.content === 'string') {
+        textContent = message.content;
+      } else if (Array.isArray(message.content)) {
+        for (const content of message.content) {
+          if (content.type === 'text') {
+            textContent += content.text;
+          } else if (content.type === 'tool-call') {
+            toolInvocations.push({
+              state: 'call',
+              toolCallId: content.toolCallId,
+              toolName: content.toolName,
+              args: content.args,
+            });
+          }
         }
       }
-    }
 
-    chatMessages.push({
-      id: message.id,
-      role: message.role as Message['role'],
-      content: textContent,
-      toolInvocations,
-    });
+      chatMessages.push({
+        id: message.id,
+        role: message.role as Message['role'],
+        content: textContent,
+        toolInvocations,
+      });
 
-    return chatMessages;
-  }, []);
+      return chatMessages;
+    },
+    [],
+  );
+
+  return toolMessages
+    .flatMap((message) => message.content)
+    .reduce((messages, toolResult) => {
+      const messageIndex = messages.findIndex((m) =>
+        m.toolInvocations?.some(
+          ({ toolCallId }) => toolCallId === toolResult.toolCallId,
+        ),
+      );
+
+      if (messageIndex === -1) {
+        console.warn(
+          `Tool result ${toolResult.toolCallId} hanging without associated tool calls`,
+        );
+        return messages;
+      }
+
+      const toolInvocations = messages[messageIndex].toolInvocations || [];
+      messages[messageIndex].toolInvocations = toolInvocations.map((toolInvocation) => {
+        if (toolInvocation.toolCallId === toolResult.toolCallId) {
+          return {
+            ...toolInvocation,
+            state: 'result',
+            result: toolResult.result,
+          };
+        }
+
+        return toolInvocation;
+      });
+      return messages;
+    }, userAssistantMessages);
 }
 
 export function sanitizeResponseMessages(
@@ -235,8 +269,5 @@ export function getDiffRelation<PREVIOUS, CURRENT>(
     (prevItem) => !items.some((item) => equalTo(prevItem, item)),
   );
 
-  return [
-    deletedItems,
-    newItems,
-  ] as const;
+  return [deletedItems, newItems] as const;
 }

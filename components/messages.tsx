@@ -1,11 +1,16 @@
 import type { ChatRequestOptions, Message } from 'ai';
-import { PreviewMessage, ThinkingMessage } from './message';
-import { useScrollToBottom } from './use-scroll-to-bottom';
-import { Overview } from './overview';
-import type { UIBlock } from './block';
-import { type Dispatch, memo, type SetStateAction } from 'react';
-import type { Vote } from '@/lib/db/schema';
 import equal from 'fast-deep-equal';
+import { type Dispatch, memo, type SetStateAction } from 'react';
+import useSWR from 'swr';
+
+import type { Vote } from '@/lib/db/schema';
+import type { ClientTool } from '@/lib/data';
+import { fetcher } from '@/lib/utils';
+
+import type { UIBlock } from './block';
+import { Overview } from './overview';
+import { useScrollToBottom } from './use-scroll-to-bottom';
+import { PreviewMessage, ThinkingMessage } from './message';
 
 interface MessagesProps {
   chatId?: string;
@@ -32,6 +37,13 @@ function PureMessages({
   reload,
   isReadonly,
 }: MessagesProps) {
+  const {
+    data: tools = [],
+    isLoading: isToolsLoading
+  } = useSWR<ClientTool[]>(
+    '/api/tools',
+    fetcher,
+  );
   const [messagesContainerRef, messagesEndRef] =
     useScrollToBottom<HTMLDivElement>();
 
@@ -44,7 +56,9 @@ function PureMessages({
 
       {messages.map((message, index) => (
         <PreviewMessage
+          isToolsLoading={isToolsLoading}
           key={message.id}
+          tools={tools}
           chatId={chatId}
           message={message}
           setBlock={setBlock}

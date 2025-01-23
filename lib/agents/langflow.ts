@@ -26,7 +26,6 @@ const runFlow = async (inputValue: string, flowId: string) => {
   });
 
   const data: LangflowResponse = await response.json();
-  console.log(data);
   return data;
 };
 

@@ -345,31 +345,29 @@ export async function saveFlowTool(
     });
 
     let tool: Tool;
-    const source = 'langflow';
-    const formFlowTool = createChatFlowTool(flowId, validatedData);
-    const parameters = zerialize(formFlowTool.parameters);
+    const { name, verboseName, description, parameters } = createChatFlowTool(
+      flowId,
+      validatedData,
+    );
+    const data = {
+      source: 'langflow',
+      name,
+      verboseName,
+      description,
+      parameters: zerialize(parameters),
+      data: { flowId },
+    } as const;
     if (id) {
       const flowTool = await getToolById({ id });
+      const isFlowSource = flowTool?.source === data.source;
 
-      if (flowTool?.userId !== session.user.id) {
+      if (flowTool?.userId !== session.user.id || !isFlowSource) {
         return notFound();
       }
 
-      tool = await updateTool({
-        id,
-        ...formFlowTool,
-        source,
-        parameters,
-        data: { flowId },
-      });
+      tool = await updateTool({ id, ...data });
     } else {
-      tool = await createTool({
-        ...formFlowTool,
-        source,
-        parameters,
-        data: { flowId },
-        userId: session.user.id,
-      });
+      tool = await createTool({ ...data, userId: session.user.id });
     }
 
     return { status: 'success', data: mapTool(tool) };
