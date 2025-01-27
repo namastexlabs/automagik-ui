@@ -20,31 +20,9 @@ import {
   sanitizeResponseMessages,
 } from '@/lib/utils';
 import { toCoreTools } from '@/lib/agents/tool';
+import { insertDynamicBlocksIntoPrompt } from '@/lib/agents/dynamic-blocks.server';
 
 export const maxDuration = 60;
-
-const getDynamicBlocksPrompt = (
-  dynamicBlocks: {
-    name: string;
-    content: string;
-  }[],
-) => `\
-Use the following memories saved from user interaction, save new memories about the user with the saveMemories tool:
-${dynamicBlocks.map(({ name, content }) => `* ${name}: ${content}`).join('\n')}
-`;
-
-const getSystemPrompt = (
-  agentPrompt: string,
-  dynamicBlocks?: { name: string; content: string }[],
-) => `\
-You are a friendly assistant! Keep your responses concise and helpful.
-The tools have its own rendering through ReactJS, so you don't need to show the result of a tool.
-
-${dynamicBlocks && dynamicBlocks.length > 0 ? getDynamicBlocksPrompt(dynamicBlocks) : ''}
-
-Here's your task:
-${agentPrompt}
-`;
 
 export async function POST(request: Request) {
   const {
@@ -114,9 +92,14 @@ export async function POST(request: Request) {
     agent,
   });
 
+  const formattedSystemPrompt = insertDynamicBlocksIntoPrompt(
+    agent.systemPrompt,
+    agent.dynamicBlocks.map(({ dynamicBlock }) => dynamicBlock),
+  );
+
   const result = streamText({
     model: customModel(model.apiIdentifier),
-    system: getSystemPrompt(agent.systemPrompt, agent.dynamicBlocks),
+    system: formattedSystemPrompt,
     messages: coreMessages,
     maxSteps: 5,
     tools: coreTools,

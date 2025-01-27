@@ -21,13 +21,13 @@ import {
 } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { SubmitButton } from '@/components/submit-button';
 import { saveAgent } from '@/app/(chat)/actions';
 import { ToolsCombobox } from '@/components/tools-combobox';
-import { DynamicBlocks } from './dynamic-blocks';
 import type { ClientAgent } from '@/lib/data';
 import type { ActionStateData } from '@/app/types';
+
+import { PromptTemplate } from './prompt-template';
 
 export function AgentFormDialog({
   onSuccess,
@@ -93,15 +93,6 @@ export function AgentFormDialog({
     }
   }, [formState, setOpen, mutate, agent]);
 
-  const resetBlocks = useCallback(
-    (set: (blocks: string[]) => void) => {
-      if (['idle', 'failed', 'invalid_data'].includes(formState.status)) {
-        set(agent?.dynamicBlocks.map(({ name }) => name) || []);
-      }
-    },
-    [formState, agent],
-  );
-
   const toggleTool = useCallback((toolId: string) => {
     setSelected((selected) => {
       if (selected.includes(toolId)) {
@@ -149,27 +140,16 @@ export function AgentFormDialog({
             </div>
             <div className="flex flex-col gap-2">
               <Label
-                htmlFor={`${formId}-blocks`}
-                className="text-zinc-600 font-normal dark:text-zinc-400"
-              >
-                Blocks
-              </Label>
-              <DynamicBlocks formId={formId} onReset={resetBlocks} />
-            </div>
-            <div className="flex flex-col gap-2">
-              <Label
                 htmlFor={`${formId}-system-prompt`}
                 className="text-zinc-600 font-normal dark:text-zinc-400"
               >
                 System Prompt
               </Label>
-              <Textarea
-                id={`${formId}-system-prompt`}
+              <PromptTemplate
+                formId={form}
                 name="systemPrompt"
-                className="bg-muted text-md md:text-sm md:h-[140px]"
                 placeholder="You are a useful assistant"
-                required
-                defaultValue={agent?.systemPrompt}
+                agent={agent}
               />
             </div>
             <div className="flex flex-col gap-2">

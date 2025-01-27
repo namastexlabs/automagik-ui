@@ -145,17 +145,19 @@ export function convertToUIMessages(
       }
 
       const toolInvocations = messages[messageIndex].toolInvocations || [];
-      messages[messageIndex].toolInvocations = toolInvocations.map((toolInvocation) => {
-        if (toolInvocation.toolCallId === toolResult.toolCallId) {
-          return {
-            ...toolInvocation,
-            state: 'result',
-            result: toolResult.result,
-          };
-        }
+      messages[messageIndex].toolInvocations = toolInvocations.map(
+        (toolInvocation) => {
+          if (toolInvocation.toolCallId === toolResult.toolCallId) {
+            return {
+              ...toolInvocation,
+              state: 'result',
+              result: toolResult.result,
+            };
+          }
 
-        return toolInvocation;
-      });
+          return toolInvocation;
+        },
+      );
       return messages;
     }, userAssistantMessages);
 }
@@ -270,4 +272,13 @@ export function getDiffRelation<PREVIOUS, CURRENT>(
   );
 
   return [deletedItems, newItems] as const;
+}
+
+export function getDynamicBlockNames(
+  isGlobal: boolean,
+  dynamicBlocks: { name: string; global: boolean }[],
+) {
+  return dynamicBlocks
+    .filter(({ global }) => global === isGlobal)
+    .map(({ name }) => name);
 }
