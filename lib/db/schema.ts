@@ -1,4 +1,4 @@
-import { relations, type InferSelectModel } from 'drizzle-orm';
+import { relations, sql, type InferSelectModel } from 'drizzle-orm';
 import {
   pgTable,
   varchar,
@@ -10,6 +10,7 @@ import {
   foreignKey,
   boolean,
   unique,
+  uniqueIndex,
 } from 'drizzle-orm/pg-core';
 import type { SzObject } from 'zodex';
 import type { ToolData } from '../agents/types';
@@ -27,13 +28,19 @@ export const dynamicBlock = pgTable(
   {
     id: uuid('id').primaryKey().notNull().defaultRandom(),
     name: text('name').notNull(),
-    content: text('content').notNull().default('BLANK'),
-    agentId: uuid('agentId')
+    content: text('content'),
+    global: boolean('global').notNull().default(false),
+    userId: uuid('userId')
       .notNull()
-      .references(() => agent.id, { onDelete: 'cascade' }),
+      .references(() => user.id, { onDelete: 'cascade' }),
   },
   (table) => ({
-    uniqueName: unique().on(table.name, table.agentId),
+    uniqueNameByUser: uniqueIndex()
+      .on(table.name, table.userId)
+      .where(sql`${table.global} = FALSE`),
+    uniqueNameByGlobal: uniqueIndex()
+      .on(table.name)
+      .where(sql`${table.global} = TRUE`),
   }),
 );
 
@@ -93,17 +100,41 @@ export const agentsToTools = pgTable(
 
 export type AgentsToTools = InferSelectModel<typeof agentsToTools>;
 
+export const agentsToDynamicBlocks = pgTable(
+  'AgentToDynamicBlock',
+  {
+    agentId: uuid('agentId')
+      .notNull()
+      .references(() => agent.id, { onDelete: 'cascade' }),
+    dynamicBlockId: uuid('dynamicBlockId')
+      .notNull()
+      .references(() => dynamicBlock.id, { onDelete: 'cascade' }),
+  },
+  (table) => ({
+    pk: primaryKey({ columns: [table.agentId, table.dynamicBlockId] }),
+  }),
+);
+
+export type AgentsToDynamicBlocks = InferSelectModel<typeof agentsToDynamicBlocks>;
+
 export const agentRelations = relations(agent, ({ many }) => ({
   tools: many(agentsToTools),
-  dynamicBlocks: many(dynamicBlock),
+  dynamicBlocks: many(agentsToDynamicBlocks),
 }));
 
-export const dynamicBlockRelations = relations(dynamicBlock, ({ one }) => ({
-  agent: one(agent, {
-    fields: [dynamicBlock.agentId],
-    references: [agent.id],
+export const agentToDynamicBlockRelations = relations(
+  agentsToDynamicBlocks,
+  ({ one }) => ({
+    dynamicBlock: one(dynamicBlock, {
+      fields: [agentsToDynamicBlocks.dynamicBlockId],
+      references: [dynamicBlock.id],
+    }),
+    agent: one(agent, {
+      fields: [agentsToDynamicBlocks.agentId],
+      references: [agent.id],
+    }),
   }),
-}));
+);
 
 export const agentToToolsRelations = relations(agentsToTools, ({ one }) => ({
   tool: one(tool, {

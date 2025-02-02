@@ -17,7 +17,9 @@ export const saveMemoriesTool = createToolDefinition({
   dynamicDescription: (context) => {
     let options = 'None';
     if (context.agent.dynamicBlocks.length > 0) {
-      options = context.agent.dynamicBlocks.map(({ name }) => name).join('\n');
+      options = context.agent.dynamicBlocks
+        .map(({ dynamicBlock }) => dynamicBlock.name)
+        .join('\n');
     }
 
     return dedent`
@@ -35,20 +37,20 @@ export const saveMemoriesTool = createToolDefinition({
       memories.map(({ name }) => name),
     );
 
-    const result: { name: string; content: string }[] = [];
-    for (const { name, agentId } of dynamicBlocks) {
+    const result: { name: string }[] = [];
+    for (const { name, userId } of dynamicBlocks) {
       const memory = memories.find((m) => m.name === name);
       if (!memory) {
         continue;
       }
 
       await updateDynamicBlock({
-        agentId,
+        userId,
         name,
         content: memory.content,
       });
 
-      result.push({ name, content: memory.content });
+      result.push({ name });
     }
 
     return { result, content: 'Memory Updated' };

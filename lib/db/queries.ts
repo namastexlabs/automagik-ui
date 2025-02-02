@@ -1,7 +1,7 @@
 import 'server-only';
 
 import { genSaltSync, hashSync } from 'bcrypt-ts';
-import { and, asc, eq, gt, gte, inArray } from 'drizzle-orm';
+import { and, asc, eq, gt, gte, inArray, isNull, notExists } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import type { SzObject } from 'zodex';
@@ -372,9 +372,9 @@ export async function updateChatVisiblityById({
 
 const AGENT_RELATION_QUERY = {
   dynamicBlocks: {
-    columns: {
-      name: true,
-      content: true,
+    columns: {},
+    with: {
+      dynamicBlock: true,
     },
   },
   tools: {
@@ -471,22 +471,26 @@ export async function deleteAgentById({ id }: { id: string }) {
   }
 }
 
-export async function getAllDynamicBlocksByName(names: string[]) {
-  try {
-    return await db.query.dynamicBlock.findMany({
-      where: (dynamicBlock, { inArray }) => inArray(dynamicBlock.name, names),
-    });
-  } catch (error) {
-    console.error('Failed to get dynamic blocks in database');
-    throw error;
-  }
-}
+export async function getAllDynamicBlocksByName(
+  names: string[],
+  isGlobal?: boolean,
+  userId?: string,
+) {
+  const query = db.query.dynamicBlock.findMany({
+    where: (dynamicBlock, { inArray, and, eq }) => {
+      const queries = [inArray(dynamicBlock.name, names)];
+      if (isGlobal !== undefined) {
+        queries.push(eq(dynamicBlock.global, isGlobal));
+      }
+      if (userId) {
+        queries.push(eq(dynamicBlock.userId, userId));
+      }
 
-export async function getAllDynamicBlocks(agentId: string) {
+      return and(...queries);
+    },
+  });
   try {
-    return await db.query.dynamicBlock.findMany({
-      where: (dynamicBlock, { eq }) => eq(dynamicBlock.agentId, agentId),
-    });
+    return await query;
   } catch (error) {
     console.error('Failed to get dynamic blocks in database');
     throw error;
@@ -495,8 +499,9 @@ export async function getAllDynamicBlocks(agentId: string) {
 
 export async function createAllDynamicBlocks(
   data: {
-    agentId: string;
     name: string;
+    userId: string;
+    global: boolean;
   }[],
 ) {
   try {
@@ -507,16 +512,34 @@ export async function createAllDynamicBlocks(
   }
 }
 
-export function deleteAllDynamicBlocks(agentId: string, names: string[]) {
+export async function deleteAllDynamicBlocksHanging(dynamicBlockIds: string[]) {
   try {
+    const { agentsToDynamicBlocks, dynamicBlock } = schema;
     return db
       .delete(schema.dynamicBlock)
       .where(
         and(
-          eq(schema.dynamicBlock.agentId, agentId),
-          inArray(schema.dynamicBlock.name, names),
+          inArray(dynamicBlock.id, dynamicBlockIds),
+          isNull(dynamicBlock.content),
+          notExists(
+            db
+              .select()
+              .from(agentsToDynamicBlocks)
+              .where(eq(agentsToDynamicBlocks.dynamicBlockId, dynamicBlock.id)),
+          ),
         ),
       );
+  } catch (error) {
+    console.error('Failed to check agent to dynamic block in database');
+    throw error;
+  }
+}
+
+export function deleteAllDynamicBlocks(ids: string[]) {
+  try {
+    return db
+      .delete(schema.dynamicBlock)
+      .where(and(inArray(schema.dynamicBlock.id, ids)));
   } catch (error) {
     console.error('Failed to delete dynamic block in database');
     throw error;
@@ -524,11 +547,11 @@ export function deleteAllDynamicBlocks(agentId: string, names: string[]) {
 }
 
 export async function updateDynamicBlock({
-  agentId,
+  userId,
   name,
   content,
 }: {
-  agentId: string;
+  userId: string;
   name: string;
   content: string;
 }) {
@@ -538,12 +561,48 @@ export async function updateDynamicBlock({
       .set({ content })
       .where(
         and(
-          eq(schema.dynamicBlock.agentId, agentId),
+          eq(schema.dynamicBlock.userId, userId),
           eq(schema.dynamicBlock.name, name),
         ),
       );
   } catch (error) {
     console.error('Failed to update dynamic block in database');
+    throw error;
+  }
+}
+
+export async function createAllAgentToDynamicBlocks(
+  data: {
+    agentId: string;
+    dynamicBlockId: string;
+  }[],
+) {
+  try {
+    return await db
+      .insert(schema.agentsToDynamicBlocks)
+      .values(data)
+      .returning();
+  } catch (error) {
+    console.error('Failed to create agent to dynamic block in database');
+    throw error;
+  }
+}
+
+export async function deleteAllAgentToDynamicBlocks(
+  agentId: string,
+  dynamicBlockIds: string[],
+) {
+  try {
+    return await db
+      .delete(schema.agentsToDynamicBlocks)
+      .where(
+        and(
+          eq(schema.agentsToDynamicBlocks.agentId, agentId),
+          inArray(schema.agentsToDynamicBlocks.dynamicBlockId, dynamicBlockIds),
+        ),
+      );
+  } catch (error) {
+    console.error('Failed to delete agent to dynamic block in database');
     throw error;
   }
 }
@@ -643,17 +702,6 @@ export async function deleteToolById({ id }: { id: string }) {
     return await db.delete(schema.tool).where(eq(schema.tool.id, id));
   } catch (error) {
     console.error(`Failed to delete tool ${id} in database`);
-    throw error;
-  }
-}
-
-export async function getAllAgentToTools(agentId: string) {
-  try {
-    return await db.query.agentsToTools.findMany({
-      where: (agentsToTools, { eq }) => eq(agentsToTools.agentId, agentId),
-    });
-  } catch (error) {
-    console.error(`Failed to get agent to tools in database`);
     throw error;
   }
 }

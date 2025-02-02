@@ -61,7 +61,7 @@ function PurePreviewMessage({
 
   const renderToolInvocation = (toolInvocation: AIToolInvocation) => {
     if (isToolsLoading) {
-      return <Skeleton className="h-6"/>;
+      return <Skeleton key={toolInvocation.toolCallId} className="h-6" />;
     }
 
     const userTool = tools.find(
