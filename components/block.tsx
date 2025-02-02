@@ -8,7 +8,6 @@ import { formatDistance } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   type Dispatch,
-  memo,
   type SetStateAction,
   useCallback,
   useEffect,
@@ -55,7 +54,7 @@ export interface ConsoleOutput {
   content: string | null;
 }
 
-function PureBlock({
+export function Block({
   chatId,
   input,
   setInput,
@@ -297,7 +296,6 @@ function PureBlock({
           <div className="flex flex-col h-full justify-between items-center gap-4">
             <BlockMessages
               chatId={chatId}
-              block={block}
               isLoading={isLoading}
               setBlock={setBlock}
               votes={votes}
@@ -519,7 +517,3 @@ function PureBlock({
     </motion.div>
   );
 }
-
-export const Block = memo(PureBlock, (prevProps, nextProps) => {
-  return false;
-});

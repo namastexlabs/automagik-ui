@@ -1,20 +1,24 @@
-'use client'
+'use client';
 
-import { useCallback } from "react";
-import { XIcon } from "lucide-react";
-import { useRouter } from "next/navigation";
-import { useWindowSize } from "usehooks-ts";
+import { useCallback } from 'react';
+import { XIcon } from 'lucide-react';
+import { useRouter } from 'next/navigation';
+import { useWindowSize } from 'usehooks-ts';
 
-import { cn } from "@/lib/utils";
-import { Button, buttonVariants } from "@/components/ui/button"
-import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
-import { PlusIcon } from "@/components/icons";
-import type { Agent } from "@/lib/db/schema";
-import { AgentListDialog } from "@/components/agent-list-dialog";
-import { useSidebar } from "@/components/ui/sidebar";
-import { AgentFormDialog } from "@/components/agent-form-dialog";
-import { useAgentTabs, useCurrentAgentTab } from "@/contexts/agent-tabs";
-import { setTabCookie } from "@/lib/agents/agent-cookies";
+import { cn } from '@/lib/utils';
+import { Button, buttonVariants } from '@/components/ui/button';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
+import { PlusIcon } from '@/components/icons';
+import { AgentListDialog } from '@/components/agent-list-dialog';
+import { useSidebar } from '@/components/ui/sidebar';
+import { AgentFormDialog } from '@/components/agent-form-dialog';
+import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
+import { setTabCookie } from '@/lib/agents/cookies';
+import type { AgentWithTools } from '@/lib/db/queries';
 
 export function AgentTabs({
   agents,
@@ -24,7 +28,7 @@ export function AgentTabs({
   agentDialog,
   onSubmit,
 }: {
-  agents: Agent[];
+  agents: AgentWithTools[];
   changeAgentDialog: (isOpen: boolean, agentId?: string) => void;
   openAgentListDialog: boolean;
   changeAgentListDialog: (isOpen: boolean) => void;
@@ -32,7 +36,7 @@ export function AgentTabs({
     agentId: string | null;
     isOpen: boolean;
   };
-  onSubmit: (agentId?: string, agents?: Agent[], tabs?: string[]) => void;
+  onSubmit: (agentId?: string, agents?: AgentWithTools[], tabs?: string[]) => void;
 }) {
   const router = useRouter();
   const { open } = useSidebar();
@@ -40,27 +44,24 @@ export function AgentTabs({
   const { tabs, addTab, removeTab } = useAgentTabs();
   const { currentTab, setTab } = useCurrentAgentTab();
 
-  const openAgents = agents.filter((agent) => tabs.includes(agent.id));
+  const openAgents = agents
+    .filter((agent) => tabs.includes(agent.id))
+    .toSorted((a, b) => tabs.indexOf(a.id) - tabs.indexOf(b.id));
 
   const onSaveAgent = useCallback(
-    (agent: Agent) => {
-    if (!openAgentListDialog) {
-      if (agents.length === 0) {
-        onSubmit(agent.id, [agent], [agent.id]);
+    (agent: AgentWithTools) => {
+      if (!openAgentListDialog) {
+        if (agents.length === 0) {
+          onSubmit(agent.id, [agent], [agent.id]);
+        }
+
+        setTab(agent.id);
       }
 
-      setTab(agent.id);
-    }
-
-    addTab(agent.id);
-  },
-  [
-    openAgentListDialog,
-    addTab,
-    agents.length,
-    setTab,
-    onSubmit,
-  ]);
+      addTab(agent.id);
+    },
+    [openAgentListDialog, addTab, agents.length, setTab, onSubmit],
+  );
 
   const onChangeAgent = (id: string) => {
     setTab(id);
@@ -80,9 +81,8 @@ export function AgentTabs({
     removeTab(agentId);
   };
 
-  const selectedStyle = (id: string) => (
-    currentTab === id ? 'bg-accent rounded-lg rounded-b-none z-0 h-[34px]' : ''
-  );
+  const selectedStyle = (id: string) =>
+    currentTab === id ? 'bg-accent rounded-lg rounded-b-none z-0 h-[34px]' : '';
 
   return (
     <>
@@ -105,14 +105,16 @@ export function AgentTabs({
             {openAgents.map((agent) => (
               <div
                 key={agent.id}
-                className={cn(`${buttonVariants({ variant: 'ghost' })} group relative flex p-0 shrink-0 w-[160px] h-[30px] z-10 bg-background text-accent-foreground rounded-2xl ${selectedStyle(agent.id)}`)}
+                className={cn(
+                  `${buttonVariants({ variant: 'ghost' })} group relative flex p-0 shrink-0 w-[160px] h-[30px] z-10 bg-background text-accent-foreground rounded-2xl ${selectedStyle(agent.id)}`,
+                )}
               >
                 <button
                   type="button"
                   className="flex text-start p-0 text-ellipsis overflow-hidden flex-1 pl-3 h-full items-center"
                   onClick={() => onChangeAgent(agent.id)}
                 >
-                  {agent.agentName}
+                  {agent.name}
                 </button>
                 <Tooltip>
                   <TooltipTrigger asChild>
@@ -146,14 +148,15 @@ export function AgentTabs({
               type="button"
               className={`relative p-2 h-fit ${openAgents.length === 0 ? '' : 'ml-2'}`}
               onClick={() => {
-                if(agents.length === 0) {
+                if (agents.length === 0) {
                   changeAgentDialog(true);
                 } else {
                   changeAgentListDialog(true);
                 }
               }}
             >
-              {agents.length === 0 && 'New Agent '}<PlusIcon />
+              {agents.length === 0 && 'New Agent '}
+              <PlusIcon />
             </Button>
           </TooltipTrigger>
           <TooltipContent>Add a new agent</TooltipContent>
@@ -166,14 +169,15 @@ export function AgentTabs({
         />
         <AgentFormDialog
           key={agentDialog.isOpen ? 'open' : 'closed'}
+          agent={agents.find((agent) => agent.id === agentDialog.agentId)}
           onSuccess={onSaveAgent}
           isOpen={agentDialog.isOpen}
-          setOpen={(open) => (
+          setOpen={(open) =>
             changeAgentDialog(open, agentDialog.agentId || undefined)
-          )}
+          }
           openAgentListDialog={openAgentListDialog}
         />
       </div>
     </>
-  )
+  );
 }

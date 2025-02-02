@@ -8,7 +8,6 @@ import { useScrollToBottom } from './use-scroll-to-bottom';
 
 interface BlockMessagesProps {
   chatId?: string;
-  block: UIBlock;
   setBlock: Dispatch<SetStateAction<UIBlock>>;
   isLoading: boolean;
   votes: Array<Vote> | undefined;
@@ -24,7 +23,6 @@ interface BlockMessagesProps {
 
 function PureBlockMessages({
   chatId,
-  block,
   setBlock,
   isLoading,
   votes,
@@ -46,7 +44,6 @@ function PureBlockMessages({
           chatId={chatId}
           key={message.id}
           message={message}
-          block={block}
           setBlock={setBlock}
           isLoading={isLoading && index === messages.length - 1}
           vote={
@@ -72,14 +69,7 @@ function areEqual(
   prevProps: BlockMessagesProps,
   nextProps: BlockMessagesProps,
 ) {
-  if (
-    prevProps.block.status === 'streaming' &&
-    nextProps.block.status === 'streaming'
-  ) {
-    return true;
-  }
-
-  return false;
+  return true;
 }
 
 export const BlockMessages = memo(PureBlockMessages, areEqual);

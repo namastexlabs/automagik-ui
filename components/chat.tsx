@@ -4,13 +4,13 @@ import { generateId, type Attachment, type Message } from 'ai';
 import { useChat } from 'ai/react';
 import { AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
-import useSWR, { SWRConfig, useSWRConfig } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { useWindowSize } from 'usehooks-ts';
 import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 
 import { ChatHeader } from '@/components/chat-header';
-import type { Agent, Chat as ChatType, Vote } from '@/lib/db/schema';
+import type { Chat as ChatType, Vote } from '@/lib/db/schema';
 import { fetcher } from '@/lib/utils';
 import { createChat } from '@/app/(chat)/actions';
 
@@ -20,6 +20,7 @@ import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import type { VisibilityType } from './visibility-selector';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
+import type { AgentWithTools } from '@/lib/db/queries';
 
 export function Chat({
   chat,
@@ -31,7 +32,7 @@ export function Chat({
 }: {
   chat?: ChatType;
   initialMessages: Array<Message>;
-  initialAgents: Agent[];
+  initialAgents: AgentWithTools[];
   selectedVisibilityType: VisibilityType;
   selectedModelId: string;
   isReadonly: boolean;
@@ -64,9 +65,13 @@ export function Chat({
   } = useChat({
     id: chat?.id,
     initialMessages,
+    body: {
+      id: chat?.id,
+      modelId: selectedModelId,
+    },
   });
 
-  const { data: agents = [] } = useSWR<Array<Agent>>(
+  const { data: agents = [] } = useSWR<Array<AgentWithTools>>(
     '/api/agents',
     fetcher,
     {
@@ -103,35 +108,42 @@ export function Chat({
         isOpen,
       });
     },
-    []
+    [],
   );
 
-  const getOrCreateChat = useCallback(async (messages: Message[], tab: string) => {
-    if (!chat) {
-      const { status, data } = await createChat({
-        agentId: tab,
-        messages,
-      });
+  const getOrCreateChat = useCallback(
+    async (messages: Message[], tab: string) => {
+      if (!chat) {
+        const { status, data } = await createChat({
+          agentId: tab,
+          messages,
+        });
 
-      if (status === 'failed' || !data) {
-        return null;
+        if (status === 'failed' || !data) {
+          return null;
+        }
+
+        mutate(`/api/history?agentId=${tab}`, data, {
+          revalidate: false,
+          populateCache: (data, history = []) => {
+            return [data, ...history];
+          },
+        });
+
+        return data;
       }
 
-      mutate(`/api/history?agentId=${tab}`, data, {
-        revalidate: false,
-        populateCache: (data, history = []) => {
-          return [data, ...history];
-        },
-      });
-
-      return data;
-    }
-
-    return chat;
-  }, [chat, mutate]);
+      return chat;
+    },
+    [chat, mutate],
+  );
 
   const onSubmit = useCallback(
-    async (currentAgent: string | null = currentTab, currentAgents = agents, currentTabs = tabs) => {        
+    async (
+      currentAgent: string | null = currentTab,
+      currentAgents = agents,
+      currentTabs = tabs,
+    ) => {
       if (currentAgents.length === 0) {
         setAgentDialogState({
           agentId: null,
@@ -146,13 +158,12 @@ export function Chat({
       }
 
       const message: Message = {
-          id: generateId(),
-          createdAt: new Date(),
-          role: 'user',
-          content: input,
-          experimental_attachments: attachments,
-        }
-      
+        id: generateId(),
+        createdAt: new Date(),
+        role: 'user',
+        content: input,
+        experimental_attachments: attachments,
+      };
 
       const data = await getOrCreateChat([...messages, message], currentAgent);
       if (!data) {
@@ -187,7 +198,7 @@ export function Chat({
       router,
       agents,
       getOrCreateChat,
-    ]
+    ],
   );
 
   useEffect(() => {
@@ -195,7 +206,8 @@ export function Chat({
       return;
     }
 
-    const hasAgentForChat = !!id && agents.some((agent) => agent.id === chat?.agentId);
+    const hasAgentForChat =
+      !!id && agents.some((agent) => agent.id === chat?.agentId);
     if (chat?.agentId && hasAgentForChat && id === chat.id) {
       if (tabs.includes(chat.agentId)) {
         setTab(chat.agentId);
@@ -207,11 +219,7 @@ export function Chat({
   }, [tabs, router, currentTab, setTab, addTab, chat, id, agents]);
 
   return (
-    <SWRConfig value={{
-      fallback: {
-        '/api/agents': initialAgents,
-      }
-    }}>
+    <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
           agents={agents}
@@ -227,7 +235,6 @@ export function Chat({
         />
         <Messages
           chatId={chat?.id}
-          block={block}
           setBlock={setBlock}
           isLoading={isLoading}
           votes={votes}
@@ -273,6 +280,6 @@ export function Chat({
         )}
       </AnimatePresence>
       <BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
-    </SWRConfig>
+    </>
   );
 }
