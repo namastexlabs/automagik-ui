@@ -1,0 +1,1 @@
+ALTER TABLE "DynamicBlock" ADD COLUMN "content" text DEFAULT 'BLANK';

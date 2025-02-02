@@ -9,6 +9,8 @@ import type {
 import { Weather } from './weather';
 import { DocumentToolResult } from './document';
 import type { UIBlock } from './block';
+import { Bookmark } from 'lucide-react';
+import { Badge } from './ui/badge';
 
 const getResult = <T extends InternalToolName>(
   toolInvocation: InternalToolInvocationPayload<T>,
@@ -27,11 +29,13 @@ export function ToolInvocation<T extends InternalToolName>({
   isReadonly: boolean;
   toolInvocation: InternalToolInvocationPayload<T>;
 }) {
-  const toolComponentsMap: {
+  type ToolComponentsMap = {
     [K in InternalToolName]: (
       toolInvocation: InternalToolInvocationPayload<K>,
     ) => JSX.Element;
-  } = useMemo(
+  };
+
+  const toolComponentsMap: ToolComponentsMap = useMemo(
     () => ({
       getWeather: (toolInvocation) => (
         <Weather
@@ -70,9 +74,25 @@ export function ToolInvocation<T extends InternalToolName>({
           )}
         />
       ),
+      saveMemories: (toolInvocation) => (
+        <div className="flex text-sm leading-relaxed">
+          <Bookmark className="mr-1" size={24} />
+          <span className="mr-3 font-bold">Updated Memories</span>
+          <span className="flex gap-1">
+            {getResult<InternalToolName.saveMemories>(
+              toolInvocation,
+            )?.result.map(({ name }) => (
+              <Badge key={name} variant="secondary">
+                {name}
+              </Badge>
+            ))}
+          </span>
+        </div>
+      ),
     }),
     [setBlock, isReadonly],
   );
 
-  return toolComponentsMap[toolInvocation.toolName](toolInvocation);
-};
+  const renderTool = toolComponentsMap[toolInvocation.toolName];
+  return renderTool(toolInvocation);
+}

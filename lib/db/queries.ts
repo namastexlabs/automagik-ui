@@ -367,19 +367,27 @@ export async function updateChatVisiblityById({
   }
 }
 
+const AGENT_RELATION_QUERY = {
+  dynamicBlocks: {
+    columns: {
+      name: true,
+      content: true,
+    },
+  },
+  tools: {
+    columns: {},
+    with: {
+      tool: true,
+    },
+  },
+} as const;
+
 export async function getAgentsByUserId({ userId }: { userId: string }) {
   try {
     return await db.query.agent.findMany({
       where: (agent, { eq }) => eq(agent.userId, userId),
       orderBy: (agent, { asc }) => [asc(agent.createdAt)],
-      with: {
-        tools: {
-          columns: {},
-          with: {
-            tool: true,
-          },
-        },
-      },
+      with: AGENT_RELATION_QUERY,
     });
   } catch (error) {
     console.error('Failed to get agents in database');
@@ -387,20 +395,15 @@ export async function getAgentsByUserId({ userId }: { userId: string }) {
   }
 }
 
-export type AgentWithTools = Awaited<ReturnType<typeof getAgentsByUserId>>[number];
+export type AgentData = Awaited<ReturnType<typeof getAgentsByUserId>>[number];
 
-export async function getAgentById({ id }: { id: string }) {
+export async function getAgentById({
+  id,
+}: { id: string }): Promise<AgentData | undefined> {
   try {
     return await db.query.agent.findFirst({
       where: (agent, { eq }) => eq(agent.id, id),
-      with: {
-        tools: {
-          columns: {},
-          with: {
-            tool: true,
-          },
-        },
-      },
+      with: AGENT_RELATION_QUERY,
     });
   } catch (error) {
     console.error('Failed to get agents in database');
@@ -461,6 +464,83 @@ export async function deleteAgentById({ id }: { id: string }) {
     return await db.delete(schema.agent).where(eq(schema.agent.id, id));
   } catch (error) {
     console.error(`Failed to delete agent ${id} in database`);
+    throw error;
+  }
+}
+
+export async function getAllDynamicBlocksByName(names: string[]) {
+  try {
+    return await db.query.dynamicBlock.findMany({
+      where: (dynamicBlock, { inArray }) => inArray(dynamicBlock.name, names),
+    });
+  } catch (error) {
+    console.error('Failed to get dynamic blocks in database');
+    throw error;
+  }
+}
+
+export async function getAllDynamicBlocks(agentId: string) {
+  try {
+    return await db.query.dynamicBlock.findMany({
+      where: (dynamicBlock, { eq }) => eq(dynamicBlock.agentId, agentId),
+    });
+  } catch (error) {
+    console.error('Failed to get dynamic blocks in database');
+    throw error;
+  }
+}
+
+export async function createAllDynamicBlocks(
+  data: {
+    agentId: string;
+    name: string;
+  }[],
+) {
+  try {
+    return await db.insert(schema.dynamicBlock).values(data).returning();
+  } catch (error) {
+    console.error('Failed to create dynamic block in database');
+    throw error;
+  }
+}
+
+export function deleteAllDynamicBlocks(agentId: string, names: string[]) {
+  try {
+    return db
+      .delete(schema.dynamicBlock)
+      .where(
+        and(
+          eq(schema.dynamicBlock.agentId, agentId),
+          inArray(schema.dynamicBlock.name, names),
+        ),
+      );
+  } catch (error) {
+    console.error('Failed to delete dynamic block in database');
+    throw error;
+  }
+}
+
+export async function updateDynamicBlock({
+  agentId,
+  name,
+  content,
+}: {
+  agentId: string;
+  name: string;
+  content: string;
+}) {
+  try {
+    return await db
+      .update(schema.dynamicBlock)
+      .set({ content })
+      .where(
+        and(
+          eq(schema.dynamicBlock.agentId, agentId),
+          eq(schema.dynamicBlock.name, name),
+        ),
+      );
+  } catch (error) {
+    console.error('Failed to update dynamic block in database');
     throw error;
   }
 }
@@ -550,14 +630,14 @@ export async function getAllAgentToTools(agentId: string) {
   }
 }
 
-export async function createAgentToTool(
+export async function createAllAgentToTools(
   data: {
     agentId: string;
     toolId: string;
   }[],
 ) {
   try {
-    return await db.insert(schema.agentsToTools).values(data);
+    return await db.insert(schema.agentsToTools).values(data).returning();
   } catch (error) {
     console.error(`Failed to create agent to tool in database`);
     throw error;

@@ -14,6 +14,7 @@ export enum InternalToolName {
   createDocument = 'createDocument',
   updateDocument = 'updateDocument',
   requestSuggestions = 'requestSuggestions',
+  saveMemories = 'saveMemories',
 }
 
 export const internalToolNames = Object.values(InternalToolName) as string[];

@@ -6,6 +6,7 @@ import { generateUUID } from '@/lib/utils';
 import { saveDocument } from '@/lib/db/queries';
 import { customModel } from '@/lib/ai';
 
+import type { DocumentExecuteReturn } from '../types';
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
 
@@ -38,105 +39,105 @@ print(f"Factorial of 5 is: {factorial(5)}")
 `;
 
 export const createDocumentTool = createToolDefinition({
-  name: InternalToolName.createDocument,
-  verboseName: 'Create Document',
-  description: 'Create a document for a writing activity.',
-  parameters: z.object({
-    title: z.string(),
-    kind: z.enum(['text', 'code']),
-  }),
-  execute: async ({ title, kind }, context) => {
-    const { streamingData, model, userId } = context;
-    const id = generateUUID();
-    let draftText = '';
+    name: InternalToolName.createDocument,
+    verboseName: 'Create Document',
+    description: 'Create a document for a writing activity.',
+    parameters: z.object({
+      title: z.string(),
+      kind: z.enum(['text', 'code']),
+    }),
+    execute: async ({ title, kind }, context): Promise<DocumentExecuteReturn> => {
+      const { streamingData, model, userId } = context;
+      const id = generateUUID();
+      let draftText = '';
 
-    streamingData.append({
-      type: 'id',
-      content: id,
-    });
-
-    streamingData.append({
-      type: 'title',
-      content: title,
-    });
-
-    streamingData.append({
-      type: 'kind',
-      content: kind,
-    });
-
-    streamingData.append({
-      type: 'clear',
-      content: '',
-    });
-
-    if (kind === 'text') {
-      const { fullStream } = streamText({
-        model: customModel(model.apiIdentifier),
-        system:
-          'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
-        prompt: title,
+      streamingData.append({
+        type: 'id',
+        content: id,
       });
 
-      for await (const delta of fullStream) {
-        const { type } = delta;
-
-        if (type === 'text-delta') {
-          const { textDelta } = delta;
-
-          draftText += textDelta;
-          streamingData.append({
-            type: 'text-delta',
-            content: textDelta,
-          });
-        }
-      }
-
-      streamingData.append({ type: 'finish', content: '' });
-    } else if (kind === 'code') {
-      const { fullStream } = streamObject({
-        model: customModel(model.apiIdentifier),
-        system: CODE_PROMPT,
-        prompt: title,
-        schema: z.object({
-          code: z.string(),
-        }),
+      streamingData.append({
+        type: 'title',
+        content: title,
       });
 
-      for await (const delta of fullStream) {
-        const { type } = delta;
+      streamingData.append({
+        type: 'kind',
+        content: kind,
+      });
 
-        if (type === 'object') {
-          const { object } = delta;
-          const { code } = object;
+      streamingData.append({
+        type: 'clear',
+        content: '',
+      });
 
-          if (code) {
+      if (kind === 'text') {
+        const { fullStream } = streamText({
+          model: customModel(model.apiIdentifier),
+          system:
+            'Write about the given topic. Markdown is supported. Use headings wherever appropriate.',
+          prompt: title,
+        });
+
+        for await (const delta of fullStream) {
+          const { type } = delta;
+
+          if (type === 'text-delta') {
+            const { textDelta } = delta;
+
+            draftText += textDelta;
             streamingData.append({
-              type: 'code-delta',
-              content: code ?? '',
+              type: 'text-delta',
+              content: textDelta,
             });
-
-            draftText = code;
           }
         }
+
+        streamingData.append({ type: 'finish', content: '' });
+      } else if (kind === 'code') {
+        const { fullStream } = streamObject({
+          model: customModel(model.apiIdentifier),
+          system: CODE_PROMPT,
+          prompt: title,
+          schema: z.object({
+            code: z.string(),
+          }),
+        });
+
+        for await (const delta of fullStream) {
+          const { type } = delta;
+
+          if (type === 'object') {
+            const { object } = delta;
+            const { code } = object;
+
+            if (code) {
+              streamingData.append({
+                type: 'code-delta',
+                content: code ?? '',
+              });
+
+              draftText = code;
+            }
+          }
+        }
+
+        streamingData.append({ type: 'finish', content: '' });
       }
 
-      streamingData.append({ type: 'finish', content: '' });
-    }
+      await saveDocument({
+        id,
+        title,
+        kind,
+        content: draftText,
+        userId,
+      });
 
-    await saveDocument({
-      id,
-      title,
-      kind,
-      content: draftText,
-      userId,
-    });
-
-    return {
-      id,
-      title,
-      kind,
-      content: 'A document was created and is now visible to the user.',
-    };
-  },
-});
+      return {
+        id,
+        title,
+        kind,
+        content: 'A document was created and is now visible to the user.',
+      };
+    },
+  });

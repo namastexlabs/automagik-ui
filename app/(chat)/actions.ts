@@ -11,7 +11,7 @@ import { z } from 'zod';
 
 import { customModel } from '@/lib/ai';
 import {
-  createAgentToTool,
+  createAllAgentToTools,
   deleteAgentById,
   deleteChatById,
   deleteMessagesByChatIdAfterTimestamp,
@@ -25,23 +25,36 @@ import {
   updateAgent,
   getAllAgentToTools,
   deleteAllAgentToTools,
-  type AgentWithTools,
+  getAllDynamicBlocks,
+  deleteAllDynamicBlocks,
+  createAllDynamicBlocks,
 } from '@/lib/db/queries';
 import type { VisibilityType } from '@/components/visibility-selector';
 import { auth } from '@/app/(auth)/auth';
-import type { Agent, Chat } from '@/lib/db/schema';
+import type { Agent, Chat, DynamicBlock } from '@/lib/db/schema';
 import { notFound } from 'next/navigation';
-import { generateUUID, getMostRecentUserMessage } from '@/lib/utils';
+import {
+  generateUUID,
+  getDiffRelation,
+  getMostRecentUserMessage,
+} from '@/lib/utils';
+import { mapAgent, type ClientAgent } from '@/lib/data';
 
 export type SaveAgentActionState = {
   status: 'failed' | 'invalid_data' | 'success' | 'idle' | 'in_progress';
-  data: AgentWithTools | null;
+  data: ClientAgent | null;
 };
 
 const agentFormSchema = z.object({
   name: z.string(),
   systemPrompt: z.string(),
   tools: z.array(z.string()).default([]),
+  dynamicBlocks: z
+    .array(z.string())
+    .refine((items) => new Set(items).size === items.length, {
+      message: 'All items must be unique, no duplicate values allowed',
+    })
+    .default([]),
 });
 
 export async function saveModelId(model: string) {
@@ -150,6 +163,7 @@ export async function saveAgent(
       name: formData.get('name'),
       systemPrompt: formData.get('systemPrompt'),
       tools: formData.getAll('tools'),
+      dynamicBlocks: formData.getAll('dynamicBlocks'),
     });
 
     const session = await auth();
@@ -158,10 +172,16 @@ export async function saveAgent(
       return { status: 'failed', data: null };
     }
 
-    const formTools = await getAllToolsById(validatedData.tools);
-
     let agent: Agent;
+    let dynamicBlocks: DynamicBlock[] = [];
+    const formTools = await getAllToolsById(validatedData.tools);
     if (id) {
+      const prevAgent = await getAgentById({ id });
+
+      if (prevAgent?.userId !== session.user.id) {
+        return { status: 'failed', data: null };
+      }
+
       agent = await updateAgent({
         id,
         name: validatedData.name,
@@ -169,15 +189,21 @@ export async function saveAgent(
       });
 
       const agentTools = await getAllAgentToTools(id);
-      const newTools = formTools.filter(
-        (tool) => !agentTools.find((at) => at.toolId === tool.id),
+      const [deletedTools, newTools] = getDiffRelation(
+        agentTools,
+        formTools,
+        (a, b) => a.toolId === b.id,
       );
-      const deletedTools = agentTools.filter(
-        (at) => !formTools.find((tool) => tool.id === at.toolId),
+
+      dynamicBlocks = await getAllDynamicBlocks(id);
+      const [deletedDynamicBlocks, newDynamicBlocks] = getDiffRelation(
+        dynamicBlocks,
+        validatedData.dynamicBlocks,
+        (a, b) => a.name === b,
       );
 
       if (newTools.length > 0) {
-        await createAgentToTool(
+        await createAllAgentToTools(
           newTools.map((tool) => ({ agentId: id, toolId: tool.id })),
         );
       }
@@ -188,21 +214,58 @@ export async function saveAgent(
           deletedTools.map(({ toolId }) => toolId),
         );
       }
+
+      if (newDynamicBlocks.length > 0) {
+        dynamicBlocks.concat(
+          await createAllDynamicBlocks(
+            newDynamicBlocks.map((name) => ({
+              agentId: id,
+              name,
+            })),
+          ),
+        );
+      }
+
+      if (deletedDynamicBlocks.length > 0) {
+        await deleteAllDynamicBlocks(
+          id,
+          deletedDynamicBlocks.map(({ name }) => name),
+        );
+
+        dynamicBlocks = dynamicBlocks.filter(
+          (item) => !deletedDynamicBlocks.includes(item),
+        );
+      }
     } else {
       agent = await createAgent({
         ...validatedData,
         userId: session.user.id,
       });
 
-      await createAgentToTool(
-        formTools.map((tool) => ({ agentId: agent.id, toolId: tool.id })),
-      );
+      if (formTools.length > 0) {
+        await createAllAgentToTools(
+          formTools.map((tool) => ({ agentId: agent.id, toolId: tool.id })),
+        );
+      }
+
+      if (validatedData.dynamicBlocks.length > 0) {
+        dynamicBlocks = await createAllDynamicBlocks(
+          validatedData.dynamicBlocks.map((name) => ({
+            agentId: agent.id,
+            name,
+          })),
+        );
+      }
     }
 
-    return { status: 'success', data: {
-      ...agent,
-      tools: formTools.map(tool => ({ tool })),
-    } };
+    return {
+      status: 'success',
+      data: mapAgent({
+        ...agent,
+        tools: formTools.map((tool) => ({ tool })),
+        dynamicBlocks,
+      }),
+    };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data', data: null };

@@ -1,6 +1,13 @@
 'use client';
 
-import { useActionState, useEffect, useRef, useState } from 'react';
+import {
+  useActionState,
+  useCallback,
+  useEffect,
+  useId,
+  useRef,
+  useState,
+} from 'react';
 import Form from 'next/form';
 import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
@@ -17,8 +24,9 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { SubmitButton } from '@/components/submit-button';
 import { saveAgent, type SaveAgentActionState } from '@/app/(chat)/actions';
-import { ToolsCombobox } from './tools-combobox';
-import type { AgentWithTools } from '@/lib/db/queries';
+import { ToolsCombobox } from '@/components/tools-combobox';
+import { DynamicBlocks } from './dynamic-blocks';
+import type { ClientAgent } from '@/lib/data';
 
 export function AgentFormDialog({
   onSuccess,
@@ -27,16 +35,17 @@ export function AgentFormDialog({
   setOpen,
   openAgentListDialog,
 }: {
-  onSuccess: (agent: AgentWithTools) => void;
-  agent?: AgentWithTools | null;
+  onSuccess: (agent: ClientAgent) => void;
+  agent?: ClientAgent | null;
   isOpen: boolean;
   setOpen: (isOpen: boolean) => void;
   openAgentListDialog: boolean;
 }) {
+  const formId = useId();
   const { mutate } = useSWRConfig();
   const onSuccessRef = useRef(onSuccess);
   const [selected, setSelected] = useState<string[]>(
-    agent?.tools.map(({ tool }) => tool.id) || [],
+    agent?.tools.map((tool) => tool.id) || [],
   );
 
   const [formState, formAction] = useActionState<
@@ -50,7 +59,7 @@ export function AgentFormDialog({
 
   useEffect(() => {
     if (['idle', 'failed', 'invalid_data'].includes(formState.status)) {
-      setSelected(agent?.tools.map(({ tool }) => tool.id) || []);
+      setSelected(agent?.tools.map((tool) => tool.id) || []);
     }
   }, [agent?.tools, formState]);
 
@@ -61,7 +70,7 @@ export function AgentFormDialog({
       toast.error('Failed validating your submission!');
     } else if (formState.status === 'success' && formState.data) {
       toast.success('Agent created successfully');
-      mutate<AgentWithTools[], AgentWithTools>('/api/agents', formState.data, {
+      mutate<ClientAgent[], ClientAgent>('/api/agents', formState.data, {
         populateCache: (data, agents = []) => {
           const hasAgent = agents.find((agent) => agent.id === data.id);
           if (hasAgent) {
@@ -83,6 +92,15 @@ export function AgentFormDialog({
     }
   }, [formState, setOpen, mutate, setSelected, agent]);
 
+  const resetBlocks = useCallback(
+    (set: (blocks: string[]) => void) => {
+      if (['idle', 'failed', 'invalid_data'].includes(formState.status)) {
+        set(agent?.dynamicBlocks.map(({ name }) => name) || []);
+      }
+    },
+    [formState, agent],
+  );
+
   const toggleTool = (toolId: string) => {
     setSelected((selected) => {
       if (selected.includes(toolId)) {
@@ -92,6 +110,8 @@ export function AgentFormDialog({
       }
     });
   };
+
+  const form = `${formId}-form`;
 
   return (
     <Dialog open={isOpen} onOpenChange={setOpen}>
@@ -106,18 +126,18 @@ export function AgentFormDialog({
               : 'Create a new agent with a system prompt'}
           </DialogDescription>
         </DialogHeader>
-        <Form id="agent-form" action={formAction}>
+        <Form id={form} action={formAction}>
           <input type="hidden" name="id" value={agent?.id} />
           <div className="flex flex-col gap-8 py-3">
             <div className="flex flex-col gap-4">
               <Label
-                htmlFor="name"
+                htmlFor={`${formId}-name`}
                 className="text-zinc-600 font-normal dark:text-zinc-400"
               >
-                Agent Name
+                Name
               </Label>
               <Input
-                id="name"
+                id={`${formId}-name`}
                 name="name"
                 className="bg-muted text-md md:text-sm"
                 placeholder="Content Writer"
@@ -128,13 +148,22 @@ export function AgentFormDialog({
             </div>
             <div className="flex flex-col gap-4">
               <Label
-                htmlFor="systemPrompt"
+                htmlFor={`${formId}-blocks`}
+                className="text-zinc-600 font-normal dark:text-zinc-400"
+              >
+                Blocks
+              </Label>
+              <DynamicBlocks formId={formId} onReset={resetBlocks} />
+            </div>
+            <div className="flex flex-col gap-4">
+              <Label
+                htmlFor={`${formId}-system-prompt`}
                 className="text-zinc-600 font-normal dark:text-zinc-400"
               >
                 System Prompt
               </Label>
               <Textarea
-                id="systemPrompt"
+                id={`${formId}-system-prompt`}
                 name="systemPrompt"
                 className="bg-muted text-md md:text-sm md:h-[140px]"
                 placeholder="You are a useful assistant"
@@ -146,7 +175,11 @@ export function AgentFormDialog({
               <Label className="text-zinc-600 font-normal dark:text-zinc-400">
                 Tools
               </Label>
-              <ToolsCombobox selected={selected} onChange={toggleTool} />
+              <ToolsCombobox
+                formId={form}
+                selected={selected}
+                onChange={toggleTool}
+              />
             </div>
           </div>
           <div className="flex justify-end mt-3">

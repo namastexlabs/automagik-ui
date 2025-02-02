@@ -21,6 +21,23 @@ export const user = pgTable('User', {
 
 export type User = InferSelectModel<typeof user>;
 
+export const dynamicBlock = pgTable(
+  'DynamicBlock',
+  {
+    id: uuid('id').primaryKey().notNull().defaultRandom(),
+    name: text('name').notNull(),
+    content: text('content').notNull().default('BLANK'),
+    agentId: uuid('agentId')
+      .notNull()
+      .references(() => agent.id, { onDelete: 'cascade' }),
+  },
+  (table) => ({
+    uniqueName: unique().on(table.name, table.agentId),
+  }),
+);
+
+export type DynamicBlock = InferSelectModel<typeof dynamicBlock>;
+
 export const tool = pgTable(
   'Tool',
   {
@@ -75,6 +92,14 @@ export type AgentsToTools = InferSelectModel<typeof agentsToTools>;
 
 export const agentRelations = relations(agent, ({ many }) => ({
   tools: many(agentsToTools),
+  dynamicBlocks: many(dynamicBlock),
+}));
+
+export const dynamicBlockRelations = relations(dynamicBlock, ({ one }) => ({
+  agent: one(agent, {
+    fields: [dynamicBlock.agentId],
+    references: [agent.id],
+  }),
 }));
 
 export const agentToToolsRelations = relations(agentsToTools, ({ one }) => ({

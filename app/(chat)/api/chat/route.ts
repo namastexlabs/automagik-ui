@@ -23,8 +23,15 @@ import { toCoreTools } from '@/lib/agents/tool';
 
 export const maxDuration = 60;
 
-const getSystemPrompt = (agentPrompt: string) => `\
+const getSystemPrompt = (
+  agentPrompt: string,
+  dynamicBlocks: { name: string; content: string }[],
+) => `\
 You are a friendly assistant! Keep your responses concise and helpful.
+The tools have its own rendering through ReactJS, so you don't need to show the result of a tool.
+
+Use the following memories saved from user interaction, save new memories about the user with the saveMemories tool:
+${dynamicBlocks.map(({ name, content }) => `* ${name}: ${content}`).join('\n')}
 
 Here's your task:
 ${agentPrompt}
@@ -90,17 +97,17 @@ export async function POST(request: Request) {
     type: 'user-message-id',
     content: userMessageId,
   });
-
   const agentTools = agent.tools.map(({ tool }) => tool);
   const coreTools = toCoreTools(agentTools, {
     userId: session.user.id,
     model,
     streamingData,
+    agent,
   });
 
   const result = streamText({
     model: customModel(model.apiIdentifier),
-    system: getSystemPrompt(agent.systemPrompt),
+    system: getSystemPrompt(agent.systemPrompt, agent.dynamicBlocks),
     messages: coreMessages,
     maxSteps: 5,
     tools: coreTools,

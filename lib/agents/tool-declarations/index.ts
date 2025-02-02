@@ -7,6 +7,7 @@ import { createDocumentTool } from './create-document';
 import { updateDocumentTool } from './update-document';
 import { weatherTool } from './get-weather';
 import { requestSuggestionsTool } from './request-suggestions';
+import { saveMemoriesTool } from './save-memories';
 import type { InternalToolName } from './client';
 
 export const INTERNAL_TOOL_MAP = {
@@ -14,6 +15,7 @@ export const INTERNAL_TOOL_MAP = {
   [createDocumentTool.name]: createDocumentTool,
   [updateDocumentTool.name]: updateDocumentTool,
   [requestSuggestionsTool.name]: requestSuggestionsTool,
+  [saveMemoriesTool.name]: saveMemoriesTool,
 } as const;
 
 export type InternalToolOptions = typeof INTERNAL_TOOL_MAP;

@@ -7,7 +7,7 @@ import {
   VisibilitySelector,
   type VisibilityType,
 } from '@/components/visibility-selector';
-import type { AgentWithTools } from '@/lib/db/queries';
+import type { ClientAgent } from '@/lib/data';
 
 export function ChatHeader({
   agents,
@@ -21,7 +21,7 @@ export function ChatHeader({
   changeAgentListDialog,
   onSubmit,
 }: {
-  agents: AgentWithTools[];
+  agents: ClientAgent[];
   chatId?: string;
   selectedModelId: string;
   selectedVisibilityType: VisibilityType;
@@ -33,7 +33,7 @@ export function ChatHeader({
   };
   changeAgentDialog: (isOpen: boolean, agentId?: string) => void;
   changeAgentListDialog: (isOpen: boolean) => void;
-  onSubmit: (agentId?: string, agents?: AgentWithTools[], tabs?: string[]) => void;
+  onSubmit: (agentId?: string, agents?: ClientAgent[], tabs?: string[]) => void;
 }) {
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
