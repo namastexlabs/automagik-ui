@@ -7,6 +7,7 @@ import postgres from 'postgres';
 import type { SzObject } from 'zodex';
 
 import type { BlockKind } from '@/components/block';
+import type { Source, ToolData } from '@/lib/agents/types';
 
 import * as schema from './schema';
 
@@ -315,10 +316,12 @@ export async function getSuggestionsByDocumentId({
 
 export async function getMessageById({ id }: { id: string }) {
   try {
-    return await db
-      .select()
-      .from(schema.message)
-      .where(eq(schema.message.id, id));
+    return await db.query.message.findFirst({
+      where: (message, { eq }) => eq(message.id, id),
+      with: {
+        chat: true,
+      },
+    });
   } catch (error) {
     console.error('Failed to get message by id from database');
     throw error;
@@ -545,6 +548,17 @@ export async function updateDynamicBlock({
   }
 }
 
+export async function getToolById({ id }: { id: string }) {
+  try {
+    return await db.query.tool.findFirst({
+      where: (tool, { eq }) => eq(tool.id, id),
+    });
+  } catch (error) {
+    console.error('Failed to get tool in database');
+    throw error;
+  }
+}
+
 export async function getInternalTools() {
   try {
     return await db.query.tool.findMany({
@@ -552,6 +566,18 @@ export async function getInternalTools() {
     });
   } catch (error) {
     console.error('Failed to get internal tools in database');
+    throw error;
+  }
+}
+
+export async function getToolsByUserId(userId: string) {
+  try {
+    return await db.query.tool.findMany({
+      where: (tool, { eq, or }) =>
+        or(eq(tool.userId, userId), eq(tool.source, 'internal')),
+    });
+  } catch (error) {
+    console.error('Failed to get tools in database');
     throw error;
   }
 }
@@ -567,12 +593,14 @@ export async function getAllToolsById(ids: string[]) {
   }
 }
 
-export async function createTool(data: {
+export async function createTool<T extends Source>(data: {
   name: string;
   verboseName: string;
   description: string;
+  data: ToolData<T>;
   parameters: SzObject;
-  source: schema.Tool['source'];
+  source: T;
+  userId?: string | null;
 }) {
   try {
     const [createdTool] = await db.insert(schema.tool).values(data).returning();
@@ -584,7 +612,7 @@ export async function createTool(data: {
   }
 }
 
-export async function updateTool({
+export async function updateTool<T extends Source>({
   id,
   ...data
 }: {
@@ -592,9 +620,9 @@ export async function updateTool({
   name?: string;
   verboseName?: string;
   description?: string;
+  data: ToolData<T>;
   parameters?: SzObject;
-  source?: schema.Tool['source'];
-  agentId?: string;
+  source?: T;
 }) {
   try {
     const [updatedTool] = await db

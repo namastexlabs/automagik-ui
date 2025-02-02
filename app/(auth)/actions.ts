@@ -2,6 +2,7 @@
 
 import { z } from 'zod';
 
+import type { ActionStateStatus } from '@/app/types';
 import { createUser, getUser } from '@/lib/db/queries';
 
 import { signIn } from './auth';
@@ -11,14 +12,10 @@ const authFormSchema = z.object({
   password: z.string().min(6),
 });
 
-export interface LoginActionState {
-  status: 'idle' | 'in_progress' | 'success' | 'failed' | 'invalid_data';
-}
-
 export const login = async (
-  _: LoginActionState,
+  _: ActionStateStatus,
   formData: FormData,
-): Promise<LoginActionState> => {
+): Promise<ActionStateStatus> => {
   try {
     const validatedData = authFormSchema.parse({
       email: formData.get('email'),
@@ -41,14 +38,8 @@ export const login = async (
   }
 };
 
-export interface RegisterActionState {
-  status:
-    | 'idle'
-    | 'in_progress'
-    | 'success'
-    | 'failed'
-    | 'user_exists'
-    | 'invalid_data';
+export type RegisterActionState = {
+  status: ActionStateStatus['status'] | 'user_exists';
 }
 
 export const register = async (

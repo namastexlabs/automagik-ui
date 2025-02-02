@@ -45,6 +45,7 @@ const run = async () => {
       description: internalTool.description,
       parameters: zerialize(internalTool.parameters),
       source: 'internal',
+      data: {},
     } as const;
 
     if (tool) {

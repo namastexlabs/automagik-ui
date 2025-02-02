@@ -68,6 +68,7 @@ export function DynamicBlocks({
       {checkboxes}
       <Input
         placeholder="Add a block (press , or Enter)"
+        className="bg-muted"
         value={inputValue}
         onChange={(e) => setInputValue(e.target.value)}
         onKeyDown={handleKeyDown}

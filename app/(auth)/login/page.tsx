@@ -5,10 +5,11 @@ import { useRouter } from 'next/navigation';
 import { useActionState, useEffect, useState } from 'react';
 import { toast } from 'sonner';
 
+import type { ActionStateStatus } from '@/app/types';
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
 
-import { login, type LoginActionState } from '../actions';
+import { login } from '../actions';
 
 export default function Page() {
   const router = useRouter();
@@ -16,7 +17,7 @@ export default function Page() {
   const [email, setEmail] = useState('');
   const [isSuccessful, setIsSuccessful] = useState(false);
 
-  const [state, formAction] = useActionState<LoginActionState, FormData>(
+  const [state, formAction] = useActionState<ActionStateStatus, FormData>(
     login,
     {
       status: 'idle',

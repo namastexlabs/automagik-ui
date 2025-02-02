@@ -1,17 +1,22 @@
 'use client';
 
-import type { ChatRequestOptions, Message } from 'ai';
+import type {
+  ChatRequestOptions,
+  Message,
+  ToolInvocation as AIToolInvocation,
+} from 'ai';
 import cx from 'classnames';
 import { motion } from 'framer-motion';
 import equal from 'fast-deep-equal';
 import { memo, useState, type Dispatch, type SetStateAction } from 'react';
 
 import {
-  internalToolNames,
+  castToolType,
   type InternalToolInvocationPayload,
 } from '@/lib/agents/tool-declarations/client';
 import type { Vote } from '@/lib/db/schema';
 import { cn } from '@/lib/utils';
+import type { ClientTool } from '@/lib/data';
 
 import type { UIBlock } from './block';
 import { PencilEditIcon, SparklesIcon } from './icons';
@@ -22,6 +27,8 @@ import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { ToolInvocation } from './internal-tool-invocation';
+import { Badge } from './ui/badge';
+import { Skeleton } from './ui/skeleton';
 
 function PurePreviewMessage({
   chatId,
@@ -32,12 +39,16 @@ function PurePreviewMessage({
   setMessages,
   reload,
   isReadonly,
+  tools,
+  isToolsLoading,
 }: {
   chatId?: string;
   message: Message;
   setBlock: Dispatch<SetStateAction<UIBlock>>;
   vote: Vote | undefined;
   isLoading: boolean;
+  tools: ClientTool[];
+  isToolsLoading: boolean;
   setMessages: (
     messages: Message[] | ((messages: Message[]) => Message[]),
   ) => void;
@@ -47,6 +58,42 @@ function PurePreviewMessage({
   isReadonly: boolean;
 }) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
+
+  const renderToolInvocation = (toolInvocation: AIToolInvocation) => {
+    if (isToolsLoading) {
+      return <Skeleton className="h-6"/>;
+    }
+
+    const userTool = tools.find(
+      (tool) => tool.name === toolInvocation.toolName,
+    );
+
+    if (!userTool) {
+      return null;
+    }
+
+    switch (true) {
+      case castToolType('langflow', userTool):
+        return (
+          <div key={`${toolInvocation.toolCallId} ${toolInvocation.state}`}>
+            <Badge variant="secondary" className="text-md">
+              Running Flow #{userTool.data.flowId.slice(0, 8)}...
+            </Badge>
+          </div>
+        );
+      case castToolType('internal', userTool):
+        return (
+          <ToolInvocation
+            key={`${toolInvocation.toolCallId} ${toolInvocation.state}`}
+            toolInvocation={toolInvocation as InternalToolInvocationPayload}
+            setBlock={setBlock}
+            isReadonly={isReadonly}
+          />
+        );
+      default:
+        return null;
+    }
+  };
 
   return (
     <motion.div
@@ -128,22 +175,7 @@ function PurePreviewMessage({
 
           {message.toolInvocations && message.toolInvocations.length > 0 && (
             <div className="flex flex-col gap-4">
-              {message.toolInvocations.map((toolInvocation) => {
-                if (!internalToolNames.includes(toolInvocation.toolName)) {
-                  return null;
-                }
-
-                return (
-                  <ToolInvocation
-                    key={`${toolInvocation.toolCallId} ${toolInvocation.state}`}
-                    toolInvocation={
-                      toolInvocation as InternalToolInvocationPayload
-                    }
-                    setBlock={setBlock}
-                    isReadonly={isReadonly}
-                  />
-                );
-              })}
+              {message.toolInvocations.map(renderToolInvocation)}
             </div>
           )}
 
@@ -167,6 +199,7 @@ export const PreviewMessage = memo(
   (prevProps, nextProps) => {
     if (prevProps.isLoading !== nextProps.isLoading) return false;
     if (prevProps.message.content !== nextProps.message.content) return false;
+    if (prevProps.tools !== nextProps.tools) return false;
     if (
       !equal(
         prevProps.message.toolInvocations,

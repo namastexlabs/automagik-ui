@@ -12,6 +12,7 @@ import {
   unique,
 } from 'drizzle-orm/pg-core';
 import type { SzObject } from 'zodex';
+import type { ToolData } from '../agents/types';
 
 export const user = pgTable('User', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
@@ -42,11 +43,13 @@ export const tool = pgTable(
   'Tool',
   {
     id: uuid('id').primaryKey().notNull().defaultRandom(),
+    userId: uuid('userId').references(() => user.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
     verboseName: text('verboseName').notNull(),
     description: text('description').notNull(),
     parameters: json('parameters').$type<SzObject>().notNull(),
-    source: text('source', { enum: ['internal'] }).notNull(),
+    source: text('source', { enum: ['internal', 'langflow'] }).notNull(),
+    data: json('data').$type<ToolData>().notNull().default({}),
   },
   (table) => ({
     uniqueUserName: unique().on(table.name, table.source),
@@ -141,6 +144,13 @@ export const message = pgTable('Message', {
 });
 
 export type Message = InferSelectModel<typeof message>;
+
+export const messageRelations = relations(message, ({ one }) => ({
+  chat: one(chat, {
+    fields: [message.chatId],
+    references: [chat.id],
+  }),
+}));
 
 export const vote = pgTable(
   'Vote',

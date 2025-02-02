@@ -1,8 +1,8 @@
-import type { StreamData } from 'ai';
+import type { CoreToolCall, CoreToolResult, StreamData } from 'ai';
 import type { z } from 'zod';
 
 import type { Model } from '@/lib/ai/models';
-import type { AgentData } from '../db/queries';
+import type { AgentData } from '@/lib/db/queries';
 
 export type ToolRequestContext = {
   streamingData: StreamData;
@@ -19,6 +19,36 @@ export type ToolDefinition<N extends string, R, P extends z.ZodTypeAny> = {
   parameters: P;
   execute: (params: z.infer<P>, context: ToolRequestContext) => Promise<R>;
 };
+
+export type ToolInvocation<
+  NAME extends string,
+  TOOL,
+> = TOOL extends ToolDefinition<NAME, infer RESULT, infer ARGS>
+  ?
+      | ({
+          state: 'partial-call' | 'call';
+        } & CoreToolCall<NAME, z.infer<ARGS>>)
+      | ({
+          state: 'result';
+        } & CoreToolResult<NAME, z.infer<ARGS>, RESULT>)
+  :
+      | ({
+          state: 'call' | 'partial-call';
+        } & CoreToolCall<NAME, any>)
+      | ({
+          state: 'result';
+        } & CoreToolResult<NAME, any, never>);
+
+export type Source = 'internal' | 'langflow';
+
+type FlowToolData = {
+  flowId: string;
+};
+
+export type ToolData<source extends Source = Source> =
+  source extends 'langflow' ? FlowToolData
+  : source extends 'internal' ? object
+  : never;
 
 export type DocumentExecuteReturn =
   | {
@@ -67,4 +97,61 @@ export type WeatherAtLocation = {
     sunrise: string[];
     sunset: string[];
   };
+};
+
+export type ExecutionResult = {
+  result: string | null;
+  content: string;
+};
+
+export type LangflowResponse = {
+  session_id: string;
+  outputs: FlowOutput[];
+};
+
+type FlowOutput = {
+  inputs: {
+    input_value: string;
+  };
+  outputs: {
+    results: {
+      message: Message;
+    };
+    artifacts: Artifacts;
+    outputs: {
+      message: {
+        message: Message;
+        type: string;
+      };
+    };
+    messages: ChatMessage[];
+  }[];
+};
+
+type Message = {
+  data: {
+    text: string;
+    sender: string;
+    sender_name: string;
+    session_id: string;
+    timestamp: string;
+  };
+  text: string;
+  sender: string;
+  sender_name: string;
+  session_id: string;
+  timestamp: string;
+};
+
+type Artifacts = {
+  message: string;
+  sender: string;
+  sender_name: string;
+};
+
+type ChatMessage = {
+  message: string;
+  sender: string;
+  sender_name: string;
+  session_id: string;
 };

@@ -8,6 +8,7 @@ import {
 } from 'ai';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
+import { zerialize } from 'zodex';
 
 import { customModel } from '@/lib/ai';
 import {
@@ -28,33 +29,40 @@ import {
   getAllDynamicBlocks,
   deleteAllDynamicBlocks,
   createAllDynamicBlocks,
+  getToolById,
+  createTool,
+  updateTool,
 } from '@/lib/db/queries';
 import type { VisibilityType } from '@/components/visibility-selector';
 import { auth } from '@/app/(auth)/auth';
-import type { Agent, Chat, DynamicBlock } from '@/lib/db/schema';
+import type { Agent, Chat, DynamicBlock, Tool } from '@/lib/db/schema';
 import { notFound } from 'next/navigation';
 import {
   generateUUID,
   getDiffRelation,
   getMostRecentUserMessage,
 } from '@/lib/utils';
-import { mapAgent, type ClientAgent } from '@/lib/data';
-
-export type SaveAgentActionState = {
-  status: 'failed' | 'invalid_data' | 'success' | 'idle' | 'in_progress';
-  data: ClientAgent | null;
-};
+import { mapAgent, mapTool, type ClientAgent } from '@/lib/data';
+import type { ActionStateData, ActionStateStatus } from '@/app/types';
+import { createChatFlowTool } from '@/lib/agents/langflow';
 
 const agentFormSchema = z.object({
-  name: z.string(),
+  name: z.string().trim(),
   systemPrompt: z.string(),
   tools: z.array(z.string()).default([]),
   dynamicBlocks: z
-    .array(z.string())
+    .array(z.string().trim())
     .refine((items) => new Set(items).size === items.length, {
       message: 'All items must be unique, no duplicate values allowed',
     })
     .default([]),
+});
+
+const flowToolSchema = z.object({
+  name: z.string().trim(),
+  verboseName: z.string().trim(),
+  description: z.string(),
+  flowId: z.string().trim(),
 });
 
 export async function saveModelId(model: string) {
@@ -67,6 +75,12 @@ export async function generateTitleFromUserMessage({
 }: {
   message: CoreMessage;
 }) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return notFound();
+  }
+
   const { text: title } = await generateText({
     model: customModel('gpt-4o-mini'),
     system: `\n
@@ -81,7 +95,16 @@ export async function generateTitleFromUserMessage({
 }
 
 export async function deleteTrailingMessages({ id }: { id: string }) {
-  const [message] = await getMessageById({ id });
+  const session = await auth();
+  const message = await getMessageById({ id });
+
+  if (!message) {
+    return notFound();
+  }
+
+  if (!session?.user?.id || message.chat.userId !== session?.user?.id) {
+    return notFound();
+  }
 
   await deleteMessagesByChatIdAfterTimestamp({
     chatId: message.chatId,
@@ -96,6 +119,18 @@ export async function updateChatVisibility({
   chatId: string;
   visibility: VisibilityType;
 }) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return notFound();
+  }
+
+  const chat = await getChatById({ id: chatId });
+
+  if (chat?.userId !== session.user.id) {
+    return notFound();
+  }
+
   await updateChatVisiblityById({ chatId, visibility });
 }
 
@@ -134,13 +169,16 @@ export async function createChat({
   }
 }
 
-export async function deleteChat({
-  id,
-}: { id: string }): Promise<{ status: 'failed' | 'success' }> {
+export async function deleteChat({ id }: { id: string }): Promise<{
+  status: Exclude<
+    ActionStateStatus['status'],
+    'idle' | 'in_progress' | 'invalid_data'
+  >;
+}> {
   const session = await auth();
   const chat = await getChatById({ id });
 
-  if (!session?.user?.id || !chat || chat.userId !== session.user.id) {
+  if (!session?.user?.id || chat?.userId !== session.user.id) {
     return notFound();
   }
 
@@ -154,10 +192,16 @@ export async function deleteChat({
 }
 
 export async function saveAgent(
-  _: SaveAgentActionState,
+  _: ActionStateData<ClientAgent>,
   formData: FormData,
-): Promise<SaveAgentActionState> {
+): Promise<ActionStateData<ClientAgent>> {
   try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return { status: 'failed', data: null };
+    }
+
     const id = formData.get('id') as string;
     const validatedData = agentFormSchema.parse({
       name: formData.get('name'),
@@ -165,12 +209,6 @@ export async function saveAgent(
       tools: formData.getAll('tools'),
       dynamicBlocks: formData.getAll('dynamicBlocks'),
     });
-
-    const session = await auth();
-
-    if (!session?.user?.id) {
-      return { status: 'failed', data: null };
-    }
 
     let agent: Agent;
     let dynamicBlocks: DynamicBlock[] = [];
@@ -268,7 +306,7 @@ export async function saveAgent(
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { status: 'invalid_data', data: null };
+      return { status: 'invalid_data', data: null, errors: error.errors };
     }
 
     console.error('Failed to save agent', error);
@@ -285,4 +323,60 @@ export async function deleteAgent({ id }: { id: string }) {
   }
 
   await deleteAgentById({ id });
+}
+
+export async function saveFlowTool(
+  _: ActionStateData,
+  formData: FormData,
+): Promise<ActionStateData> {
+  try {
+    const session = await auth();
+
+    if (!session?.user?.id) {
+      return notFound();
+    }
+
+    const id = formData.get('id') as string;
+    const { flowId, ...validatedData } = flowToolSchema.parse({
+      name: formData.get('name'),
+      verboseName: formData.get('verboseName'),
+      description: formData.get('description'),
+      flowId: formData.get('flowId'),
+    });
+
+    let tool: Tool;
+    const { name, verboseName, description, parameters } = createChatFlowTool(
+      flowId,
+      validatedData,
+    );
+    const data = {
+      source: 'langflow',
+      name,
+      verboseName,
+      description,
+      parameters: zerialize(parameters),
+      data: { flowId },
+    } as const;
+    if (id) {
+      const flowTool = await getToolById({ id });
+      const isFlowSource = flowTool?.source === data.source;
+
+      if (flowTool?.userId !== session.user.id || !isFlowSource) {
+        return notFound();
+      }
+
+      tool = await updateTool({ id, ...data });
+    } else {
+      tool = await createTool({ ...data, userId: session.user.id });
+    }
+
+    return { status: 'success', data: mapTool(tool) };
+  } catch (error) {
+    if (error instanceof z.ZodError) {
+      return { status: 'invalid_data', data: null, errors: error.errors };
+    }
+
+    console.error('Failed to save tool', error);
+    return { status: 'failed', data: null };
+  }
 }
