@@ -2,9 +2,9 @@
 
 import { isToday, isYesterday, subMonths, subWeeks } from 'date-fns';
 import Link from 'next/link';
-import { useParams, usePathname, useRouter } from 'next/navigation';
+import { useParams, useRouter } from 'next/navigation';
 import type { User } from 'next-auth';
-import { memo, useEffect, useState } from 'react';
+import { memo, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
 
@@ -31,7 +31,6 @@ import {
   DropdownMenuContent,
   DropdownMenuItem,
   DropdownMenuPortal,
-  DropdownMenuSeparator,
   DropdownMenuSub,
   DropdownMenuSubContent,
   DropdownMenuSubTrigger,
@@ -49,6 +48,8 @@ import {
 import type { Chat } from '@/lib/db/schema';
 import { fetcher } from '@/lib/utils';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
+import { useCurrentAgentTab } from '@/contexts/agent-tabs';
+import { deleteChat } from '@/app/(chat)/actions';
 
 type GroupedChats = {
   today: Chat[];
@@ -152,44 +153,54 @@ export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
 export function SidebarHistory({ user }: { user: User | undefined }) {
   const { setOpenMobile } = useSidebar();
   const { id } = useParams();
-  const pathname = usePathname();
+  const { currentTab } = useCurrentAgentTab();
+
   const {
     data: history,
     isLoading,
     mutate,
-  } = useSWR<Array<Chat>>(user ? '/api/history' : null, fetcher, {
-    fallbackData: [],
-  });
-
-  useEffect(() => {
-    mutate();
-  }, [pathname, mutate]);
+  } = useSWR<Array<Chat>>(
+    user && currentTab
+      ? `/api/history?agentId=${currentTab}`
+      : null,
+    fetcher,
+    {
+      fallbackData: [],
+      revalidateOnFocus: false,
+    },
+  );
 
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const router = useRouter();
+
   const handleDelete = async () => {
-    const deletePromise = fetch(`/api/chat?id=${deleteId}`, {
-      method: 'DELETE',
-    });
+    let status: 'success' | 'failed' | undefined;
+    const loadingToastId = toast.loading('Deleting chat...');
+    try {
+      const payload = await deleteChat({
+        id: deleteId as string,
+      });
 
-    toast.promise(deletePromise, {
-      loading: 'Deleting chat...',
-      success: () => {
-        mutate((history) => {
-          if (history) {
-            return history.filter((h) => h.id !== id);
-          }
-        });
-        return 'Chat deleted successfully';
-      },
-      error: 'Failed to delete chat',
-    });
+      status = payload.status;
+    } finally {
+      toast.dismiss(loadingToastId);
 
-    setShowDeleteDialog(false);
+      if (status === 'success') {
+        toast.success('Chat deleted successfully');
 
-    if (deleteId === id) {
-      router.push('/');
+        if (deleteId === id) {
+          router.push('/');
+        }
+
+        mutate((history = []) => (
+          history.filter((chat) => chat.id !== deleteId)
+        ));
+
+        setShowDeleteDialog(false);
+      } else if (status === 'failed') {
+        toast.error('Failed to delete chat');
+      }
     }
   };
 
@@ -197,8 +208,8 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     return (
       <SidebarGroup>
         <SidebarGroupContent>
-          <div className="px-2 text-zinc-500 w-full flex flex-row justify-center items-center text-sm gap-2">
-            Login to save and revisit previous chats!
+          <div className="text-zinc-500 w-full flex flex-row justify-center items-center text-sm gap-2">
+            <div>Login to save and revisit previous chats!</div>
           </div>
         </SidebarGroupContent>
       </SidebarGroup>
@@ -238,8 +249,10 @@ export function SidebarHistory({ user }: { user: User | undefined }) {
     return (
       <SidebarGroup>
         <SidebarGroupContent>
-          <div className="px-2 text-zinc-500 w-full flex flex-row justify-center items-center text-sm gap-2">
-            Your conversations will appear here once you start chatting!
+          <div className="text-zinc-500 w-full flex flex-row justify-center items-center text-sm gap-2">
+            <div>
+              Your conversations will appear here once you start chatting!
+            </div>
           </div>
         </SidebarGroupContent>
       </SidebarGroup>

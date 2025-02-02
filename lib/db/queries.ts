@@ -15,8 +15,9 @@ import {
   type Message,
   message,
   vote,
+  agent,
 } from './schema';
-import { BlockKind } from '@/components/block';
+import type { BlockKind } from '@/components/block';
 
 // Optionally, if not using email/pass login, you can
 // use the Drizzle adapter for Auth.js / NextAuth
@@ -24,7 +25,17 @@ import { BlockKind } from '@/components/block';
 
 // biome-ignore lint: Forbidden non-null assertion.
 const client = postgres(process.env.POSTGRES_URL!);
-const db = drizzle(client);
+const db = drizzle(client, {
+  schema: {
+    user,
+    chat,
+    document,
+    suggestion,
+    message,
+    vote,
+    agent,
+  }
+});
 
 export async function getUser(email: string): Promise<Array<User>> {
   try {
@@ -51,18 +62,23 @@ export async function saveChat({
   id,
   userId,
   title,
+  agentId,
 }: {
   id: string;
   userId: string;
   title: string;
+  agentId: string;
 }) {
   try {
-    return await db.insert(chat).values({
+    const [createdChat] = await db.insert(chat).values({
       id,
       createdAt: new Date(),
       userId,
       title,
-    });
+      agentId,
+    }).returning();
+
+    return createdChat;
   } catch (error) {
     console.error('Failed to save chat in database');
     throw error;
@@ -81,13 +97,19 @@ export async function deleteChatById({ id }: { id: string }) {
   }
 }
 
-export async function getChatsByUserId({ id }: { id: string }) {
+export async function getChats({
+  userId,
+  agentId,
+}: { userId: string; agentId?: string }) {
   try {
-    return await db
-      .select()
-      .from(chat)
-      .where(eq(chat.userId, id))
-      .orderBy(desc(chat.createdAt));
+    return await db.query.chat.findMany({
+      where: (chat, { and, eq }) =>
+        and(
+          eq(chat.userId, userId),
+          agentId ? eq(chat.agentId, agentId) : undefined,
+        ),
+      orderBy: (chat, { desc }) => [desc(chat.createdAt)],
+    });
   } catch (error) {
     console.error('Failed to get chats by user from database');
     throw error;
@@ -96,8 +118,9 @@ export async function getChatsByUserId({ id }: { id: string }) {
 
 export async function getChatById({ id }: { id: string }) {
   try {
-    const [selectedChat] = await db.select().from(chat).where(eq(chat.id, id));
-    return selectedChat;
+    return await db.query.chat.findFirst({
+      where: (chat, { eq }) => eq(chat.id, id),
+    });
   } catch (error) {
     console.error('Failed to get chat by id from database');
     throw error;
@@ -325,6 +348,78 @@ export async function updateChatVisiblityById({
     return await db.update(chat).set({ visibility }).where(eq(chat.id, chatId));
   } catch (error) {
     console.error('Failed to update chat visibility in database');
+    throw error;
+  }
+}
+
+export async function getAgentsByUserId({ userId }: { userId: string }) {
+  try {
+    return await db.query.agent.findMany({
+      where: (agent, { eq }) => eq(agent.userId, userId),
+      orderBy: (agent, { asc }) => [asc(agent.createdAt)],
+    })
+  } catch (error) {
+    console.error('Failed to get agents in database');
+    throw error;
+  }
+}
+
+export async function getAgentById({ id }: { id: string }) {
+  try {
+    return await db.query.agent.findFirst({
+      where: (agent, { eq }) => eq(agent.id, id),
+    });
+  } catch (error) {
+    console.error('Failed to get agents in database');
+    throw error;
+  }
+}
+
+export async function saveAgent({
+  agentName,
+  systemPrompt,
+  userId
+}: { agentName: string; systemPrompt: string; userId: string }) {
+  try {
+    const [createdAgent] = await db
+      .insert(agent)
+      .values({
+        agentName,
+        systemPrompt,
+        userId,
+      })
+      .returning();
+
+      return createdAgent;
+  } catch (error) {
+    console.error(`Failed to create agent ${agentName} in database`);
+    throw error;
+  }
+}
+
+export async function updateAgent({
+  id,
+  ...data
+}: { id: string; agentName?: string; systemPrompt?: string }) {
+  try {
+    const [updatedAgent] = await db
+      .update(agent)
+      .set(data)
+      .where(eq(agent.id, id))
+      .returning();
+
+    return updatedAgent;
+  } catch (error) {
+    console.error(`Failed to update agent ${id} in database`);
+    throw error;
+  }
+}
+
+export async function deleteAgentById({ id }: { id: string }) {
+  try {
+    return await db.delete(agent).where(eq(agent.id, id));
+  } catch (error) {
+    console.error(`Failed to delete agent ${id} in database`);
     throw error;
   }
 }

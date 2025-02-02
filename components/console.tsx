@@ -63,8 +63,6 @@ export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
         className="h-2 w-full fixed cursor-ns-resize z-50"
         onMouseDown={startResizing}
         style={{ bottom: height - 4 }}
-        role="slider"
-        aria-valuenow={minHeight}
       />
 
       <div

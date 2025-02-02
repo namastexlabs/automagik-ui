@@ -29,15 +29,13 @@ import { sanitizeUIMessages } from '@/lib/utils';
 import {
   ArrowUpIcon,
   CodeIcon,
-  FileIcon,
   LogsIcon,
   MessageIcon,
   PenIcon,
   StopIcon,
   SummarizeIcon,
-  TerminalIcon,
 } from './icons';
-import { BlockKind } from './block';
+import type { BlockKind } from './block';
 
 type ToolProps = {
   type:
@@ -353,7 +351,7 @@ export const Tools = ({
 
   return (
     <motion.div
-      className="flex flex-col gap-1.5"
+      className="flex flex-col"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -469,7 +467,7 @@ const PureToolbar = ({
               : {
                   opacity: 1,
                   y: 0,
-                  height: toolsByBlockKind[blockKind].length * 50,
+                  height: toolsByBlockKind[blockKind].length * 47,
                   transition: { delay: 0 },
                   scale: 1,
                 }
