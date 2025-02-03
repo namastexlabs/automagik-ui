@@ -1,5 +1,6 @@
 import { memo, type SetStateAction } from 'react';
 import { toast } from 'sonner';
+import { AlertCircle } from 'lucide-react';
 
 import type {
   InternalToolInvocationPayload,
@@ -7,7 +8,8 @@ import type {
   InternalToolReturn,
 } from '@/lib/agents/tool-declarations/client';
 
-import type { UIBlock } from './block';
+import { Alert, AlertDescription, AlertTitle } from './ui/alert';
+import type { BlockKind, UIBlock } from './block';
 import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from './icons';
 
 type DocumentToolName =
@@ -76,6 +78,24 @@ function PureDocumentToolResult({
     );
   }
 
+  if (Object.hasOwn(result, 'error')) {
+    return (
+      <Alert variant="destructive">
+        <AlertCircle className="size-5" />
+        <AlertTitle>Error</AlertTitle>
+        <AlertDescription>
+          {(result as { error: string }).error}
+        </AlertDescription>
+      </Alert>
+    );
+  }
+
+  const data = result as {
+    id: string;
+    title: string;
+    kind: BlockKind;
+  };
+
   return (
     <button
       type="button"
@@ -98,10 +118,10 @@ function PureDocumentToolResult({
         };
 
         setBlock({
-          documentId: result.id,
-          kind: result.kind,
+          documentId: data.id,
+          kind: data.kind,
           content: '',
-          title: result.title,
+          title: data.title,
           isVisible: true,
           status: 'idle',
           boundingBox,
@@ -118,7 +138,7 @@ function PureDocumentToolResult({
         ) : null}
       </div>
       <div className="text-left">
-        {`${getActionText(type, 'past')} "${result.title}"`}
+        {`${getActionText(type, 'past')} "${data.title}"`}
       </div>
     </button>
   );
