@@ -13,27 +13,35 @@ Let agents schedule tasks on Automagik using Workflows as tools.
 
 ## Setup locally
 
-1. Clone the repository and install dependencies:
+Requirements:
+* PostgreSQL
+* Node.js preferably v20+
+* pnpm
+* AutoMagik API
 
-```
+Clone the repository and install dependencies:
+
+```bash
 git clone https://github.com/namastexlabs/automagik-ui.git
 cd automagik-ui && pnpm install
 ```
 
-2.You will need to create a `.env` and use the environment variables [defined in `.env.example`](.env.example).
+Copy `.env.example` to `.env` and use the necessary environment variables.
 
-3. For now, only PostgreSQL database is required but this will change on `0.1.0` with the AutoMagik integration.
+```bash
+cp .env.example .env
+```
 
 ### Setup database
 
-Run the existing migrations and run `update-tools` to create the necessary internal tools.
+Run the existing migrations and `update-tools` to upsert default tools.
 
-```
-pnpm db:migrate
-pnpm db:update-tools
+```bash
+pnpm db:migrate && pnpm db:update-tools
 ```
 
 ### Development
+
 ```bash
 pnpm dev
 ```

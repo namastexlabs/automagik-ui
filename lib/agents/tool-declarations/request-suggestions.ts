@@ -62,7 +62,7 @@ export const requestSuggestionsTool = createToolDefinition({
           isResolved: false,
         };
 
-        streamingData.append({
+        streamingData.writeData({
           type: 'suggestion',
           content: suggestion,
         });

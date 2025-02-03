@@ -38,7 +38,7 @@ export const updateDocumentTool = createToolDefinition({
       const { content: currentContent } = document;
       let draftText = '';
 
-      streamingData.append({
+      streamingData.writeData({
         type: 'clear',
         content: document.title,
       });
@@ -65,14 +65,14 @@ export const updateDocumentTool = createToolDefinition({
             const { textDelta } = delta;
 
             draftText += textDelta;
-            streamingData.append({
+            streamingData.writeData({
               type: 'text-delta',
               content: textDelta,
             });
           }
         }
 
-        streamingData.append({ type: 'finish', content: '' });
+        streamingData.writeData({ type: 'finish', content: '' });
       } else if (document.kind === 'code') {
         const { fullStream } = streamObject({
           model: customModel(model.apiIdentifier),
@@ -91,7 +91,7 @@ export const updateDocumentTool = createToolDefinition({
             const { code } = object;
 
             if (code) {
-              streamingData.append({
+              streamingData.writeData({
                 type: 'code-delta',
                 content: code ?? '',
               });
@@ -101,7 +101,7 @@ export const updateDocumentTool = createToolDefinition({
           }
         }
 
-        streamingData.append({ type: 'finish', content: '' });
+        streamingData.writeData({ type: 'finish', content: '' });
       }
 
       await saveDocument({

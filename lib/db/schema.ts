@@ -55,7 +55,7 @@ export const tool = pgTable(
     verboseName: text('verboseName').notNull(),
     description: text('description').notNull(),
     parameters: json('parameters').$type<SzObject>().notNull(),
-    source: text('source', { enum: ['internal', 'langflow'] }).notNull(),
+    source: text('source', { enum: ['internal', 'automagik'] }).notNull(),
     data: json('data').$type<ToolData>().notNull().default({}),
   },
   (table) => ({

@@ -73,7 +73,7 @@ function PurePreviewMessage({
     }
 
     switch (true) {
-      case castToolType('langflow', userTool):
+      case castToolType('automagik', userTool):
         return (
           <div key={`${toolInvocation.toolCallId} ${toolInvocation.state}`}>
             <Badge variant="secondary" className="text-md">
