@@ -25,29 +25,30 @@ export type ToolInvocation<
   TOOL,
 > = TOOL extends ToolDefinition<NAME, infer RESULT, infer ARGS>
   ?
-      | ({
-          state: 'partial-call' | 'call';
-        } & CoreToolCall<NAME, z.infer<ARGS>>)
-      | ({
-          state: 'result';
-        } & CoreToolResult<NAME, z.infer<ARGS>, RESULT>)
+    | ({
+        state: 'partial-call' | 'call';
+      } & CoreToolCall<NAME, z.infer<ARGS>>)
+    | ({
+        state: 'result';
+      } & CoreToolResult<NAME, z.infer<ARGS>, RESULT>)
   :
-      | ({
-          state: 'call' | 'partial-call';
+    | ({
+        state: 'call' | 'partial-call';
       } & CoreToolCall<NAME, never>)
-      | ({
-          state: 'result';
+    | ({
+        state: 'result';
       } & CoreToolResult<NAME, never, never>);
 
-export type Source = 'internal' | 'langflow';
+export type Source = 'internal' | 'automagik';
 
 type FlowToolData = {
   flowId: string;
 };
 
-export type ToolData<source extends Source = Source> =
-  source extends 'langflow' ? FlowToolData
-  : source extends 'internal' ? object
+export type ToolData<source extends Source = Source> = source extends 'automagik'
+  ? FlowToolData
+  : source extends 'internal'
+  ? object
   : never;
 
 export type DocumentExecuteReturn =
@@ -104,54 +105,61 @@ export type ExecutionResult = {
   content: string;
 };
 
-export type LangflowResponse = {
-  session_id: string;
-  outputs: FlowOutput[];
-};
-
-type FlowOutput = {
-  inputs: {
-    input_value: string;
-  };
-  outputs: {
-    results: {
-      message: Message;
-    };
-    artifacts: Artifacts;
-    outputs: {
-      message: {
-        message: Message;
-        type: string;
-      };
-    };
-    messages: ChatMessage[];
-  }[];
-};
-
-type Message = {
+type FlowNode = {
   data: {
-    text: string;
-    sender: string;
-    sender_name: string;
-    session_id: string;
-    timestamp: string;
+    description: string;
+    id: string;
+    node: {
+      template: Record<
+        string,
+        {
+          display_name: string;
+          fileTypes: string[];
+          file_path: string;
+          info: string;
+          list: boolean;
+          name: string;
+          required: boolean;
+          type: string;
+          value: string;
+        }
+      >;
+    };
+    type: string;
   };
-  text: string;
-  sender: string;
-  sender_name: string;
-  session_id: string;
-  timestamp: string;
+  id: string;
 };
 
-type Artifacts = {
-  message: string;
-  sender: string;
-  sender_name: string;
+type FlowEdge = {
+  source: string;
+  target: string;
+  data: {
+    targetHandle: {
+      fieldName: string;
+      id: string;
+      inputTypes: string[];
+      type: string;
+    };
+    sourceHandle: {
+      dataType: string;
+      id: string;
+      name: string;
+      output_types: string[];
+    };
+  };
 };
 
-type ChatMessage = {
-  message: string;
-  sender: string;
-  sender_name: string;
-  session_id: string;
+export type FlowData = {
+  name: string;
+  description: string;
+  source: 'automagik';
+  input_component: string;
+  output_component: string;
+  data: {
+    nodes: FlowNode[];
+    edges: FlowEdge[];
+  };
+  id: string;
+  created_at: string;
+  updated_at: string;
 };

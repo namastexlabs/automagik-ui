@@ -1,12 +1,15 @@
 'use client';
 
 import { useActionState, useEffect, useId, useState } from 'react';
+import Form from 'next/form';
 import { toast } from 'sonner';
+import { PlusIcon } from 'lucide-react';
 import { useSWRConfig } from 'swr';
-import { saveFlowTool } from '@/app/(chat)/actions';
 
+import { saveFlowTool } from '@/app/(chat)/actions';
 import type { ActionStateData } from '@/app/types';
 import type { ClientTool } from '@/lib/data';
+import type { ToolData } from '@/lib/agents/types';
 
 import {
   Dialog,
@@ -15,25 +18,28 @@ import {
   DialogHeader,
   DialogTitle,
   DialogTrigger,
-} from './dialog';
-import { Button } from './button';
-import { PlusIcon } from 'lucide-react';
-import Form from 'next/form';
-import { Label } from './label';
-import { Input } from './input';
-import { Textarea } from './textarea';
-import { SubmitButton } from '../submit-button';
+} from './ui/dialog';
+import { Button } from './ui/button';
+import { Label } from './ui/label';
+import { Input } from './ui/input';
+import { Textarea } from './ui/textarea';
+import { SubmitButton } from './submit-button';
+import { FlowsCombobox } from './flows-combobox';
 
 export function FlowFormDialog({
   tool,
   onCreate,
 }: {
-  tool?: ClientTool;
+  tool?: Omit<ClientTool, 'data'> & { data: ToolData<'automagik'> };
   onCreate: (tool: ClientTool) => void;
 }) {
   const formId = useId();
   const [open, setOpen] = useState(false);
+  const [selectedFlow, setSelectedFlow] = useState(tool?.data.flowId || null);
+  const [name, setName] = useState(tool?.name || '');
+
   const { mutate } = useSWRConfig();
+
   const [formState, formAction] = useActionState<
     ActionStateData<ClientTool>,
     FormData
@@ -72,6 +78,10 @@ export function FlowFormDialog({
     return str.replace(/\s([a-z])/g, (_, char) => char.toUpperCase());
   };
 
+  const onChange = (id: string) => {
+    setSelectedFlow(id);
+  };
+
   return (
     <Dialog open={open} onOpenChange={setOpen}>
       <DialogTrigger asChild>
@@ -79,7 +89,8 @@ export function FlowFormDialog({
           variant="ghost"
           className="py-0.5 px-2 gap-1 ml-auto text-[0.8rem] h-max justify-start"
         >
-          <PlusIcon />New Tool
+          <PlusIcon />
+          New Tool
         </Button>
       </DialogTrigger>
       <DialogContent>
@@ -93,13 +104,9 @@ export function FlowFormDialog({
               : 'Create a new tool to be used in your agent'}
           </DialogDescription>
         </DialogHeader>
-        <Form action={formAction}>
+        <Form id={formId} action={formAction}>
           <input type="hidden" name="id" value={tool?.id} />
-          <input
-            type="hidden"
-            name="name"
-            value={tool && toCamelCase(tool.verboseName)}
-          />
+          <input type="hidden" name="name" value={toCamelCase(name)} />
           <div className="flex flex-col gap-5 py-3">
             <div className="flex flex-col gap-2">
               <Label
@@ -115,7 +122,8 @@ export function FlowFormDialog({
                 placeholder="Save data"
                 required
                 autoFocus
-                defaultValue={tool?.verboseName}
+                value={name}
+                onChange={(e) => setName(e.target.value)}
               />
             </div>
             <div className="flex flex-col gap-2">
@@ -139,14 +147,12 @@ export function FlowFormDialog({
                 htmlFor={`${formId}-flow-id`}
                 className="text-zinc-600 font-normal dark:text-zinc-400"
               >
-                Flow ID
+                Flow
               </Label>
-              <Input
-                id={`${formId}-flow-id`}
-                name="flowId"
-                className="bg-muted text-md md:text-sm"
-                placeholder="Flow ID to run on tool calling"
-                required
+              <FlowsCombobox
+                formId={formId}
+                selected={selectedFlow}
+                onChange={onChange}
               />
             </div>
           </div>

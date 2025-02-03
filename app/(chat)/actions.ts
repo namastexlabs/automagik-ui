@@ -33,8 +33,9 @@ import {
   deleteAllDynamicBlocksHanging,
 } from '@/lib/db/queries';
 import { getOrCreateAllDynamicBlocks } from '@/lib/agents/dynamic-blocks.server';
-import type { VisibilityType } from '@/components/visibility-selector';
 import { auth } from '@/app/(auth)/auth';
+import type { VisibilityType } from '@/components/visibility-selector';
+import type { ActionStateData, ActionStateStatus } from '@/app/types';
 import type { Agent, Chat, Tool } from '@/lib/db/schema';
 import { notFound } from 'next/navigation';
 import {
@@ -43,8 +44,7 @@ import {
   getMostRecentUserMessage,
 } from '@/lib/utils';
 import { mapAgent, mapTool, type ClientAgent } from '@/lib/data';
-import type { ActionStateData, ActionStateStatus } from '@/app/types';
-import { createChatFlowTool } from '@/lib/agents/langflow';
+import { createChatFlowTool } from '@/lib/agents/automagik';
 
 const agentFormSchema = z.object({
   name: z.string().trim(),
@@ -352,7 +352,7 @@ export async function saveFlowTool(
       validatedData,
     );
     const data = {
-      source: 'langflow',
+      source: 'automagik',
       name,
       verboseName,
       description,

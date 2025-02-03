@@ -1,11 +1,11 @@
 'use client';
 
-import { useCallback, useState } from 'react';
+import { useState } from 'react';
 import { ChevronsUpDown } from 'lucide-react';
 import useSWR from 'swr';
 
 import { fetcher } from '@/lib/utils';
-import type { ClientTool } from '@/lib/data';
+import type { FlowData } from '@/lib/agents/types';
 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Button } from './ui/button';
@@ -16,55 +16,44 @@ import {
   CommandItem,
   CommandList,
 } from './ui/command';
-import { Checkbox } from './ui/checkbox';
 import { Skeleton } from './ui/skeleton';
-import { FlowFormDialog } from './flow-form-dialog';
 
-export function ToolsCombobox({
+export function FlowsCombobox({
   selected,
   onChange,
   formId,
 }: {
   formId: string;
-  selected: string[];
+  selected: string | null;
   onChange: (id: string) => void;
 }) {
   const [open, setOpen] = useState(false);
-  const { data: tools = [], isLoading } = useSWR<ClientTool[]>(
-    '/api/tools',
+  const { data: flows = [], isLoading } = useSWR<FlowData[]>(
+    '/api/automagik/flows',
     fetcher,
   );
 
-  const handleCreate = useCallback(
-    (tool: ClientTool) => onChange(tool.id),
-    [onChange],
-  );
-  const selectedTools = tools
-    .filter((tool) => selected.includes(tool.id))
-    .map((tool) => tool.verboseName)
-    .join(', ');
-
-  const toolCommands = tools.map((tool) => (
+  const selectedFlow = flows.find((flow) => selected === flow.id);
+  const flowCommands = flows.map((flow) => (
     <CommandItem
-      key={tool.id}
-      className="cursor-pointer py-1 text-[0.85rem]"
-      onSelect={() => onChange(tool.id)}
+      key={flow.id}
+      onSelect={() => {
+        onChange(flow.id);
+        setOpen(false);
+      }}
     >
-      <Checkbox checked={selected.includes(tool.id)} />
-      <span className="w-[350px] truncate cursor-pointer">
-        {tool.verboseName}
-      </span>
-      <input
-        key={tool.id}
-        readOnly
-        form={formId}
-        id={tool.id}
-        type="checkbox"
-        name="tools"
-        className="hidden"
-        value={tool.id}
-        checked={selected.includes(tool.id)}
-      />
+      <span className="w-[350px] truncate cursor-pointer">{flow.name}</span>
+      {selected === flow.id && (
+        <input
+          key={flow.id}
+          readOnly
+          form={formId}
+          id={flow.id}
+          type="hidden"
+          name="flowId"
+          value={flow.id}
+        />
+      )}
     </CommandItem>
   ));
 
@@ -79,7 +68,7 @@ export function ToolsCombobox({
         >
           <div className="w-full text-start">
             <span className="truncate block min-w-[200px] w-[440px]">
-              {selected.length > 0 ? selectedTools : 'Select tools...'}
+              {selectedFlow?.name || 'Select flow...'}
             </span>
           </div>
           <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
@@ -99,12 +88,9 @@ export function ToolsCombobox({
           </div>
         ) : (
           <Command>
-            <CommandInput placeholder="Search tools..." />
-            <CommandEmpty>No tools found</CommandEmpty>
-            <CommandList className="flex-1">{toolCommands}</CommandList>
-            <div className="flex bg-background border-t-2 p-1 w-full">
-              <FlowFormDialog onCreate={handleCreate} />
-            </div>
+            <CommandInput placeholder="Search flows..." />
+            <CommandEmpty>No flows found</CommandEmpty>
+            <CommandList className="flex-1">{flowCommands}</CommandList>
           </Command>
         )}
       </PopoverContent>
