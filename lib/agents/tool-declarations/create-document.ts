@@ -51,22 +51,22 @@ export const createDocumentTool = createToolDefinition({
       const id = generateUUID();
       let draftText = '';
 
-      streamingData.append({
+      streamingData.writeData({
         type: 'id',
         content: id,
       });
 
-      streamingData.append({
+      streamingData.writeData({
         type: 'title',
         content: title,
       });
 
-      streamingData.append({
+      streamingData.writeData({
         type: 'kind',
         content: kind,
       });
 
-      streamingData.append({
+      streamingData.writeData({
         type: 'clear',
         content: '',
       });
@@ -86,14 +86,14 @@ export const createDocumentTool = createToolDefinition({
             const { textDelta } = delta;
 
             draftText += textDelta;
-            streamingData.append({
+            streamingData.writeData({
               type: 'text-delta',
               content: textDelta,
             });
           }
         }
 
-        streamingData.append({ type: 'finish', content: '' });
+        streamingData.writeData({ type: 'finish', content: '' });
       } else if (kind === 'code') {
         const { fullStream } = streamObject({
           model: customModel(model.apiIdentifier),
@@ -112,7 +112,7 @@ export const createDocumentTool = createToolDefinition({
             const { code } = object;
 
             if (code) {
-              streamingData.append({
+              streamingData.writeData({
                 type: 'code-delta',
                 content: code ?? '',
               });
@@ -122,7 +122,7 @@ export const createDocumentTool = createToolDefinition({
           }
         }
 
-        streamingData.append({ type: 'finish', content: '' });
+        streamingData.writeData({ type: 'finish', content: '' });
       }
 
       await saveDocument({

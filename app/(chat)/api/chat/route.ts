@@ -1,6 +1,6 @@
 import {
   type Message,
-  StreamData,
+  createDataStreamResponse,
   convertToCoreMessages,
   streamText,
 } from 'ai';
@@ -78,73 +78,73 @@ export async function POST(request: Request) {
     ],
   });
 
-  const streamingData = new StreamData();
-
-  streamingData.append({
-    type: 'user-message-id',
-    content: userMessageId,
-  });
   const agentTools = agent.tools.map(({ tool }) => tool);
-  const coreTools = toCoreTools(agentTools, {
-    userId: session.user.id,
-    model,
-    streamingData,
-    agent,
-  });
 
   const formattedSystemPrompt = insertDynamicBlocksIntoPrompt(
     agent.systemPrompt,
     agent.dynamicBlocks.map(({ dynamicBlock }) => dynamicBlock),
   );
 
-  const result = streamText({
-    model: customModel(model.apiIdentifier),
-    system: formattedSystemPrompt,
-    messages: coreMessages,
-    maxSteps: 5,
-    tools: coreTools,
-    onFinish: async ({ response }) => {
-      if (session.user?.id) {
-        try {
-          const responseMessagesWithoutIncompleteToolCalls =
-            sanitizeResponseMessages(response.messages);
+  return createDataStreamResponse({
+    execute: (dataStream) => {
+      dataStream.writeData({
+        type: 'user-message-id',
+        content: userMessageId,
+      });
+      const coreTools = toCoreTools(agentTools, {
+        // biome-ignore lint/style/noNonNullAssertion: <explanation>
+        userId: session.user!.id!,
+        model,
+        streamingData: dataStream,
+        agent,
+      });
 
-          await saveMessages({
-            messages: responseMessagesWithoutIncompleteToolCalls.map(
-              (message) => {
-                const messageId = generateUUID();
+      const result = streamText({
+        model: customModel(model.apiIdentifier),
+        system: formattedSystemPrompt,
+        messages: coreMessages,
+        maxSteps: 5,
+        tools: coreTools,
+        onFinish: async ({ response }) => {
+          if (session.user?.id) {
+            try {
+              const responseMessagesWithoutIncompleteToolCalls =
+                sanitizeResponseMessages(response.messages);
+    
+              await saveMessages({
+                messages: responseMessagesWithoutIncompleteToolCalls.map(
+                  (message) => {
+                    const messageId = generateUUID();
+    
+                    if (message.role === 'assistant') {
+                      dataStream.writeMessageAnnotation({
+                        messageIdFromServer: messageId,
+                      });
+                    }
+    
+                    return {
+                      id: messageId,
+                      chatId: chat.id,
+                      role: message.role,
+                      content: message.content,
+                      createdAt: new Date(),
+                    };
+                  },
+                ),
+              });
+            } catch (error) {
+              console.error('Failed to save chat');
+            }
+          }
+        },
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'stream-text',
+        },
+      });
 
-                if (message.role === 'assistant') {
-                  streamingData.appendMessageAnnotation({
-                    messageIdFromServer: messageId,
-                  });
-                }
-
-                return {
-                  id: messageId,
-                  chatId: chat.id,
-                  role: message.role,
-                  content: message.content,
-                  createdAt: new Date(),
-                };
-              },
-            ),
-          });
-        } catch (error) {
-          console.error('Failed to save chat');
-        }
-      }
-
-      streamingData.close();
+      result.mergeIntoDataStream(dataStream);
     },
-    experimental_telemetry: {
-      isEnabled: true,
-      functionId: 'stream-text',
-    },
-  });
-
-  return result.toDataStreamResponse({
-    data: streamingData,
   });
 }
 

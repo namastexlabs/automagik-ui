@@ -1,11 +1,11 @@
-import type { CoreToolCall, CoreToolResult, StreamData } from 'ai';
+import type { CoreToolCall, CoreToolResult, DataStreamWriter } from 'ai';
 import type { z } from 'zod';
 
 import type { Model } from '@/lib/ai/models';
 import type { AgentData } from '@/lib/db/queries';
 
 export type ToolRequestContext = {
-  streamingData: StreamData;
+  streamingData: DataStreamWriter;
   model: Model;
   userId: string;
   agent: AgentData;
@@ -34,10 +34,10 @@ export type ToolInvocation<
   :
       | ({
           state: 'call' | 'partial-call';
-        } & CoreToolCall<NAME, any>)
+      } & CoreToolCall<NAME, never>)
       | ({
           state: 'result';
-        } & CoreToolResult<NAME, any, never>);
+      } & CoreToolResult<NAME, never, never>);
 
 export type Source = 'internal' | 'langflow';
 
