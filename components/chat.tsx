@@ -71,20 +71,17 @@ export function Chat({
     },
   });
 
-  const { data: agents = [] } = useSWR<ClientAgent[]>(
-    '/api/agents',
-    fetcher,
-    {
-      fallbackData: initialAgents,
-      revalidateOnMount: false,
-    },
-  );
+  const { data: agents = [] } = useSWR<ClientAgent[]>('/api/agents', fetcher, {
+    fallbackData: initialAgents,
+    revalidateOnMount: false,
+  });
 
   const [openAgentListDialog, setOpenAgentListDialog] = useState(false);
   const [agentDialogState, setAgentDialogState] = useState<{
     agentId: string | null;
     isOpen: boolean;
-  }>({ isOpen: false, agentId: null });
+    isSubmitting: boolean;
+  }>({ isOpen: false, agentId: null, isSubmitting: false });
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
   const [block, setBlock] = useState<UIBlock>({
     documentId: 'init',
@@ -102,10 +99,11 @@ export function Chat({
   });
 
   const changeAgentDialog = useCallback(
-    (isOpen: boolean, agentId: string | null = null) => {
+    (isOpen: boolean, agentId: string | null = null, isSubmitting = false) => {
       setAgentDialogState({
         agentId,
         isOpen,
+        isSubmitting,
       });
     },
     [],
@@ -148,6 +146,7 @@ export function Chat({
         setAgentDialogState({
           agentId: null,
           isOpen: true,
+          isSubmitting: true,
         });
         return;
       }

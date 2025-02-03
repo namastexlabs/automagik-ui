@@ -29,12 +29,17 @@ export function AgentTabs({
   onSubmit,
 }: {
   agents: ClientAgent[];
-  changeAgentDialog: (isOpen: boolean, agentId?: string) => void;
+  changeAgentDialog: (
+    isOpen: boolean,
+    agentId?: string,
+    isSubmitting?: boolean,
+  ) => void;
   openAgentListDialog: boolean;
   changeAgentListDialog: (isOpen: boolean) => void;
   agentDialog: {
     agentId: string | null;
     isOpen: boolean;
+    isSubmitting: boolean;
   };
   onSubmit: (agentId?: string, agents?: ClientAgent[], tabs?: string[]) => void;
 }) {
@@ -50,17 +55,16 @@ export function AgentTabs({
 
   const onSaveAgent = useCallback(
     (agent: ClientAgent) => {
-      if (!openAgentListDialog) {
-        if (agents.length === 0) {
-          onSubmit(agent.id, [agent], [agent.id]);
-        }
-
-        setTab(agent.id);
+      if (agentDialog.isSubmitting) {
+        onSubmit(agent.id, [agent], [agent.id]);
       }
 
+      if (agents.length === 0) {
+        setTab(agent.id);
+      }
       addTab(agent.id);
     },
-    [openAgentListDialog, addTab, agents.length, setTab, onSubmit],
+    [agentDialog.isSubmitting, addTab, agents.length, setTab, onSubmit],
   );
 
   const onChangeAgent = (id: string) => {

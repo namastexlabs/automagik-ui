@@ -30,8 +30,9 @@ export function ChatHeader({
   agentDialog: {
     agentId: string | null;
     isOpen: boolean;
+    isSubmitting: boolean;
   };
-  changeAgentDialog: (isOpen: boolean, agentId?: string) => void;
+  changeAgentDialog: (isOpen: boolean, agentId?: string, isSubmitting?: boolean) => void;
   changeAgentListDialog: (isOpen: boolean) => void;
   onSubmit: (agentId?: string, agents?: ClientAgent[], tabs?: string[]) => void;
 }) {
