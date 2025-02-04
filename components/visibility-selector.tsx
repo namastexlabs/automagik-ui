@@ -70,7 +70,6 @@ export function VisibilitySelector({
         )}
       >
         <Button
-          disabled={!chatId}
           variant="outline"
           className="hidden md:flex md:px-2 md:h-[34px]"
         >
@@ -99,7 +98,7 @@ export function VisibilitySelector({
                 </div>
               )}
             </div>
-            <div className="text-primary dark:text-primary-foreground opacity-0 group-data-[active=true]/item:opacity-100">
+            <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
               <CheckCircleFillIcon />
             </div>
           </DropdownMenuItem>

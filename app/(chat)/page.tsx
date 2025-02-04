@@ -2,7 +2,7 @@ import { cookies } from 'next/headers';
 
 import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat';
-import { DEFAULT_MODEL_NAME, models } from '@/lib/ai/models';
+import { DEFAULT_CHAT_MODEL, chatModels } from '@/lib/ai/models';
 import { getAgentsByUserId } from '@/lib/db/queries';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -22,8 +22,8 @@ export default async function Page() {
     : [];
 
   const selectedModelId =
-    models.find((model) => model.id === modelIdFromCookie)?.id ||
-    DEFAULT_MODEL_NAME;
+    chatModels.find((model) => model.id === modelIdFromCookie)?.id ||
+    DEFAULT_CHAT_MODEL;
 
   return (
     <AgentTabsProvider initialTab={tabCookie === '' ? undefined : tabCookie}>

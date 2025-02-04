@@ -1,18 +1,20 @@
-import { type Dispatch, memo, type SetStateAction } from 'react';
+'use client';
+
 import type { ChatRequestOptions, Message } from 'ai';
+import { memo } from 'react';
+import equal from 'fast-deep-equal';
 import useSWR from 'swr';
 
-import { fetcher } from '@/lib/utils';
 import type { Vote } from '@/lib/db/schema';
-import type{ ClientTool } from '@/lib/data';
+import type { ClientTool } from '@/lib/data';
+import { fetcher } from '@/lib/utils';
 
-import type { UIBlock } from './block';
 import { PreviewMessage } from './message';
 import { useScrollToBottom } from './use-scroll-to-bottom';
+import type { UIBlock } from './block';
 
 interface BlockMessagesProps {
   chatId?: string;
-  setBlock: Dispatch<SetStateAction<UIBlock>>;
   isLoading: boolean;
   votes: Array<Vote> | undefined;
   messages: Array<Message>;
@@ -23,11 +25,11 @@ interface BlockMessagesProps {
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
+  blockStatus: UIBlock['status'];
 }
 
 function PureBlockMessages({
   chatId,
-  setBlock,
   isLoading,
   votes,
   messages,
@@ -35,10 +37,7 @@ function PureBlockMessages({
   reload,
   isReadonly,
 }: BlockMessagesProps) {
-  const {
-    data: tools = [],
-    isLoading: isToolsLoading
-  } = useSWR<ClientTool[]>(
+  const { data: tools = [], isLoading: isToolsLoading } = useSWR<ClientTool[]>(
     '/api/tools',
     fetcher,
   );
@@ -53,12 +52,11 @@ function PureBlockMessages({
     >
       {messages.map((message, index) => (
         <PreviewMessage
+          tools={tools}
+          isToolsLoading={isToolsLoading}
           chatId={chatId}
           key={message.id}
           message={message}
-          setBlock={setBlock}
-          tools={tools}
-          isToolsLoading={isToolsLoading}
           isLoading={isLoading && index === messages.length - 1}
           vote={
             votes
@@ -83,6 +81,17 @@ function areEqual(
   prevProps: BlockMessagesProps,
   nextProps: BlockMessagesProps,
 ) {
+  if (
+    prevProps.blockStatus === 'streaming' &&
+    nextProps.blockStatus === 'streaming'
+  )
+    return true;
+
+  if (prevProps.isLoading !== nextProps.isLoading) return false;
+  if (prevProps.isLoading && nextProps.isLoading) return false;
+  if (prevProps.messages.length !== nextProps.messages.length) return false;
+  if (!equal(prevProps.votes, nextProps.votes)) return false;
+
   return true;
 }
 

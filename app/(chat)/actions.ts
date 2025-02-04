@@ -2,15 +2,14 @@
 
 import {
   convertToCoreMessages,
+  type CoreMessage,
   generateText,
   type Message,
-  type CoreMessage,
 } from 'ai';
 import { cookies } from 'next/headers';
 import { z } from 'zod';
 import { zerialize } from 'zodex';
 
-import { customModel } from '@/lib/ai';
 import {
   createAllAgentToTools,
   deleteAgentById,
@@ -45,6 +44,7 @@ import {
 } from '@/lib/utils';
 import { mapAgent, mapTool, type ClientAgent } from '@/lib/data';
 import { createChatFlowTool } from '@/lib/agents/automagik';
+import { myProvider } from '@/lib/ai/models';
 
 const agentFormSchema = z.object({
   name: z.string().trim(),
@@ -81,14 +81,8 @@ export async function generateTitleFromUserMessage({
 }: {
   message: CoreMessage;
 }) {
-  const session = await auth();
-
-  if (!session?.user?.id) {
-    return notFound();
-  }
-
   const { text: title } = await generateText({
-    model: customModel('gpt-4o-mini'),
+    model: myProvider.languageModel('title-model'),
     system: `\n
     - you will generate a short title based on the first message a user begins a conversation with
     - ensure it is not more than 80 characters long

@@ -1,20 +1,18 @@
 import type { ChatRequestOptions, Message } from 'ai';
+import { memo } from 'react';
 import equal from 'fast-deep-equal';
-import { type Dispatch, memo, type SetStateAction } from 'react';
 import useSWR from 'swr';
 
 import type { Vote } from '@/lib/db/schema';
-import type { ClientTool } from '@/lib/data';
 import { fetcher } from '@/lib/utils';
+import type { ClientTool } from '@/lib/data';
 
-import type { UIBlock } from './block';
-import { Overview } from './overview';
-import { useScrollToBottom } from './use-scroll-to-bottom';
 import { PreviewMessage, ThinkingMessage } from './message';
+import { useScrollToBottom } from './use-scroll-to-bottom';
+import { Overview } from './overview';
 
 interface MessagesProps {
   chatId?: string;
-  setBlock: Dispatch<SetStateAction<UIBlock>>;
   isLoading: boolean;
   votes: Array<Vote> | undefined;
   messages: Array<Message>;
@@ -25,11 +23,11 @@ interface MessagesProps {
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
+  isBlockVisible: boolean;
 }
 
 function PureMessages({
   chatId,
-  setBlock,
   isLoading,
   votes,
   messages,
@@ -37,10 +35,7 @@ function PureMessages({
   reload,
   isReadonly,
 }: MessagesProps) {
-  const {
-    data: tools = [],
-    isLoading: isToolsLoading
-  } = useSWR<ClientTool[]>(
+  const { data: tools = [], isLoading: isToolsLoading } = useSWR<ClientTool[]>(
     '/api/tools',
     fetcher,
   );
@@ -61,7 +56,6 @@ function PureMessages({
           tools={tools}
           chatId={chatId}
           message={message}
-          setBlock={setBlock}
           isLoading={isLoading && messages.length - 1 === index}
           vote={
             votes
@@ -87,9 +81,12 @@ function PureMessages({
 }
 
 export const Messages = memo(PureMessages, (prevProps, nextProps) => {
+  if (prevProps.isBlockVisible && nextProps.isBlockVisible) return true;
+
   if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.isLoading && nextProps.isLoading) return false;
-  if (prevProps.messages !== nextProps.messages) return false;
+  if (prevProps.messages.length !== nextProps.messages.length) return false;
+  if (!equal(prevProps.messages, nextProps.messages)) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
 
   return true;

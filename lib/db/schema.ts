@@ -1,3 +1,4 @@
+import type { SzObject } from 'zodex';
 import { relations, sql, type InferSelectModel } from 'drizzle-orm';
 import {
   pgTable,
@@ -12,7 +13,6 @@ import {
   unique,
   uniqueIndex,
 } from 'drizzle-orm/pg-core';
-import type { SzObject } from 'zodex';
 import type { ToolData } from '../agents/types';
 
 export const user = pgTable('User', {
@@ -208,7 +208,7 @@ export const document = pgTable(
     createdAt: timestamp('createdAt').notNull(),
     title: text('title').notNull(),
     content: text('content'),
-    kind: varchar('text', { enum: ['text', 'code'] })
+    kind: varchar('text', { enum: ['text', 'code', 'image', 'sheet'] })
       .notNull()
       .default('text'),
     userId: uuid('userId')

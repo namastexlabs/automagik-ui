@@ -1,12 +1,11 @@
 import type { CoreToolCall, CoreToolResult, DataStreamWriter } from 'ai';
 import type { z } from 'zod';
 
-import type { Model } from '@/lib/ai/models';
 import type { AgentData } from '@/lib/db/queries';
+import type { Document } from '@/lib/db/schema';
 
 export type ToolRequestContext = {
-  streamingData: DataStreamWriter;
-  model: Model;
+  dataStream: DataStreamWriter;
   userId: string;
   agent: AgentData;
 };
@@ -55,8 +54,9 @@ export type DocumentExecuteReturn =
   | {
       id: string;
       title: string;
-      kind: string;
-      content: string;
+      kind: Document['kind'];
+      content?: string;
+      message?: string;
     }
   | {
       error: string;

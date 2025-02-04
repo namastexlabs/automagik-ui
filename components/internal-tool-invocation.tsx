@@ -1,4 +1,4 @@
-import { type Dispatch, type SetStateAction, useMemo } from 'react';
+import { useMemo } from 'react';
 
 import type {
   InternalToolInvocationPayload,
@@ -7,10 +7,16 @@ import type {
 } from '@/lib/agents/tool-declarations/client';
 
 import { Weather } from './weather';
-import { DocumentToolResult } from './document';
-import type { UIBlock } from './block';
+import { type DocumentToolResultProps, DocumentToolResult } from './document';
 import { Bookmark } from 'lucide-react';
 import { Badge } from './ui/badge';
+import { DocumentPreview } from './document-preview';
+import type { DocumentExecuteReturn } from '@/lib/agents/types';
+
+type BlockToolName =
+  | InternalToolName.createDocument
+  | InternalToolName.updateDocument
+  | InternalToolName.requestSuggestions;
 
 const getResult = <T extends InternalToolName>(
   toolInvocation: InternalToolInvocationPayload<T>,
@@ -20,12 +26,14 @@ const getResult = <T extends InternalToolName>(
     : undefined;
 };
 
+const isErrorBlock = (
+  result: DocumentExecuteReturn,
+): result is { error: string } => Object.hasOwn(result, 'error');
+
 export function ToolInvocation<T extends InternalToolName>({
-  setBlock,
   isReadonly,
   toolInvocation,
 }: {
-  setBlock: Dispatch<SetStateAction<UIBlock>>;
   isReadonly: boolean;
   toolInvocation: InternalToolInvocationPayload<T>;
 }) {
@@ -35,45 +43,49 @@ export function ToolInvocation<T extends InternalToolName>({
     ) => JSX.Element;
   };
 
-  const toolComponentsMap: ToolComponentsMap = useMemo(
-    () => ({
+  const toolComponentsMap: ToolComponentsMap = useMemo(() => {
+    const renderBlockToolInvocation = (
+      kind: DocumentToolResultProps['type'],
+      toolInvocation: InternalToolInvocationPayload<BlockToolName>,
+    ) => {
+      const result = getResult<BlockToolName>(toolInvocation);
+
+      if (!result) {
+        return (
+          <DocumentPreview
+            isReadonly={isReadonly}
+            args={toolInvocation.args}
+            result={getResult<BlockToolName>(toolInvocation)}
+          />
+        );
+      }
+      if (isErrorBlock(result)) {
+        return (
+          <div className="flex text-sm leading-relaxed">{result.error}</div>
+        );
+      }
+
+      return (
+        <DocumentToolResult
+          type={kind}
+          isReadonly={isReadonly}
+          result={result}
+        />
+      );
+    };
+
+    return {
       getWeather: (toolInvocation) => (
         <Weather
           result={getResult<InternalToolName.getWeather>(toolInvocation)}
         />
       ),
-      createDocument: (toolInvocation) => (
-        <DocumentToolResult
-          type="create"
-          setBlock={setBlock}
-          isReadonly={isReadonly}
-          args={toolInvocation.args}
-          state={toolInvocation.state}
-          result={getResult<InternalToolName.createDocument>(toolInvocation)}
-        />
-      ),
-      updateDocument: (toolInvocation) => (
-        <DocumentToolResult
-          type="update"
-          setBlock={setBlock}
-          isReadonly={isReadonly}
-          args={toolInvocation.args}
-          state={toolInvocation.state}
-          result={getResult<InternalToolName.updateDocument>(toolInvocation)}
-        />
-      ),
-      requestSuggestions: (toolInvocation) => (
-        <DocumentToolResult
-          type="request-suggestions"
-          isReadonly={isReadonly}
-          setBlock={setBlock}
-          args={toolInvocation.args}
-          state={toolInvocation.state}
-          result={getResult<InternalToolName.requestSuggestions>(
-            toolInvocation,
-          )}
-        />
-      ),
+      createDocument: (toolInvocation) =>
+        renderBlockToolInvocation('create', toolInvocation),
+      updateDocument: (toolInvocation) =>
+        renderBlockToolInvocation('update', toolInvocation),
+      requestSuggestions: (toolInvocation) =>
+        renderBlockToolInvocation('request-suggestions', toolInvocation),
       saveMemories: (toolInvocation) => (
         <div className="flex text-sm leading-relaxed">
           <Bookmark className="mr-1" size={24} />
@@ -89,9 +101,8 @@ export function ToolInvocation<T extends InternalToolName>({
           </span>
         </div>
       ),
-    }),
-    [setBlock, isReadonly],
-  );
+    };
+  }, [isReadonly]);
 
   const renderTool = toolComponentsMap[toolInvocation.toolName];
   return renderTool(toolInvocation);
