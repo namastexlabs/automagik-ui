@@ -3,7 +3,7 @@ import { notFound } from 'next/navigation';
 
 import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat';
-import { DEFAULT_MODEL_NAME, models } from '@/lib/ai/models';
+import { DEFAULT_CHAT_MODEL, chatModels } from '@/lib/ai/models';
 import {
   getAgentsByUserId,
   getChatById,
@@ -14,6 +14,7 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AgentTabsProvider } from '@/components/agent-tabs-provider';
 import { mapAgent } from '@/lib/data';
+import { DataStreamHandler } from '@/components/data-stream-handler';
 
 export default async function Page({
   params,
@@ -27,8 +28,15 @@ export default async function Page({
 
   const session = await auth();
 
-  if (session?.user?.id !== chat.userId) {
-    return notFound();
+
+  if (chat.visibility === 'private') {
+    if (!session || !session.user) {
+      return notFound();
+    }
+
+    if (session.user.id !== chat.userId) {
+      return notFound();
+    }
   }
 
   const agentsFromDb = session?.user?.id
@@ -42,9 +50,9 @@ export default async function Page({
   const cookieStore = await cookies();
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
   const modelIdFromCookie = cookieStore.get('model-id')?.value;
-  const selectedModelId =
-    models.find((model) => model.id === modelIdFromCookie)?.id ||
-    DEFAULT_MODEL_NAME;
+  const selectedChatModelId =
+    chatModels.find((model) => model.id === modelIdFromCookie)?.id ||
+    DEFAULT_CHAT_MODEL;
 
   return (
     <AgentTabsProvider>
@@ -55,10 +63,11 @@ export default async function Page({
             chat={chat}
             initialAgents={agentsFromDb.map(mapAgent)}
             initialMessages={convertToUIMessages(messagesFromDb)}
-            selectedModelId={selectedModelId}
+            selectedModelId={selectedChatModelId}
             selectedVisibilityType={chat.visibility}
             isReadonly={session?.user?.id !== chat.userId}
           />
+        <DataStreamHandler id={id} />
         </SidebarInset>
       </SidebarProvider>
     </AgentTabsProvider>

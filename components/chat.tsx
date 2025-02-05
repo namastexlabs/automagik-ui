@@ -2,10 +2,8 @@
 
 import { generateId, type Attachment, type Message } from 'ai';
 import { useChat } from 'ai/react';
-import { AnimatePresence } from 'framer-motion';
 import { useCallback, useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { useWindowSize } from 'usehooks-ts';
 import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -14,13 +12,13 @@ import type { Chat as ChatType, Vote } from '@/lib/db/schema';
 import { fetcher } from '@/lib/utils';
 import { createChat } from '@/app/(chat)/actions';
 
-import { Block, type UIBlock } from './block';
-import { BlockStreamHandler } from './block-stream-handler';
+import { Block } from './block';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import type { VisibilityType } from './visibility-selector';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import type { ClientAgent } from '@/lib/data';
+import { useBlockSelector } from '@/hooks/use-block';
 
 export function Chat({
   chat,
@@ -40,8 +38,6 @@ export function Chat({
   const { mutate } = useSWRConfig();
   const { id } = useParams();
   const router = useRouter();
-  const { width: windowWidth = 1920, height: windowHeight = 1080 } =
-    useWindowSize({ initializeWithValue: false });
 
   const { addTab, tabs } = useAgentTabs();
 
@@ -65,9 +61,11 @@ export function Chat({
   } = useChat({
     id: chat?.id,
     initialMessages,
+    experimental_throttle: 100,
+    sendExtraMessageFields: true,
     body: {
       id: chat?.id,
-      modelId: selectedModelId,
+      selectedChatModel: selectedModelId,
     },
   });
 
@@ -76,6 +74,7 @@ export function Chat({
     revalidateOnMount: false,
   });
 
+  const isBlockVisible = useBlockSelector((state) => state.isVisible);
   const [openAgentListDialog, setOpenAgentListDialog] = useState(false);
   const [agentDialogState, setAgentDialogState] = useState<{
     agentId: string | null;
@@ -83,20 +82,6 @@ export function Chat({
     isSubmitting: boolean;
   }>({ isOpen: false, agentId: null, isSubmitting: false });
   const [attachments, setAttachments] = useState<Array<Attachment>>([]);
-  const [block, setBlock] = useState<UIBlock>({
-    documentId: 'init',
-    content: '',
-    kind: 'text',
-    title: '',
-    status: 'idle',
-    isVisible: false,
-    boundingBox: {
-      top: windowHeight / 4,
-      left: windowWidth / 4,
-      width: 250,
-      height: 50,
-    },
-  });
 
   const changeAgentDialog = useCallback(
     (isOpen: boolean, agentId: string | null = null, isSubmitting = false) => {
@@ -233,8 +218,8 @@ export function Chat({
           onSubmit={onSubmit}
         />
         <Messages
+          isBlockVisible={isBlockVisible}
           chatId={chat?.id}
-          setBlock={setBlock}
           isLoading={isLoading}
           votes={votes}
           messages={messages}
@@ -257,28 +242,22 @@ export function Chat({
           )}
         </form>
       </div>
-      <AnimatePresence>
-        {block?.isVisible && (
-          <Block
-            input={input}
-            setInput={setInput}
-            handleSubmit={onSubmit}
-            isLoading={isLoading}
-            stop={stop}
-            attachments={attachments}
-            setAttachments={setAttachments}
-            append={append}
-            block={block}
-            setBlock={setBlock}
-            messages={messages}
-            setMessages={setMessages}
-            reload={reload}
-            votes={votes}
-            isReadonly={isReadonly}
-          />
-        )}
-      </AnimatePresence>
-      <BlockStreamHandler streamingData={streamingData} setBlock={setBlock} />
+      <Block
+        chatId={chat?.id}
+        input={input}
+        setInput={setInput}
+        handleSubmit={onSubmit}
+        isLoading={isLoading}
+        stop={stop}
+        attachments={attachments}
+        setAttachments={setAttachments}
+        append={append}
+        messages={messages}
+        setMessages={setMessages}
+        reload={reload}
+        votes={votes}
+        isReadonly={isReadonly}
+      />
     </>
   );
 }

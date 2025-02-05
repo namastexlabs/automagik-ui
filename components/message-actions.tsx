@@ -4,7 +4,6 @@ import { useSWRConfig } from 'swr';
 import { useCopyToClipboard } from 'usehooks-ts';
 
 import type { Vote } from '@/lib/db/schema';
-import { getMessageIdFromAnnotations } from '@/lib/utils';
 
 import { CopyIcon, ThumbDownIcon, ThumbUpIcon } from './icons';
 import { Button } from './ui/button';
@@ -54,22 +53,19 @@ export function PureMessageActions({
           </TooltipTrigger>
           <TooltipContent>Copy</TooltipContent>
         </Tooltip>
-
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {!!chatId && (
+        {!!chatId && (
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
                 disabled={vote?.isUpvoted}
                 variant="outline"
                 onClick={async () => {
-                  const messageId = getMessageIdFromAnnotations(message);
-
                   const upvote = fetch('/api/vote', {
                     method: 'PATCH',
                     body: JSON.stringify({
                       chatId,
-                      messageId,
+                      messageId: message.id,
                       type: 'up',
                     }),
                   });
@@ -106,26 +102,24 @@ export function PureMessageActions({
               >
                 <ThumbUpIcon />
               </Button>
-            )}
-          </TooltipTrigger>
-          <TooltipContent>Upvote Response</TooltipContent>
-        </Tooltip>
+            </TooltipTrigger>
+            <TooltipContent>Upvote Response</TooltipContent>
+          </Tooltip>
+        )}
 
-        <Tooltip>
-          <TooltipTrigger asChild>
-            {!!chatId && (
+        {!!chatId && (
+          <Tooltip>
+            <TooltipTrigger asChild>
               <Button
                 className="py-1 px-2 h-fit text-muted-foreground !pointer-events-auto"
                 variant="outline"
                 disabled={vote && !vote.isUpvoted}
                 onClick={async () => {
-                  const messageId = getMessageIdFromAnnotations(message);
-
                   const downvote = fetch('/api/vote', {
                     method: 'PATCH',
                     body: JSON.stringify({
                       chatId,
-                      messageId,
+                      messageId: message.id,
                       type: 'down',
                     }),
                   });
@@ -162,10 +156,10 @@ export function PureMessageActions({
               >
                 <ThumbDownIcon />
               </Button>
-            )}
-          </TooltipTrigger>
-          <TooltipContent>Downvote Response</TooltipContent>
-        </Tooltip>
+            </TooltipTrigger>
+            <TooltipContent>Downvote Response</TooltipContent>
+          </Tooltip>
+        )}
       </div>
     </TooltipProvider>
   );

@@ -1,24 +1,9 @@
-import { memo, type SetStateAction } from 'react';
+import { memo } from 'react';
 import { toast } from 'sonner';
-import { AlertCircle } from 'lucide-react';
 
-import type {
-  InternalToolInvocationPayload,
-  InternalToolName,
-  InternalToolReturn,
-} from '@/lib/agents/tool-declarations/client';
-
-import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import type { BlockKind, UIBlock } from './block';
+import type { BlockKind } from './block';
 import { FileIcon, LoaderIcon, MessageIcon, PencilEditIcon } from './icons';
-
-type DocumentToolName =
-  | InternalToolName.createDocument
-  | InternalToolName.updateDocument
-  | InternalToolName.requestSuggestions;
-
-type CreateDocumentInvocation =
-  InternalToolInvocationPayload<InternalToolName.createDocument>['args'];
+import { useBlock } from '@/hooks/use-block';
 
 const getActionText = (
   type: 'create' | 'update' | 'request-suggestions',
@@ -38,63 +23,18 @@ const getActionText = (
   }
 };
 
-const hasResult = (
-  state: InternalToolInvocationPayload['state'],
-  result: InternalToolReturn<DocumentToolName> | undefined,
-): result is InternalToolReturn<InternalToolName.createDocument> => {
-  return state === 'result' && !!result && !Object.hasOwn(result, 'error');
-};
-
-type DocumentToolResultProps = {
-  args: InternalToolInvocationPayload<DocumentToolName>['args'];
+export interface DocumentToolResultProps {
   type: 'create' | 'update' | 'request-suggestions';
-  result: InternalToolReturn<DocumentToolName> | undefined;
-  state: InternalToolInvocationPayload<DocumentToolName>['state'];
-  setBlock: (value: SetStateAction<UIBlock>) => void;
+  result: { id: string; title: string; kind: BlockKind };
   isReadonly: boolean;
-};
+}
 
 function PureDocumentToolResult({
   type,
-  state,
-  args,
   result,
-  setBlock,
   isReadonly,
 }: DocumentToolResultProps) {
-  if (!hasResult(state, result)) {
-    const title =
-      args && 'title' in args
-        ? (args as CreateDocumentInvocation).title
-        : undefined;
-
-    return (
-      <DocumentToolCall
-        title={title}
-        type={type}
-        setBlock={setBlock}
-        isReadonly={isReadonly}
-      />
-    );
-  }
-
-  if (Object.hasOwn(result, 'error')) {
-    return (
-      <Alert variant="destructive">
-        <AlertCircle className="size-5" />
-        <AlertTitle>Error</AlertTitle>
-        <AlertDescription>
-          {(result as { error: string }).error}
-        </AlertDescription>
-      </Alert>
-    );
-  }
-
-  const data = result as {
-    id: string;
-    title: string;
-    kind: BlockKind;
-  };
+  const { setBlock } = useBlock();
 
   return (
     <button
@@ -118,10 +58,10 @@ function PureDocumentToolResult({
         };
 
         setBlock({
-          documentId: data.id,
-          kind: data.kind,
+          documentId: result.id,
+          kind: result.kind,
           content: '',
-          title: data.title,
+          title: result.title,
           isVisible: true,
           status: 'idle',
           boundingBox,
@@ -138,7 +78,7 @@ function PureDocumentToolResult({
         ) : null}
       </div>
       <div className="text-left">
-        {`${getActionText(type, 'past')} "${data.title}"`}
+        {`${getActionText(type, 'past')} "${result.title}"`}
       </div>
     </button>
   );
@@ -146,14 +86,19 @@ function PureDocumentToolResult({
 
 export const DocumentToolResult = memo(PureDocumentToolResult, () => true);
 
+interface DocumentToolCallProps {
+  type: 'create' | 'update' | 'request-suggestions';
+  args: { title: string };
+  isReadonly: boolean;
+}
+
 function PureDocumentToolCall({
   type,
-  title,
-  setBlock,
+  args,
   isReadonly,
-}: Omit<DocumentToolResultProps, 'result' | 'state' | 'args'> & {
-  title?: string;
-}) {
+}: DocumentToolCallProps) {
+  const { setBlock } = useBlock();
+
   return (
     <button
       type="button"
@@ -194,7 +139,7 @@ function PureDocumentToolCall({
         </div>
 
         <div className="text-left">
-          {`${getActionText(type, 'present')} ${title ? `"${title}"` : ''}`}
+          {`${getActionText(type, 'present')} ${args.title ? `"${args.title}"` : ''}`}
         </div>
       </div>
 

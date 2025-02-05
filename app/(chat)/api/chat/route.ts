@@ -2,16 +2,16 @@ import {
   type Message,
   createDataStreamResponse,
   convertToCoreMessages,
+  smoothStream,
   streamText,
 } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
-import { customModel } from '@/lib/ai';
-import { models } from '@/lib/ai/models';
+import { myProvider } from '@/lib/ai/models';
 import {
   deleteChatById,
-  getAgentById,
   getChatById,
+  getAgentById,
   saveMessages,
 } from '@/lib/db/queries';
 import {
@@ -28,23 +28,14 @@ export async function POST(request: Request) {
   const {
     id,
     messages,
-    modelId,
-  }: {
-    id: string;
-    messages: Array<Message>;
-    modelId: string;
-  } = await request.json();
+    selectedChatModel,
+  }: { id: string; messages: Array<Message>; selectedChatModel: string } =
+    await request.json();
 
   const session = await auth();
 
   if (!session || !session.user || !session.user.id) {
     return new Response('Unauthorized', { status: 401 });
-  }
-
-  const model = models.find((model) => model.id === modelId);
-
-  if (!model) {
-    return new Response('Model not found', { status: 404 });
   }
 
   const chat = await getChatById({ id });
@@ -94,22 +85,25 @@ export async function POST(request: Request) {
       const coreTools = toCoreTools(agentTools, {
         // biome-ignore lint/style/noNonNullAssertion: <explanation>
         userId: session.user!.id!,
-        model,
-        streamingData: dataStream,
+        dataStream,
         agent,
       });
 
       const result = streamText({
-        model: customModel(model.apiIdentifier),
+        model: myProvider.languageModel(selectedChatModel),
         system: formattedSystemPrompt,
         messages: coreMessages,
         maxSteps: 5,
         tools: coreTools,
-        onFinish: async ({ response }) => {
+        experimental_transform: smoothStream({ chunking: 'word' }),
+        onFinish: async ({ response, reasoning }) => {
           if (session.user?.id) {
             try {
               const responseMessagesWithoutIncompleteToolCalls =
-                sanitizeResponseMessages(response.messages);
+                sanitizeResponseMessages({
+                  messages: response.messages,
+                  reasoning,
+                });
     
               await saveMessages({
                 messages: responseMessagesWithoutIncompleteToolCalls.map(
@@ -143,7 +137,12 @@ export async function POST(request: Request) {
         },
       });
 
-      result.mergeIntoDataStream(dataStream);
+      result.mergeIntoDataStream(dataStream, {
+        sendReasoning: true,
+      });
+    },
+    onError: (error) => {
+      return 'Oops, an error occured!';
     },
   });
 }

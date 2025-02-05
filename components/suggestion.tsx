@@ -5,10 +5,10 @@ import { useState } from 'react';
 import { useWindowSize } from 'usehooks-ts';
 
 import type { UISuggestion } from '@/lib/editor/suggestions';
+import { cn } from '@/lib/utils';
 
 import { CrossIcon, MessageIcon } from './icons';
 import { Button } from './ui/button';
-import { cn } from '@/lib/utils';
 import type { BlockKind } from './block';
 
 export const Suggestion = ({

@@ -17,7 +17,7 @@ export function useChatVisibility({
   const history: Array<Chat> = cache.get('/api/history')?.data;
 
   const { data: localVisibility, mutate: setLocalVisibility } = useSWR(
-    chatId ? `${chatId}-visibility` : null,
+    `${chatId}-visibility`,
     null,
     {
       fallbackData: initialVisibility,
@@ -32,8 +32,9 @@ export function useChatVisibility({
   }, [history, chatId, localVisibility]);
 
   const setVisibilityType = (updatedVisibilityType: VisibilityType) => {
-    if (!chatId) return;
-
+    if (!chatId) {
+      return;
+    };
     setLocalVisibility(updatedVisibilityType);
 
     mutate<Array<Chat>>(

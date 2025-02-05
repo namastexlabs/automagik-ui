@@ -26,7 +26,7 @@ git clone https://github.com/namastexlabs/automagik-ui.git
 cd automagik-ui && pnpm install
 ```
 
-Copy `.env.example` to `.env` and use the necessary environment variables.
+Copy `.env.example` to `.env.local` and use the necessary environment variables.
 
 ```bash
 cp .env.example .env

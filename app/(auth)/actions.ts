@@ -12,10 +12,14 @@ const authFormSchema = z.object({
   password: z.string().min(6),
 });
 
+export interface LoginActionState {
+  status: 'idle' | 'in_progress' | 'success' | 'failed' | 'invalid_data';
+}
+
 export const login = async (
-  _: ActionStateStatus,
+  _: LoginActionState,
   formData: FormData,
-): Promise<ActionStateStatus> => {
+): Promise<LoginActionState> => {
   try {
     const validatedData = authFormSchema.parse({
       email: formData.get('email'),

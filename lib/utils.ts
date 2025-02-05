@@ -87,84 +87,59 @@ function addToolMessageToChat({
 export function convertToUIMessages(
   messages: Array<DBMessage>,
 ): Array<Message> {
-  const toolMessages = messages.filter(
-    (message) => message.role === 'tool',
-  ) as Array<CoreToolMessage>;
-  const userAssistantMessages = messages.reduce(
-    (chatMessages: Array<Message>, message) => {
-      if (message.role === 'tool') {
-        return chatMessages;
-      }
+  return messages.reduce((chatMessages: Array<Message>, message) => {
+    if (message.role === 'tool') {
+      return addToolMessageToChat({
+        toolMessage: message as CoreToolMessage,
+        messages: chatMessages,
+      });
+    }
 
-      let textContent = '';
-      const toolInvocations: Array<ToolInvocation> = [];
+    let textContent = '';
+    let reasoning: string | undefined = undefined;
+    const toolInvocations: Array<ToolInvocation> = [];
 
-      if (typeof message.content === 'string') {
-        textContent = message.content;
-      } else if (Array.isArray(message.content)) {
-        for (const content of message.content) {
-          if (content.type === 'text') {
-            textContent += content.text;
-          } else if (content.type === 'tool-call') {
-            toolInvocations.push({
-              state: 'call',
-              toolCallId: content.toolCallId,
-              toolName: content.toolName,
-              args: content.args,
-            });
-          }
+    if (typeof message.content === 'string') {
+      textContent = message.content;
+    } else if (Array.isArray(message.content)) {
+      for (const content of message.content) {
+        if (content.type === 'text') {
+          textContent += content.text;
+        } else if (content.type === 'tool-call') {
+          toolInvocations.push({
+            state: 'call',
+            toolCallId: content.toolCallId,
+            toolName: content.toolName,
+            args: content.args,
+          });
+        } else if (content.type === 'reasoning') {
+          reasoning = content.reasoning;
         }
       }
+    }
 
-      chatMessages.push({
-        id: message.id,
-        role: message.role as Message['role'],
-        content: textContent,
-        toolInvocations,
-      });
+    chatMessages.push({
+      id: message.id,
+      role: message.role as Message['role'],
+      content: textContent,
+      reasoning,
+      toolInvocations,
+    });
 
-      return chatMessages;
-    },
-    [],
-  );
-
-  return toolMessages
-    .flatMap((message) => message.content)
-    .reduce((messages, toolResult) => {
-      const messageIndex = messages.findIndex((m) =>
-        m.toolInvocations?.some(
-          ({ toolCallId }) => toolCallId === toolResult.toolCallId,
-        ),
-      );
-
-      if (messageIndex === -1) {
-        console.warn(
-          `Tool result ${toolResult.toolCallId} hanging without associated tool calls`,
-        );
-        return messages;
-      }
-
-      const toolInvocations = messages[messageIndex].toolInvocations || [];
-      messages[messageIndex].toolInvocations = toolInvocations.map(
-        (toolInvocation) => {
-          if (toolInvocation.toolCallId === toolResult.toolCallId) {
-            return {
-              ...toolInvocation,
-              state: 'result',
-              result: toolResult.result,
-            };
-          }
-
-          return toolInvocation;
-        },
-      );
-      return messages;
-    }, userAssistantMessages);
+    return chatMessages;
+  }, []);
 }
 
-export function sanitizeResponseMessages(
-  messages: Array<CoreToolMessage | CoreAssistantMessage>,
-): Array<CoreToolMessage | CoreAssistantMessage> {
+type ResponseMessageWithoutId = CoreToolMessage | CoreAssistantMessage;
+type ResponseMessage = ResponseMessageWithoutId & { id: string };
+
+export function sanitizeResponseMessages({
+  messages,
+  reasoning,
+}: {
+  messages: Array<ResponseMessage>;
+  reasoning: string | undefined;
+}) {
   const toolResultIds: Array<string> = [];
 
   for (const message of messages) {
@@ -189,6 +164,11 @@ export function sanitizeResponseMessages(
           ? content.text.length > 0
           : true,
     );
+
+    if (reasoning) {
+      // @ts-expect-error: reasoning message parts in sdk is wip
+      sanitizedContent.push({ type: 'reasoning', reasoning });
+    }
 
     return {
       ...message,
@@ -247,16 +227,6 @@ export function getDocumentTimestampByIndex(
   if (index > documents.length) return new Date();
 
   return documents[index].createdAt;
-}
-
-export function getMessageIdFromAnnotations(message: Message) {
-  if (!message.annotations) return message.id;
-
-  const [annotation] = message.annotations;
-  if (!annotation) return message.id;
-
-  // @ts-expect-error messageIdFromServer is not defined in MessageAnnotation
-  return annotation.messageIdFromServer;
 }
 
 export function getDiffRelation<PREVIOUS, CURRENT>(
