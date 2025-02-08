@@ -14,6 +14,7 @@ export const updateDocumentTool = createToolDefinition({
   name: InternalToolName.updateDocument,
   verboseName: 'Update Document',
   description: 'Update a document with the given description',
+  visibility: 'public',
   parameters: z.object({
     id: z.string().describe('The ID of the document to update'),
     description: z

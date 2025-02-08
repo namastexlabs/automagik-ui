@@ -54,12 +54,21 @@ export const tool = pgTable(
     name: text('name').notNull(),
     verboseName: text('verboseName').notNull(),
     description: text('description').notNull(),
-    parameters: json('parameters').$type<SzObject>().notNull(),
+    visibility: varchar('visibility', { enum: ['public', 'private'] })
+      .notNull()
+      .default('public'),
+    parameters: json('parameters').$type<SzObject>(),
     source: text('source', { enum: ['internal', 'automagik'] }).notNull(),
     data: json('data').$type<ToolData>().notNull().default({}),
   },
   (table) => ({
     uniqueUserName: unique().on(table.name, table.source),
+    uniquePrivateUser: uniqueIndex()
+      .on(table.userId, table.name)
+      .where(sql`${table.visibility} = 'private'`),
+    uniquePublicUser: uniqueIndex()
+      .on(table.name)
+      .where(sql`${table.visibility} = 'public'`),
   }),
 );
 
@@ -72,12 +81,19 @@ export const agent = pgTable(
     name: text().notNull(),
     systemPrompt: text().notNull(),
     createdAt: timestamp().notNull().defaultNow(),
-    userId: uuid()
+    visibility: varchar('visibility', { enum: ['public', 'private'] })
       .notNull()
-      .references(() => user.id, { onDelete: 'cascade' }),
+      .default('private'),
+    userId: uuid().references(() => user.id, { onDelete: 'cascade' }),
   },
   (table) => ({
     uniqueUserName: unique().on(table.name, table.userId),
+    uniquePrivateUser: uniqueIndex()
+      .on(table.userId, table.name)
+      .where(sql`${table.visibility} = 'private'`),
+    uniquePublicUser: uniqueIndex()
+      .on(table.name)
+      .where(sql`${table.visibility} = 'public'`),
   }),
 );
 

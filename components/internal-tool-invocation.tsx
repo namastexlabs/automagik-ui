@@ -40,7 +40,7 @@ export function ToolInvocation<T extends InternalToolName>({
   type ToolComponentsMap = {
     [K in InternalToolName]: (
       toolInvocation: InternalToolInvocationPayload<K>,
-    ) => JSX.Element;
+    ) => JSX.Element | null;
   };
 
   const toolComponentsMap: ToolComponentsMap = useMemo(() => {
@@ -101,6 +101,9 @@ export function ToolInvocation<T extends InternalToolName>({
           </span>
         </div>
       ),
+      syncFlow: () => null,
+      listFlows: () => null,
+      listLangflowFlows: () => null,
     };
   }, [isReadonly]);
 

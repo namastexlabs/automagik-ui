@@ -1,11 +1,15 @@
-import type { CoreTool } from 'ai';
+import type { Tool as ToolSDK } from 'ai';
 import { dezerialize } from 'zodex';
 import dedent from 'dedent';
+import { z } from 'zod';
 
 import type { Tool } from '@/lib/db/schema';
 
 import type { ToolRequestContext } from './types';
-import { castToolType, type InternalToolName } from './tool-declarations/client';
+import {
+  castToolType,
+  type InternalToolName,
+} from './tool-declarations/client';
 import { INTERNAL_TOOL_MAP } from './tool-declarations';
 import { createChatFlowTool } from './automagik';
 
@@ -27,8 +31,8 @@ export const getToolDefinitionBySource = (tool: Tool) => {
 export const toCoreTools = (
   tools: Tool[],
   context: ToolRequestContext,
-): Record<string, CoreTool> => {
-  return tools.reduce<Record<string, CoreTool>>((tools, tool) => {
+): Record<string, ToolSDK> => {
+  return tools.reduce<Record<string, ToolSDK>>((tools, tool) => {
     const toolDefinition = getToolDefinitionBySource(tool);
 
     tools[tool.name] = {
@@ -37,10 +41,14 @@ export const toCoreTools = (
 
         ${toolDefinition?.dynamicDescription?.(context) || ''}
       `,
-      parameters: dezerialize(tool.parameters),
+      parameters: tool.parameters ? dezerialize(tool.parameters) : z.object({}),
       execute: async (parameters) => {
         if (toolDefinition) {
-          return await toolDefinition.execute(parameters, context);
+          if (toolDefinition.parameters) {
+            return await toolDefinition.execute(parameters, context);
+          } else {
+            return await toolDefinition.execute(context);
+          }
         }
 
         console.warn(`No tool ${tool.name} found for execute, skipping...`);

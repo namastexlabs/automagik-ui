@@ -9,6 +9,7 @@ export const weatherTool = createToolDefinition({
   name: InternalToolName.getWeather,
   verboseName: 'Get Weather',
   description: 'Get the current weather at a location',
+  visibility: 'public',
   parameters: z.object({
     latitude: z.number(),
     longitude: z.number(),

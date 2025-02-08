@@ -16,6 +16,7 @@ export const requestSuggestionsTool = createToolDefinition({
   name: InternalToolName.requestSuggestions,
   verboseName: 'Request Suggestions',
   description: 'Request suggestions for a document',
+  visibility: 'public',
   parameters: z.object({
     documentId: z.string().describe('The ID of the document to request edits'),
   }),

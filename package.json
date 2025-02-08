@@ -16,7 +16,8 @@
     "db:pull": "drizzle-kit pull",
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
-    "db:update-tools": "npx tsx --conditions=react-server lib/db/generate-internal-tools.ts"
+    "db:update-tools": "npx tsx --conditions=react-server lib/db/generate-internal-tools.ts",
+    "db:update-default-agents": "npx tsx --conditions=react-server lib/db/generate-default-agents.ts"
   },
   "dependencies": {
     "@ai-sdk/fireworks": "^0.1.8",

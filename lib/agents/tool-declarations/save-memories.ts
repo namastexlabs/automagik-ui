@@ -27,6 +27,7 @@ export const saveMemoriesTool = createToolDefinition({
       ${options}
     `;
   },
+  visibility: 'public',
   parameters: z.object({
     memories: z.array(
       z.object({ name: z.string().trim(), content: z.string().trim() }),

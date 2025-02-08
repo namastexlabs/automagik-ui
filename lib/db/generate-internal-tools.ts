@@ -5,8 +5,8 @@ import { zerialize } from 'zodex';
 import {
   type InternalToolName,
   internalToolNames,
-} from '../agents/tool-declarations/client';
-import { INTERNAL_TOOL_MAP } from '../agents/tool-declarations';
+} from '@/lib/agents/tool-declarations/client';
+import { INTERNAL_TOOL_MAP } from '@/lib/agents/tool-declarations';
 
 config({
   path: '.env.local',
@@ -43,7 +43,8 @@ const run = async () => {
       name: toolName,
       verboseName: internalTool.verboseName,
       description: internalTool.description,
-      parameters: zerialize(internalTool.parameters),
+      visibility: internalTool.visibility,
+      parameters: internalTool.parameters && zerialize(internalTool.parameters),
       source: 'internal',
       data: {},
     } as const;

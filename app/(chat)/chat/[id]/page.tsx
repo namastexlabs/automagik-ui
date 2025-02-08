@@ -5,7 +5,7 @@ import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat';
 import { DEFAULT_CHAT_MODEL, chatModels } from '@/lib/ai/models';
 import {
-  getAgentsByUserId,
+  getAvailableAgents,
   getChatById,
   getMessagesByChatId,
 } from '@/lib/db/queries';
@@ -40,7 +40,7 @@ export default async function Page({
   }
 
   const agentsFromDb = session?.user?.id
-    ? await getAgentsByUserId({ userId: session?.user.id })
+    ? await getAvailableAgents({ userId: session?.user.id })
     : [];
 
   const messagesFromDb = await getMessagesByChatId({
