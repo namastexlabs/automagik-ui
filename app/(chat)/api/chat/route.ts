@@ -142,6 +142,8 @@ export async function POST(request: Request) {
       });
     },
     onError: (error) => {
+      console.log(error);
+
       return 'Oops, an error occured!';
     },
   });

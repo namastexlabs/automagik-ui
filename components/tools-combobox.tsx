@@ -35,16 +35,20 @@ export function ToolsCombobox({
     fetcher,
   );
 
+  const availableTools = tools.filter((tool) =>
+    tool.source === 'internal' ? tool.visibility === 'public' : true,
+  );
+
   const handleCreate = useCallback(
     (tool: ClientTool) => onChange(tool.id),
     [onChange],
   );
-  const selectedTools = tools
+  const selectedTools = availableTools
     .filter((tool) => selected.includes(tool.id))
     .map((tool) => tool.verboseName)
     .join(', ');
 
-  const toolCommands = tools.map((tool) => (
+  const toolCommands = availableTools.map((tool) => (
     <CommandItem
       key={tool.id}
       className="cursor-pointer py-1 text-[0.85rem]"

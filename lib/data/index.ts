@@ -12,6 +12,7 @@ export const mapTool = ({
   verboseName,
   source,
   data,
+  visibility,
   description,
 }: Tool) => {
   return {
@@ -20,6 +21,7 @@ export const mapTool = ({
     verboseName,
     source,
     data,
+    visibility,
     description: source === 'internal' ? undefined : description,
   };
 };
