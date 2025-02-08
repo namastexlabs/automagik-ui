@@ -1,6 +1,7 @@
 import React, { useMemo, useState } from 'react';
 import { EditIcon, PlusIcon, TrashIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import { useRouter } from 'next/navigation';
 import { useSWRConfig } from 'swr';
 
 import { deleteAgent } from '@/app/(chat)/actions';
@@ -32,7 +33,7 @@ import {
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
-import { useRouter } from 'next/navigation';
+import { useUser } from '@/contexts/user';
 
 export function AgentListDialog({
   agents,
@@ -45,22 +46,41 @@ export function AgentListDialog({
   openAgentListDialog: (isOpen: boolean) => void;
   isOpenAgentListDialog: boolean;
 }) {
+  const [agentDelete, setAgentDelete] = useState<string | null>(null);
   const router = useRouter();
   const { mutate } = useSWRConfig();
-  const [agentDelete, setAgentDelete] = useState<string | null>(null);
   const { tabs, removeTab, toggleTab } = useAgentTabs();
   const { currentTab, setTab } = useCurrentAgentTab();
+  const { user } = useUser();
 
   const sortedAgents = useMemo(
     () =>
       agents.toSorted((a, b) => {
         const tabIndexA = tabs.indexOf(a.id);
+        const tabIndexB = tabs.indexOf(b.id);
+
+        if (tabIndexA === -1 && tabIndexB === -1) {
+          if (a.userId !== user.id) {
+            return 1;
+          }
+          if (b.userId !== user.id) {
+            return -1;
+          }
+        }
+
         if (tabIndexA === -1) {
           return 1;
         }
 
-        const tabIndexB = tabs.indexOf(b.id);
         if (tabIndexB === -1) {
+          return -1;
+        }
+
+        if (a.userId !== user.id) {
+          return 1;
+        }
+
+        if (b.userId !== user.id) {
           return -1;
         }
 
@@ -76,7 +96,7 @@ export function AgentListDialog({
       success: () => {
         if (agentId === currentTab) {
           if (tabs.length === 1) {
-            setTab(null)
+            setTab(null);
           } else {
             setTab(tabs[0] || null);
           }
@@ -140,40 +160,42 @@ export function AgentListDialog({
                   {agent.name}
                 </Label>
               </div>
-              <div className="flex item-center space-x-2">
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="size-8 p-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        openAgentDialog(agent.id);
-                      }}
-                    >
-                      <EditIcon />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Edit Agent</TooltipContent>
-                </Tooltip>
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="hover:bg-destructive size-8 p-1"
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        setAgentDelete(agent.id);
-                      }}
-                    >
-                      <TrashIcon />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Delete Agent</TooltipContent>
-                </Tooltip>
-              </div>
+              {agent.userId === user.id && (
+                <div className="flex item-center space-x-2">
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="size-8 p-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          openAgentDialog(agent.id);
+                        }}
+                      >
+                        <EditIcon />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Edit Agent</TooltipContent>
+                  </Tooltip>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="hover:bg-destructive size-8 p-1"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          setAgentDelete(agent.id);
+                        }}
+                      >
+                        <TrashIcon />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Delete Agent</TooltipContent>
+                  </Tooltip>
+                </div>
+              )}
             </div>
           ))}
         </div>

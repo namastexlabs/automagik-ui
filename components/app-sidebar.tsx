@@ -1,6 +1,5 @@
 'use client';
 
-import type { User } from 'next-auth';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 
@@ -17,8 +16,10 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { useUser } from '@/contexts/user';
 
-export function AppSidebar({ user }: { user: User | undefined }) {
+export function AppSidebar() {
+  const { user } = useUser();
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
 
