@@ -196,3 +196,30 @@ export type FlowPayload = {
     type: string;
   }[];
 };
+
+export type Schedule = {
+  flow_id: string;
+  schedule_type: string;
+  schedule_expr: string;
+  // TODO: Discover how to use this
+  flow_params: any;
+  status: string;
+  next_run_at: string;
+  id: string;
+};
+
+export type Task = {
+  flow_id: string;
+  // TODO: Discover how to use this
+  input_data: any;
+  // TODO: Discover how to use this
+  output_data: any;
+  error: string;
+  tries: number;
+  max_retries: number;
+  next_retry_at: string;
+  started_at: string;
+  finished_at: string;
+  id: string;
+  status: string;
+};

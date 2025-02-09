@@ -10,6 +10,8 @@ import type { InternalToolName } from './client';
 import { syncFlowTool } from './sync-flow';
 import { listLangflowFlowsTool } from './list-langflow-flows';
 import { listFlowsTool } from './list-flows';
+import { scheduleFlowTool } from './schedule-flow';
+import { listTasksTool } from './list-tasks';
 
 export const INTERNAL_TOOL_MAP = {
   [weatherTool.name]: weatherTool,
@@ -20,6 +22,8 @@ export const INTERNAL_TOOL_MAP = {
   [syncFlowTool.name]: syncFlowTool,
   [listLangflowFlowsTool.name]: listLangflowFlowsTool,
   [listFlowsTool.name]: listFlowsTool,
+  [scheduleFlowTool.name]: scheduleFlowTool,
+  [listTasksTool.name]: listTasksTool,
 } as const;
 
 export type InternalToolOptions = typeof INTERNAL_TOOL_MAP;

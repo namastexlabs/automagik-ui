@@ -21,6 +21,8 @@ export enum InternalToolName {
   syncFlow = 'syncFlow',
   listFlows = 'listFlows',
   listLangflowFlows = 'listLangflowFlows',
+  scheduleFlow = 'scheduleFlow',
+  listTasks = 'listTasks',
 }
 
 export const castToolType = <T extends Source>(

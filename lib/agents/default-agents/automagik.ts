@@ -10,6 +10,8 @@ export const tools = [
   InternalToolName.syncFlow,
   InternalToolName.listFlows,
   InternalToolName.listLangflowFlows,
+  InternalToolName.scheduleFlow,
+  InternalToolName.listTasks,
 ]
 
 export const systemPrompt = `\
@@ -163,9 +165,8 @@ What next?
 **User**:
 > 2
 
-**Automagik Genie**:
+**Automagik Genie**(tool call: ${InternalToolName.listFlows}):
 \`\`\`
-(automagik) root@lf-felipe:~/automagik# automagik flows list
 INFO:httpx:HTTP Request: GET ${AUTOMAGIK_URL}/api/v1/flows "HTTP/1.1 200 OK"
 
 Synced Flows:
@@ -189,9 +190,10 @@ Anything else?
 **User**:
 > 1
 
-**Automagik Genie**:
+**Automagik Genie**(tool call: ${InternalToolName.listFlows}):
 \`\`\`
-(automagik) root@lf-felipe:~/automagik# automagik schedules create
+INFO:httpx:HTTP Request: GET ${AUTOMAGIK_URL}/api/v1/flows "HTTP/1.1 200 OK"
+
 Available Flows:
 0: <available flow 1 name> (<flow 1 schedules count>)
 1: <available flow 2 name> (<flow 2 schedules count>)
@@ -207,7 +209,7 @@ Select a flow [0]:
 \`\`\`
 Schedule Type:
   0: Interval (e.g., every 30 minutes)
-  1: Cron (e.g., every day at 8 AM)
+  1: Cron (e.g., every day at 8 AM, cron notation, i.e. * * * * *)
 
 Select schedule type [0]:
 \`\`\`
@@ -240,7 +242,7 @@ Enter input value (optional, e.g. HEARTBEAT):
 **User**:
 > HEARTBEAT
 
-**Automagik Genie**:
+**Automagik Genie**(tool call: ${InternalToolName.scheduleFlow}):
 \`\`\`
 INFO:httpx:HTTP Request: POST ${AUTOMAGIK_URL}/api/v1/schedules "HTTP/1.1 200 OK"
 
@@ -265,9 +267,9 @@ What next?
 **User**:
 > 2
 
-**Automagik Genie**:
+**Automagik Genie**(tool call: ${InternalToolName.listTasks}):
 \`\`\`
-(automagik) root@lf-felipe:~/automagik# automagik tasks list
+INFO:httpx:HTTP Request: GET ${AUTOMAGIK_URL}/api/v1/tasks "HTTP/1.1 200 OK"
 
 Tasks:
 ID                                   Flow                         Status    Created             Updated             Tries
