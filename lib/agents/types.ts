@@ -1,8 +1,12 @@
-import type { CoreToolCall, CoreToolResult, DataStreamWriter } from 'ai';
+import type { ToolCall, ToolResult, DataStreamWriter } from 'ai';
 import type { z } from 'zod';
 
 import type { AgentData } from '@/lib/db/queries';
 import type { Document } from '@/lib/db/schema';
+
+export type InferParameters<T> = T extends z.ZodTypeAny
+  ? z.infer<T>
+  : undefined;
 
 export type ToolRequestContext = {
   dataStream: DataStreamWriter;
@@ -10,13 +14,16 @@ export type ToolRequestContext = {
   agent: AgentData;
 };
 
-export type ToolDefinition<N extends string, R, P extends z.ZodTypeAny> = {
+export type ToolDefinition<N extends string, R, P> = {
   name: N;
   verboseName: string;
   description: string;
+  visibility: 'public' | 'private';
   dynamicDescription?: (context: ToolRequestContext) => string;
-  parameters: P;
-  execute: (params: z.infer<P>, context: ToolRequestContext) => Promise<R>;
+  parameters: P extends z.ZodTypeAny ? P : undefined;
+  execute: P extends z.ZodTypeAny
+    ? (params: InferParameters<P>, context: ToolRequestContext) => Promise<R>
+    : (context: ToolRequestContext) => Promise<R>;
 };
 
 export type ToolInvocation<
@@ -24,19 +31,19 @@ export type ToolInvocation<
   TOOL,
 > = TOOL extends ToolDefinition<NAME, infer RESULT, infer ARGS>
   ?
-    | ({
-        state: 'partial-call' | 'call';
-      } & CoreToolCall<NAME, z.infer<ARGS>>)
-    | ({
-        state: 'result';
-      } & CoreToolResult<NAME, z.infer<ARGS>, RESULT>)
+      | ({
+          state: 'partial-call' | 'call';
+        } & ToolCall<NAME, InferParameters<ARGS>>)
+      | ({
+          state: 'result';
+        } & ToolResult<NAME, InferParameters<ARGS>, RESULT>)
   :
-    | ({
-        state: 'call' | 'partial-call';
-      } & CoreToolCall<NAME, never>)
-    | ({
-        state: 'result';
-      } & CoreToolResult<NAME, never, never>);
+      | ({
+          state: 'call' | 'partial-call';
+        } & ToolCall<NAME, never>)
+      | ({
+          state: 'result';
+        } & ToolResult<NAME, never, never>);
 
 export type Source = 'internal' | 'automagik';
 
@@ -44,11 +51,12 @@ type FlowToolData = {
   flowId: string;
 };
 
-export type ToolData<source extends Source = Source> = source extends 'automagik'
-  ? FlowToolData
-  : source extends 'internal'
-  ? object
-  : never;
+export type ToolData<source extends Source = Source> =
+  source extends 'automagik'
+    ? FlowToolData
+    : source extends 'internal'
+      ? object
+      : never;
 
 export type DocumentExecuteReturn =
   | {
@@ -152,7 +160,8 @@ type FlowEdge = {
 export type FlowData = {
   name: string;
   description: string;
-  source: 'automagik';
+  source: string;
+  is_component: boolean;
   input_component: string;
   output_component: string;
   data: {
@@ -162,4 +171,55 @@ export type FlowData = {
   id: string;
   created_at: string;
   updated_at: string;
+  folder_id: string;
+  folder_name: string;
+  source_id: string;
+};
+
+export type LangFlowResponse = {
+  id: string;
+  name: string;
+  description: string;
+  folder_id: string;
+  data: {
+    nodes: FlowNode[];
+    edges: FlowEdge[];
+  };
+};
+
+export type FlowPayload = {
+  id: string;
+  name: string;
+  description: string;
+  nodes: {
+    id: string;
+    type: string;
+  }[];
+};
+
+export type Schedule = {
+  flow_id: string;
+  schedule_type: string;
+  schedule_expr: string;
+  // TODO: Discover how to use this
+  flow_params: any;
+  status: string;
+  next_run_at: string;
+  id: string;
+};
+
+export type Task = {
+  flow_id: string;
+  // TODO: Discover how to use this
+  input_data: any;
+  // TODO: Discover how to use this
+  output_data: any;
+  error: string;
+  tries: number;
+  max_retries: number;
+  next_retry_at: string;
+  started_at: string;
+  finished_at: string;
+  id: string;
+  status: string;
 };

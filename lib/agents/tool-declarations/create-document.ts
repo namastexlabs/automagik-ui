@@ -20,6 +20,7 @@ export const createDocumentTool = createToolDefinition({
   name: InternalToolName.createDocument,
   verboseName: 'Create Document',
   description: 'Create a document for a writing activity.',
+  visibility: 'public',
   parameters: z.object({
     title: z.string(),
     kind: z.enum(['text', 'code', 'image', 'sheet']),

@@ -12,6 +12,7 @@ export const mapTool = ({
   verboseName,
   source,
   data,
+  visibility,
   description,
 }: Tool) => {
   return {
@@ -20,6 +21,7 @@ export const mapTool = ({
     verboseName,
     source,
     data,
+    visibility,
     description: source === 'internal' ? undefined : description,
   };
 };
@@ -35,9 +37,9 @@ export const mapAgent = (agent: AgentData) => {
       verboseName,
     })),
     dynamicBlocks: agent.dynamicBlocks.map(
-      ({ dynamicBlock: { name, global } }) => ({
+      ({ dynamicBlock: { name, visibility } }) => ({
         name,
-        global,
+        visibility,
       }),
     ),
   };

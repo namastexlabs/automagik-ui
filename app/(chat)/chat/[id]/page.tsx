@@ -1,11 +1,11 @@
 import { cookies } from 'next/headers';
-import { notFound } from 'next/navigation';
+import { notFound, redirect } from 'next/navigation';
 
 import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat';
 import { DEFAULT_CHAT_MODEL, chatModels } from '@/lib/ai/models';
 import {
-  getAgentsByUserId,
+  getAvailableAgents,
   getChatById,
   getMessagesByChatId,
 } from '@/lib/db/queries';
@@ -15,19 +15,23 @@ import { AppSidebar } from '@/components/app-sidebar';
 import { AgentTabsProvider } from '@/components/agent-tabs-provider';
 import { mapAgent } from '@/lib/data';
 import { DataStreamHandler } from '@/components/data-stream-handler';
+import { UserProvider } from '@/components/user-provider';
 
 export default async function Page({
   params,
 }: { params: Promise<{ id: string }> }) {
+  const session = await auth();
+
+  if (!session || !session.user) {
+    return redirect('/login');
+  }
+
   const { id } = await params;
   const chat = await getChatById({ id });
 
   if (!chat) {
     notFound();
   }
-
-  const session = await auth();
-
 
   if (chat.visibility === 'private') {
     if (!session || !session.user) {
@@ -40,7 +44,7 @@ export default async function Page({
   }
 
   const agentsFromDb = session?.user?.id
-    ? await getAgentsByUserId({ userId: session?.user.id })
+    ? await getAvailableAgents({ userId: session?.user.id })
     : [];
 
   const messagesFromDb = await getMessagesByChatId({
@@ -55,21 +59,30 @@ export default async function Page({
     DEFAULT_CHAT_MODEL;
 
   return (
-    <AgentTabsProvider>
-      <SidebarProvider defaultOpen={!isCollapsed}>
-        <AppSidebar user={session?.user} />
-        <SidebarInset>
-          <Chat
-            chat={chat}
-            initialAgents={agentsFromDb.map(mapAgent)}
-            initialMessages={convertToUIMessages(messagesFromDb)}
-            selectedModelId={selectedChatModelId}
-            selectedVisibilityType={chat.visibility}
-            isReadonly={session?.user?.id !== chat.userId}
-          />
-        <DataStreamHandler id={id} />
-        </SidebarInset>
-      </SidebarProvider>
-    </AgentTabsProvider>
+    <UserProvider
+      user={{
+        // biome-ignore lint/style/noNonNullAssertion: <explanation>
+        id: session!.user!.id!,
+        // biome-ignore lint/style/noNonNullAssertion: <explanation>
+        email: session!.user!.email!,
+      }}
+    >
+      <AgentTabsProvider>
+        <SidebarProvider defaultOpen={!isCollapsed}>
+          <AppSidebar />
+          <SidebarInset>
+            <Chat
+              chat={chat}
+              initialAgents={agentsFromDb.map(mapAgent)}
+              initialMessages={convertToUIMessages(messagesFromDb)}
+              selectedModelId={selectedChatModelId}
+              selectedVisibilityType={chat.visibility}
+              isReadonly={session?.user?.id !== chat.userId}
+            />
+            <DataStreamHandler id={id} />
+          </SidebarInset>
+        </SidebarProvider>
+      </AgentTabsProvider>
+    </UserProvider>
   );
 }

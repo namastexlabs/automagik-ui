@@ -18,6 +18,11 @@ export enum InternalToolName {
   updateDocument = 'updateDocument',
   requestSuggestions = 'requestSuggestions',
   saveMemories = 'saveMemories',
+  syncFlow = 'syncFlow',
+  listFlows = 'listFlows',
+  listLangflowFlows = 'listLangflowFlows',
+  scheduleFlow = 'scheduleFlow',
+  listTasks = 'listTasks',
 }
 
 export const castToolType = <T extends Source>(

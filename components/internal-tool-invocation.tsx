@@ -101,6 +101,31 @@ export function ToolInvocation<T extends InternalToolName>({
           </span>
         </div>
       ),
+      syncFlow: () => (
+        <div className="flex text-lg leading-relaxed">
+          <Badge variant="secondary" className="text-md">syncFlow Called</Badge>
+        </div>
+      ),
+      listFlows: () => (
+        <div className="flex leading-relaxed">
+          <Badge variant="secondary" className="text-md">listFlows Called</Badge>
+        </div>
+      ),
+      listLangflowFlows: () => (
+        <div className="flex text-lg leading-relaxed">
+          <Badge variant="secondary" className="text-md">listLangflowFlows Called</Badge>
+        </div>
+      ),
+      scheduleFlow: () => (
+        <div className="flex text-lg leading-relaxed">
+          <Badge variant="secondary" className="text-md">scheduleFlow Called</Badge>
+        </div>
+      ),
+      listTasks: () => (
+        <div className="flex text-lg leading-relaxed">
+          <Badge variant="secondary" className="text-md">listTasks Called</Badge>
+        </div>
+      ),
     };
   }, [isReadonly]);
 

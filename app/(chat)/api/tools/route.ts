@@ -1,6 +1,6 @@
 import { auth } from '@/app/(auth)/auth';
 import { mapTool } from '@/lib/data';
-import { getToolsByUserId } from '@/lib/db/queries';
+import { getAvailableTools } from '@/lib/db/queries';
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -9,6 +9,6 @@ export async function GET(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const tools = await getToolsByUserId(session.user.id);
+  const tools = await getAvailableTools(session.user.id);
   return Response.json(tools.map(mapTool), { status: 200 });
 }

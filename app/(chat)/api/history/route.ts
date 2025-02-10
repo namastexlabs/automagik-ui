@@ -18,7 +18,7 @@ export async function GET(request: Request) {
     id: agentId,
   });
 
-  if (!agent || agent.userId !== session.user.id) {
+  if (!agent || (agent.userId !== session.user.id && agent.visibility !== 'public')) {
     return Response.json('Agent not found', { status: 404 });
   }
 

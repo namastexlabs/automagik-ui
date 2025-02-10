@@ -385,10 +385,23 @@ const AGENT_RELATION_QUERY = {
   },
 } as const;
 
-export async function getAgentsByUserId({ userId }: { userId: string }) {
+export async function getDefaultAgents() {
   try {
     return await db.query.agent.findMany({
-      where: (agent, { eq }) => eq(agent.userId, userId),
+      where: (agent, { isNull }) => isNull(agent.userId),
+      with: AGENT_RELATION_QUERY,
+    });
+  } catch (error) {
+    console.error('Failed to get agents in database');
+    throw error;
+  }
+}
+
+export async function getAvailableAgents({ userId }: { userId: string }) {
+  try {
+    return await db.query.agent.findMany({
+      where: (agent, { eq, or }) =>
+        or(eq(agent.userId, userId), eq(agent.visibility, 'public')),
       orderBy: (agent, { asc }) => [asc(agent.createdAt)],
       with: AGENT_RELATION_QUERY,
     });
@@ -398,7 +411,7 @@ export async function getAgentsByUserId({ userId }: { userId: string }) {
   }
 }
 
-export type AgentData = Awaited<ReturnType<typeof getAgentsByUserId>>[number];
+export type AgentData = Awaited<ReturnType<typeof getAvailableAgents>>[number];
 
 export async function getAgentById({
   id,
@@ -418,10 +431,12 @@ export async function createAgent({
   name,
   systemPrompt,
   userId,
+  visibility,
 }: {
   name: string;
   systemPrompt: string;
-  userId: string;
+  userId: string | null;
+  visibility: 'private' | 'public';
 }) {
   try {
     const [createdAgent] = await db
@@ -447,6 +462,7 @@ export async function updateAgent({
   id: string;
   name?: string;
   systemPrompt?: string;
+  visibility?: 'private' | 'public';
 }) {
   try {
     const [updatedAgent] = await db
@@ -473,14 +489,14 @@ export async function deleteAgentById({ id }: { id: string }) {
 
 export async function getAllDynamicBlocksByName(
   names: string[],
-  isGlobal?: boolean,
+  isPublic?: boolean,
   userId?: string,
 ) {
   const query = db.query.dynamicBlock.findMany({
     where: (dynamicBlock, { inArray, and, eq }) => {
       const queries = [inArray(dynamicBlock.name, names)];
-      if (isGlobal !== undefined) {
-        queries.push(eq(dynamicBlock.global, isGlobal));
+      if (isPublic !== undefined) {
+        queries.push(eq(dynamicBlock.visibility, 'public'));
       }
       if (userId) {
         queries.push(eq(dynamicBlock.userId, userId));
@@ -501,7 +517,7 @@ export async function createAllDynamicBlocks(
   data: {
     name: string;
     userId: string;
-    global: boolean;
+    visibility: 'private' | 'public';
   }[],
 ) {
   try {
@@ -629,7 +645,7 @@ export async function getInternalTools() {
   }
 }
 
-export async function getToolsByUserId(userId: string) {
+export async function getAvailableTools(userId: string) {
   try {
     return await db.query.tool.findMany({
       where: (tool, { eq, or }) =>
@@ -641,10 +657,14 @@ export async function getToolsByUserId(userId: string) {
   }
 }
 
-export async function getAllToolsById(ids: string[]) {
+export async function getAllToolsById(ids: string[], userId: string) {
   try {
     return await db.query.tool.findMany({
-      where: (tool, { inArray }) => inArray(tool.id, ids),
+      where: (tool, { inArray, eq, or }) =>
+        and(
+          inArray(tool.id, ids),
+          or(eq(tool.userId, userId), eq(tool.visibility, 'public')),
+        ),
     });
   } catch (error) {
     console.error('Failed to get tools in database');
@@ -657,7 +677,7 @@ export async function createTool<T extends Source>(data: {
   verboseName: string;
   description: string;
   data: ToolData<T>;
-  parameters: SzObject;
+  parameters?: SzObject;
   source: T;
   userId?: string | null;
 }) {
@@ -681,7 +701,7 @@ export async function updateTool<T extends Source>({
   description?: string;
   data: ToolData<T>;
   parameters?: SzObject;
-  source?: T;
+  source: T;
 }) {
   try {
     const [updatedTool] = await db

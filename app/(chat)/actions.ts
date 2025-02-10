@@ -54,7 +54,7 @@ const agentFormSchema = z.object({
     .array(
       z.object({
         name: z.string().trim(),
-        global: z.boolean(),
+        visibility: z.enum(['public', 'private']),
       }),
     )
     .refine(
@@ -211,7 +211,10 @@ export async function saveAgent(
         .map((item) => JSON.parse(item as string)),
     });
 
-    const formTools = await getAllToolsById(validatedData.tools);
+    const formTools = await getAllToolsById(
+      validatedData.tools,
+      session.user.id,
+    );
     const dynamicBlocks = await getOrCreateAllDynamicBlocks(
       session.user.id,
       validatedData.dynamicBlocks,
@@ -274,6 +277,7 @@ export async function saveAgent(
       agent = await createAgent({
         ...validatedData,
         userId: session.user.id,
+        visibility: 'private',
       });
 
       if (formTools.length > 0) {
@@ -350,7 +354,7 @@ export async function saveFlowTool(
       name,
       verboseName,
       description,
-      parameters: zerialize(parameters),
+      parameters: parameters && zerialize(parameters),
       data: { flowId },
     } as const;
     if (id) {

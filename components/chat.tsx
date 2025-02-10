@@ -7,18 +7,18 @@ import useSWR, { useSWRConfig } from 'swr';
 import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 
-import { ChatHeader } from '@/components/chat-header';
+import type { ClientAgent } from '@/lib/data';
 import type { Chat as ChatType, Vote } from '@/lib/db/schema';
+import { ChatHeader } from '@/components/chat-header';
 import { fetcher } from '@/lib/utils';
 import { createChat } from '@/app/(chat)/actions';
+import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
+import { useBlockSelector } from '@/hooks/use-block';
 
+import type { VisibilityType } from './visibility-selector';
 import { Block } from './block';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
-import type { VisibilityType } from './visibility-selector';
-import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
-import type { ClientAgent } from '@/lib/data';
-import { useBlockSelector } from '@/hooks/use-block';
 
 export function Chat({
   chat,
@@ -57,7 +57,6 @@ export function Chat({
     isLoading,
     stop,
     reload,
-    data: streamingData,
   } = useChat({
     id: chat?.id,
     initialMessages,

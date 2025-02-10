@@ -99,8 +99,8 @@ export function convertToUIMessages(
     let reasoning: string | undefined = undefined;
     const toolInvocations: Array<ToolInvocation> = [];
 
-    if (typeof message.content === 'string') {
-      textContent = message.content;
+    if (typeof message.content === 'string' || typeof message.content === 'number') {
+      textContent = String(message.content);
     } else if (Array.isArray(message.content)) {
       for (const content of message.content) {
         if (content.type === 'text') {
@@ -245,10 +245,10 @@ export function getDiffRelation<PREVIOUS, CURRENT>(
 }
 
 export function getDynamicBlockNames(
-  isGlobal: boolean,
-  dynamicBlocks: { name: string; global: boolean }[],
+  isPublic: boolean,
+  dynamicBlocks: { name: string; visibility: 'private' | 'public' }[],
 ) {
   return dynamicBlocks
-    .filter(({ global }) => global === isGlobal)
+    .filter(({ visibility }) => visibility === (isPublic ? 'public' : 'private'))
     .map(({ name }) => name);
 }
