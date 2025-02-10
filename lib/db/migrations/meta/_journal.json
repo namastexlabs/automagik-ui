@@ -120,6 +120,13 @@
       "when": 1739203557823,
       "tag": "0016_foamy_magik",
       "breakpoints": true
+    },
+    {
+      "idx": 17,
+      "version": "7",
+      "when": 1739209489983,
+      "tag": "0017_stale_sentry",
+      "breakpoints": true
     }
   ]
 }

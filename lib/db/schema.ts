@@ -1,7 +1,6 @@
 import type { SzObject } from 'zodex';
 import { relations, sql, type InferSelectModel } from 'drizzle-orm';
 import {
-  pgTable,
   varchar,
   timestamp,
   json,
@@ -12,8 +11,11 @@ import {
   boolean,
   unique,
   uniqueIndex,
+  pgTableCreator,
 } from 'drizzle-orm/pg-core';
 import type { ToolData } from '../agents/types';
+
+const pgTable = pgTableCreator((name) => `automagikui_${name}`);
 
 export const user = pgTable('User', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
