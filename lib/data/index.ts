@@ -37,9 +37,9 @@ export const mapAgent = (agent: AgentData) => {
       verboseName,
     })),
     dynamicBlocks: agent.dynamicBlocks.map(
-      ({ dynamicBlock: { name, global } }) => ({
+      ({ dynamicBlock: { name, visibility } }) => ({
         name,
-        global,
+        visibility,
       }),
     ),
   };

@@ -245,10 +245,10 @@ export function getDiffRelation<PREVIOUS, CURRENT>(
 }
 
 export function getDynamicBlockNames(
-  isGlobal: boolean,
-  dynamicBlocks: { name: string; global: boolean }[],
+  isPublic: boolean,
+  dynamicBlocks: { name: string; visibility: 'private' | 'public' }[],
 ) {
   return dynamicBlocks
-    .filter(({ global }) => global === isGlobal)
+    .filter(({ visibility }) => visibility === (isPublic ? 'public' : 'private'))
     .map(({ name }) => name);
 }

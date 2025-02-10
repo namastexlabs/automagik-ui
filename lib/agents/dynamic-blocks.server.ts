@@ -19,7 +19,7 @@ export async function getOrCreateAllDynamicBlocks(
   userId: string,
   formDynamicBlocks: {
     name: string;
-    global: boolean;
+    visibility: 'private' | 'public';
   }[],
 ) {
   const globalDynamicBlocks = await getAllDynamicBlocksByName(

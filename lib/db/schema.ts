@@ -29,18 +29,20 @@ export const dynamicBlock = pgTable(
     id: uuid('id').primaryKey().notNull().defaultRandom(),
     name: text('name').notNull(),
     content: text('content'),
-    global: boolean('global').notNull().default(false),
+    visibility: varchar('visibility', { enum: ['public', 'private'] })
+      .notNull()
+      .default('private'),
     userId: uuid('userId')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
   },
   (table) => ({
-    uniqueNameByUser: uniqueIndex()
-      .on(table.name, table.userId)
-      .where(sql`${table.global} = FALSE`),
-    uniqueNameByGlobal: uniqueIndex()
+    uniquePrivateUser: uniqueIndex()
+      .on(table.userId, table.name)
+      .where(sql`${table.visibility} = 'private'`),
+    uniquePublicUser: uniqueIndex()
       .on(table.name)
-      .where(sql`${table.global} = TRUE`),
+      .where(sql`${table.visibility} = 'public'`),
   }),
 );
 

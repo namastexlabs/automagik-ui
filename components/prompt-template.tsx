@@ -30,7 +30,7 @@ export function PromptTemplate({
 
   const deferredTemplate = useDeferredValue(template);
   const [dynamicBlocks, setDynamicBlocks] = useState<
-    { name: string; global: boolean }[]
+    { name: string; visibility: 'private' | 'public' }[]
   >([]);
 
   useEffect(() => {
@@ -43,16 +43,20 @@ export function PromptTemplate({
 
         return {
           name: block.trim(),
-          global: stateBlock?.global || agentBlock?.global || false,
+          visibility:
+            stateBlock?.visibility || agentBlock?.visibility || 'private',
         };
       }),
     );
   }, [deferredTemplate, agent]);
 
-  const handleBlockGlobalChange = (index: number, value: boolean) => {
+  const handleBlockVisibilityChange = (
+    index: number,
+    visibility: 'private' | 'public',
+  ) => {
     setDynamicBlocks((state) =>
       state.map((block, stateIndex) =>
-        index === stateIndex ? { ...block, global: value } : block,
+        index === stateIndex ? { ...block, visibility } : block,
       ),
     );
   };
@@ -85,13 +89,18 @@ export function PromptTemplate({
             align="start"
           >
             <div className="flex gap-2 items-center">
-              <Label htmlFor={`dynamicBlocks[${index}][global]`}>Global</Label>
+              <Label htmlFor={`dynamicBlocks[${index}][visibility]`}>
+                Public
+              </Label>
               <Switch
                 form={formId}
-                id={`dynamicBlocks[${index}][global]`}
-                checked={block.global}
+                id={`dynamicBlocks[${index}][visibility]`}
+                checked={block.visibility === 'public'}
                 onCheckedChange={(value) =>
-                  handleBlockGlobalChange(index, value)
+                  handleBlockVisibilityChange(
+                    index,
+                    value ? 'public' : 'private',
+                  )
                 }
               />
               <input

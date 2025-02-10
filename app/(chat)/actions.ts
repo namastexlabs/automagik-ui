@@ -54,7 +54,7 @@ const agentFormSchema = z.object({
     .array(
       z.object({
         name: z.string().trim(),
-        global: z.boolean(),
+        visibility: z.enum(['public', 'private']),
       }),
     )
     .refine(

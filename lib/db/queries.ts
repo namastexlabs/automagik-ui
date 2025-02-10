@@ -489,14 +489,14 @@ export async function deleteAgentById({ id }: { id: string }) {
 
 export async function getAllDynamicBlocksByName(
   names: string[],
-  isGlobal?: boolean,
+  isPublic?: boolean,
   userId?: string,
 ) {
   const query = db.query.dynamicBlock.findMany({
     where: (dynamicBlock, { inArray, and, eq }) => {
       const queries = [inArray(dynamicBlock.name, names)];
-      if (isGlobal !== undefined) {
-        queries.push(eq(dynamicBlock.global, isGlobal));
+      if (isPublic !== undefined) {
+        queries.push(eq(dynamicBlock.visibility, 'public'));
       }
       if (userId) {
         queries.push(eq(dynamicBlock.userId, userId));
@@ -517,7 +517,7 @@ export async function createAllDynamicBlocks(
   data: {
     name: string;
     userId: string;
-    global: boolean;
+    visibility: 'private' | 'public';
   }[],
 ) {
   try {
