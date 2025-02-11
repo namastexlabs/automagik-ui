@@ -12,7 +12,6 @@ import {
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import { Checkbox } from '@/components/ui/checkbox';
-import type { Agent } from '@/lib/db/schema';
 import {
   Dialog,
   DialogContent,
@@ -34,6 +33,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { useUser } from '@/contexts/user';
+import type { ClientAgent } from '@/lib/data';
 
 export function AgentListDialog({
   agents,
@@ -41,7 +41,7 @@ export function AgentListDialog({
   isOpenAgentListDialog,
   openAgentListDialog,
 }: {
-  agents: Agent[];
+  agents: ClientAgent[];
   openAgentDialog: (agentId?: string) => void;
   openAgentListDialog: (isOpen: boolean) => void;
   isOpenAgentListDialog: boolean;
@@ -103,7 +103,7 @@ export function AgentListDialog({
         }
 
         removeTab(agentId);
-        mutate('/api/agents', (agents: Agent[] = []) => {
+        mutate('/api/agents', (agents: ClientAgent[] = []) => {
           const newAgents = agents.filter((agent) => agent.id !== agentId);
 
           if (newAgents.length === 0) {
