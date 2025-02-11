@@ -8,15 +8,16 @@ import type {
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import equal from 'fast-deep-equal';
-import { memo, useState } from 'react';
+import useSWR from 'swr';
+import { memo, useMemo, useState } from 'react';
 
 import {
   castToolType,
   type InternalToolInvocationPayload,
 } from '@/lib/agents/tool-declarations/client';
 import type { Vote } from '@/lib/db/schema';
-import { cn } from '@/lib/utils';
-import type { ClientTool } from '@/lib/data';
+import { cn, fetcher } from '@/lib/utils';
+import type { ClientAgent } from '@/lib/data';
 
 import { Markdown } from './markdown';
 import { PencilEditIcon, SparklesIcon } from './icons';
@@ -38,15 +39,11 @@ function PurePreviewMessage({
   setMessages,
   reload,
   isReadonly,
-  tools,
-  isToolsLoading,
 }: {
   chatId?: string;
   message: Message;
   vote: Vote | undefined;
   isLoading: boolean;
-  tools: ClientTool[];
-  isToolsLoading: boolean;
   setMessages: (
     messages: Message[] | ((messages: Message[]) => Message[]),
   ) => void;
@@ -57,8 +54,18 @@ function PurePreviewMessage({
 }) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
+  const { data: agents = [], isLoading: isAgentsLoading } = useSWR<
+    ClientAgent[]
+  >('/api/agents', fetcher, {
+    revalidateOnMount: false,
+  });
+
+  const tools = useMemo(() => {
+    return agents.flatMap((agent) => agent.tools);
+  }, [agents]);
+
   const renderToolInvocation = (toolInvocation: AIToolInvocation) => {
-    if (isToolsLoading) {
+    if (isAgentsLoading) {
       return <Skeleton key={toolInvocation.toolCallId} className="h-6" />;
     }
 
@@ -200,14 +207,12 @@ function PurePreviewMessage({
       </motion.div>
     </AnimatePresence>
   );
-};
+}
 
 export const PreviewMessage = memo(
   PurePreviewMessage,
   (prevProps, nextProps) => {
     if (prevProps.isLoading !== nextProps.isLoading) return false;
-    if (prevProps.isToolsLoading !== nextProps.isToolsLoading) return false;
-    if (prevProps.tools.length !== nextProps.tools.length) return false;
     if (prevProps.message.reasoning !== nextProps.message.reasoning)
       return false;
     if (prevProps.message.content !== nextProps.message.content) return false;

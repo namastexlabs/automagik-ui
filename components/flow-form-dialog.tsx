@@ -14,7 +14,6 @@ import type { ToolData } from '@/lib/agents/types';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -25,6 +24,7 @@ import { Input } from './ui/input';
 import { Textarea } from './ui/textarea';
 import { SubmitButton } from './submit-button';
 import { FlowsCombobox } from './flows-combobox';
+import { VisibilitySelector } from './visibility-selector';
 
 export function FlowFormDialog({
   tool,
@@ -35,6 +35,7 @@ export function FlowFormDialog({
 }) {
   const formId = useId();
   const [open, setOpen] = useState(false);
+  const [visibility, setVisibility] = useState(tool?.visibility ?? 'public');
   const [selectedFlow, setSelectedFlow] = useState(tool?.data.flowId || null);
   const [name, setName] = useState(tool?.name || '');
 
@@ -95,18 +96,18 @@ export function FlowFormDialog({
       </DialogTrigger>
       <DialogContent>
         <DialogHeader>
-          <DialogTitle>
-            {tool ? `Update ${tool.verboseName}` : 'New Tool'}
+          <DialogTitle className="flex items-center justify-between pr-6">
+            {tool ? `${tool.verboseName}` : 'New Tool'}
+            <VisibilitySelector
+              selectedVisibilityType={visibility}
+              onChange={setVisibility}
+            />
           </DialogTitle>
-          <DialogDescription>
-            {tool
-              ? 'Update an existing tool'
-              : 'Create a new tool to be used in your agent'}
-          </DialogDescription>
         </DialogHeader>
         <Form id={formId} action={formAction}>
           <input type="hidden" name="id" value={tool?.id} />
           <input type="hidden" name="name" value={toCamelCase(name)} />
+          <input type="hidden" name="visibility" value={visibility} />
           <div className="flex flex-col gap-5 py-3">
             <div className="flex flex-col gap-2">
               <Label

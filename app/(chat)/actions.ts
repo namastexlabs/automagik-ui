@@ -49,6 +49,7 @@ import { myProvider } from '@/lib/ai/models';
 const agentFormSchema = z.object({
   name: z.string().trim(),
   systemPrompt: z.string(),
+  visibility: z.enum(['public', 'private']).optional(),
   tools: z.array(z.string()).default([]),
   dynamicBlocks: z
     .array(
@@ -69,6 +70,7 @@ const flowToolSchema = z.object({
   verboseName: z.string().trim(),
   description: z.string(),
   flowId: z.string().trim(),
+  visibility: z.enum(['public', 'private']).optional(),
 });
 
 export async function saveModelId(model: string) {
@@ -148,6 +150,16 @@ export async function createChat({
       return notFound();
     }
 
+    const agent = await getAgentById({ id: agentId });
+
+    const hasPermission =
+      agent &&
+      (agent.visibility === 'public' || agent.userId === session.user.id);
+
+    if (!hasPermission) {
+      return notFound();
+    }
+
     const coreMessages = convertToCoreMessages(messages);
     const userMessage = getMostRecentUserMessage(coreMessages);
 
@@ -206,6 +218,7 @@ export async function saveAgent(
       name: formData.get('name'),
       systemPrompt: formData.get('systemPrompt'),
       tools: formData.getAll('tools'),
+      visibility: formData.get('visibility'),
       dynamicBlocks: formData
         .getAll('dynamicBlocks')
         .map((item) => JSON.parse(item as string)),
@@ -233,6 +246,7 @@ export async function saveAgent(
         id,
         name: validatedData.name,
         systemPrompt: validatedData.systemPrompt,
+        visibility: validatedData.visibility,
       });
 
       const [deletedTools, newTools] = getDiffRelation(
@@ -275,9 +289,10 @@ export async function saveAgent(
       }
     } else {
       agent = await createAgent({
-        ...validatedData,
+        name: validatedData.name,
+        systemPrompt: validatedData.systemPrompt,
+        visibility: validatedData.visibility,
         userId: session.user.id,
-        visibility: 'private',
       });
 
       if (formTools.length > 0) {
@@ -298,7 +313,7 @@ export async function saveAgent(
 
     return {
       status: 'success',
-      data: mapAgent({
+      data: mapAgent(session.user.id, {
         ...agent,
         tools: formTools.map((tool) => ({ tool })),
         dynamicBlocks: dynamicBlocks.map((dynamicBlock) => ({ dynamicBlock })),
@@ -342,6 +357,7 @@ export async function saveFlowTool(
       verboseName: formData.get('verboseName'),
       description: formData.get('description'),
       flowId: formData.get('flowId'),
+      visibility: formData.get('visibility'),
     });
 
     let tool: Tool;
@@ -370,7 +386,7 @@ export async function saveFlowTool(
       tool = await createTool({ ...data, userId: session.user.id });
     }
 
-    return { status: 'success', data: mapTool(tool) };
+    return { status: 'success', data: mapTool(session.user.id, tool) };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data', data: null, errors: error.errors };

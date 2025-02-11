@@ -19,32 +19,35 @@ export default async function Page() {
     return redirect('/login');
   }
 
+  // biome-ignore lint/style/noNonNullAssertion: <explanation>
+  const userId = session.user.id!;
   const cookieStore = await cookies();
+  const agentsFromDb = await getAvailableAgents({ userId });
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
   const tabCookie = cookieStore.get(AGENT_COOKIE_KEY)?.value;
   const modelIdFromCookie = cookieStore.get('model-id')?.value;
-
-  // biome-ignore lint/style/noNonNullAssertion: Already checked
-  const agentsFromDb = await getAvailableAgents({ userId: session.user.id! });
 
   const selectedModelId =
     chatModels.find((model) => model.id === modelIdFromCookie)?.id ||
     DEFAULT_CHAT_MODEL;
 
   return (
-    <UserProvider user={{
-      // biome-ignore lint/style/noNonNullAssertion: <explanation>
-      id: session.user.id!,
-      // biome-ignore lint/style/noNonNullAssertion: <explanation>
-      email: session.user.email!,
-    }}>
+    <UserProvider
+      user={{
+        id: userId,
+        // biome-ignore lint/style/noNonNullAssertion: <explanation>
+        email: session.user.email!,
+      }}
+    >
       <AgentTabsProvider initialTab={tabCookie === '' ? undefined : tabCookie}>
         <SidebarProvider defaultOpen={!isCollapsed}>
           <AppSidebar />
           <SidebarInset>
             <Chat
               initialMessages={[]}
-              initialAgents={agentsFromDb.map(mapAgent)}
+              initialAgents={agentsFromDb.map((agent) =>
+                mapAgent(userId, agent),
+              )}
               selectedModelId={selectedModelId}
               selectedVisibilityType="private"
               isReadonly={false}

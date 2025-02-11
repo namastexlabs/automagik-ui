@@ -427,25 +427,16 @@ export async function getAgentById({
   }
 }
 
-export async function createAgent({
-  name,
-  systemPrompt,
-  userId,
-  visibility,
-}: {
+export async function createAgent(data: {
   name: string;
   systemPrompt: string;
   userId: string | null;
-  visibility: 'private' | 'public';
+  visibility?: 'private' | 'public';
 }) {
   try {
     const [createdAgent] = await db
       .insert(schema.agent)
-      .values({
-        name,
-        systemPrompt,
-        userId,
-      })
+      .values(data)
       .returning();
 
     return createdAgent;
@@ -489,14 +480,14 @@ export async function deleteAgentById({ id }: { id: string }) {
 
 export async function getAllDynamicBlocksByName(
   names: string[],
-  isPublic?: boolean,
+  visibility?: 'public' | 'private',
   userId?: string,
 ) {
   const query = db.query.dynamicBlock.findMany({
     where: (dynamicBlock, { inArray, and, eq }) => {
       const queries = [inArray(dynamicBlock.name, names)];
-      if (isPublic !== undefined) {
-        queries.push(eq(dynamicBlock.visibility, 'public'));
+      if (visibility !== undefined) {
+        queries.push(eq(dynamicBlock.visibility, visibility));
       }
       if (userId) {
         queries.push(eq(dynamicBlock.userId, userId));
@@ -649,7 +640,7 @@ export async function getAvailableTools(userId: string) {
   try {
     return await db.query.tool.findMany({
       where: (tool, { eq, or }) =>
-        or(eq(tool.userId, userId), eq(tool.source, 'internal')),
+        or(eq(tool.userId, userId), eq(tool.visibility, 'public')),
     });
   } catch (error) {
     console.error('Failed to get tools in database');
@@ -680,6 +671,7 @@ export async function createTool<T extends Source>(data: {
   parameters?: SzObject;
   source: T;
   userId?: string | null;
+  visibility?: 'private' | 'public';
 }) {
   try {
     const [createdTool] = await db.insert(schema.tool).values(data).returning();
@@ -696,12 +688,13 @@ export async function updateTool<T extends Source>({
   ...data
 }: {
   id: string;
+  data?: ToolData<T>;
+  source?: T;
   name?: string;
   verboseName?: string;
   description?: string;
-  data: ToolData<T>;
   parameters?: SzObject;
-  source: T;
+  visibility?: 'private' | 'public';
 }) {
   try {
     const [updatedTool] = await db
