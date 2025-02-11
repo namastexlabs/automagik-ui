@@ -10,5 +10,10 @@ export async function GET(request: Request) {
   }
 
   const tools = await getAvailableTools(session.user.id);
-  return Response.json(tools.map(mapTool), { status: 200 });
+  return Response.json(
+    // biome-ignore lint/style/noNonNullAssertion: <explanation>
+    tools.map((tool) => mapTool(session.user!.id!, tool), {
+      status: 200,
+    }),
+  );
 }

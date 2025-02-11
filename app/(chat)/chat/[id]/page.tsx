@@ -33,15 +33,17 @@ export default async function Page({
     notFound();
   }
 
-  if (chat.visibility === 'private') {
-    if (!session || !session.user) {
-      return notFound();
-    }
+  if (!session || !session.user) {
+    return redirect('/login');
+  }
 
+  if (chat.visibility === 'private') {
     if (session.user.id !== chat.userId) {
       return notFound();
     }
   }
+  // biome-ignore lint/style/noNonNullAssertion: <explanation>
+  const userId = session.user.id!;
 
   const agentsFromDb = session?.user?.id
     ? await getAvailableAgents({ userId: session?.user.id })
@@ -61,8 +63,7 @@ export default async function Page({
   return (
     <UserProvider
       user={{
-        // biome-ignore lint/style/noNonNullAssertion: <explanation>
-        id: session!.user!.id!,
+        id: userId,
         // biome-ignore lint/style/noNonNullAssertion: <explanation>
         email: session!.user!.email!,
       }}
@@ -73,7 +74,9 @@ export default async function Page({
           <SidebarInset>
             <Chat
               chat={chat}
-              initialAgents={agentsFromDb.map(mapAgent)}
+              initialAgents={agentsFromDb.map((agent) =>
+                mapAgent(userId, agent),
+              )}
               initialMessages={convertToUIMessages(messagesFromDb)}
               selectedModelId={selectedChatModelId}
               selectedVisibilityType={chat.visibility}

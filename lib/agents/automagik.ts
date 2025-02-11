@@ -151,17 +151,19 @@ export function createChatFlowTool(
     name,
     verboseName,
     description,
+    visibility = 'public',
   }: {
     name: string;
     verboseName: string;
     description: string;
+    visibility?: 'private' | 'public';
   },
 ) {
   return createToolDefinition({
     name,
     verboseName,
     description,
-    visibility: 'private',
+    visibility,
     parameters: z.object({
       inputValue: z.string(),
     }),

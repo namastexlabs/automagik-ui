@@ -5,6 +5,7 @@
 
 import type { Tool } from '@/lib/db/schema';
 import type { Source, ToolData } from '../types';
+import type { ClientTool } from '@/lib/data';
 
 export type {
   InternalToolReturn,
@@ -25,10 +26,10 @@ export enum InternalToolName {
   listTasks = 'listTasks',
 }
 
-export const castToolType = <T extends Source>(
+export const castToolType = <T extends Source, TOOL extends Tool | ClientTool>(
   source: T,
   tool: { source: Source; data: ToolData<Source> },
-): tool is Tool & { source: T; data: ToolData<T> } => {
+): tool is TOOL & { source: T; data: ToolData<T> } => {
   return tool.source === source;
 };
 

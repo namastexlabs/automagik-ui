@@ -34,26 +34,10 @@ export function useChatVisibility({
   const setVisibilityType = (updatedVisibilityType: VisibilityType) => {
     if (!chatId) {
       return;
-    };
+    }
     setLocalVisibility(updatedVisibilityType);
 
-    mutate<Array<Chat>>(
-      '/api/history',
-      (history) => {
-        return history
-          ? history.map((chat) => {
-              if (chat.id === chatId) {
-                return {
-                  ...chat,
-                  visibility: updatedVisibilityType,
-                };
-              }
-              return chat;
-            })
-          : [];
-      },
-      { revalidate: false },
-    );
+    mutate(`${chatId}-visibility`, updatedVisibilityType);
 
     updateChatVisibility({
       chatId: chatId,

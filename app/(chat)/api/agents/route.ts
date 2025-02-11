@@ -10,7 +10,8 @@ export async function GET(request: Request) {
   }
 
   const agents = (await getAvailableAgents({ userId: session.user.id })).map(
-    mapAgent,
+    // biome-ignore lint/style/noNonNullAssertion: <explanation>
+    (agent) => mapAgent(session.user!.id!, agent),
   );
   return Response.json(agents, { status: 200 });
 }

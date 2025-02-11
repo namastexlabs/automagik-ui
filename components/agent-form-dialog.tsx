@@ -15,7 +15,6 @@ import { useSWRConfig } from 'swr';
 import {
   Dialog,
   DialogContent,
-  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -28,6 +27,7 @@ import type { ClientAgent } from '@/lib/data';
 import type { ActionStateData } from '@/app/types';
 
 import { PromptTemplate } from './prompt-template';
+import { VisibilitySelector } from './visibility-selector';
 
 export function AgentFormDialog({
   onSuccess,
@@ -45,12 +45,13 @@ export function AgentFormDialog({
   const formId = useId();
   const { mutate } = useSWRConfig();
   const onSuccessRef = useRef(onSuccess);
+  const [visibility, setVisibility] = useState(agent?.visibility ?? 'public');
   const [selected, setSelected] = useState<string[]>(
     agent?.tools.map((tool) => tool.id) || [],
   );
 
   const [formState, formAction] = useActionState<
-  ActionStateData<ClientAgent>,
+    ActionStateData<ClientAgent>,
     FormData
   >(saveAgent, { status: 'idle', data: null });
 
@@ -109,17 +110,17 @@ export function AgentFormDialog({
     <Dialog open={isOpen} onOpenChange={setOpen}>
       <DialogContent hideOverlay={openAgentListDialog}>
         <DialogHeader>
-          <DialogTitle>
-            {agent ? `Update ${agent.name}` : 'New Agent'}
+          <DialogTitle className="flex items-center justify-between pr-6">
+            {agent ? `${agent.name}` : 'New Agent'}
+            <VisibilitySelector
+              selectedVisibilityType={visibility}
+              onChange={setVisibility}
+            />
           </DialogTitle>
-          <DialogDescription>
-            {agent
-              ? 'Update an existing agent'
-              : 'Create a new agent with a system prompt'}
-          </DialogDescription>
         </DialogHeader>
         <Form id={form} action={formAction}>
           <input type="hidden" name="id" value={agent?.id} />
+          <input type="hidden" name="visibility" value={visibility} />
           <div className="flex flex-col gap-5 py-3">
             <div className="flex flex-col gap-2">
               <Label

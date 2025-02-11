@@ -16,7 +16,6 @@ import {
   GlobeIcon,
   LockIcon,
 } from './icons';
-import { useChatVisibility } from '@/hooks/use-chat-visibility';
 
 export type VisibilityType = 'private' | 'public';
 
@@ -29,36 +28,31 @@ const visibilities: Array<{
   {
     id: 'private',
     label: 'Private',
-    description: 'Only you can access this chat',
+    description: 'Only you can access',
     icon: <LockIcon />,
   },
   {
     id: 'public',
     label: 'Public',
-    description: 'Anyone with the link can access this chat',
+    description: 'Anyone with the link can access',
     icon: <GlobeIcon />,
   },
 ];
 
 export function VisibilitySelector({
-  chatId,
   className,
   selectedVisibilityType,
+  onChange,
 }: {
-  chatId?: string;
+  className?: string;
   selectedVisibilityType: VisibilityType;
-} & React.ComponentProps<typeof Button>) {
+  onChange: (visibilityType: VisibilityType) => void;
+}) {
   const [open, setOpen] = useState(false);
 
-  const { visibilityType, setVisibilityType } = useChatVisibility({
-    chatId,
-    initialVisibility: selectedVisibilityType,
-  });
-
-  const selectedVisibility = useMemo(
-    () => visibilities.find((visibility) => visibility.id === visibilityType),
-    [visibilityType],
-  );
+  const selectedVisibility = useMemo(() => {
+    return visibilities.find((v) => v.id === selectedVisibilityType);
+  }, [selectedVisibilityType]);
 
   return (
     <DropdownMenu open={open} onOpenChange={setOpen}>
@@ -84,11 +78,11 @@ export function VisibilitySelector({
           <DropdownMenuItem
             key={visibility.id}
             onSelect={() => {
-              setVisibilityType(visibility.id);
+              onChange(visibility.id);
               setOpen(false);
             }}
             className="gap-4 group/item flex flex-row justify-between items-center"
-            data-active={visibility.id === visibilityType}
+            data-active={visibility.id === selectedVisibilityType}
           >
             <div className="flex flex-col gap-1 items-start">
               {visibility.label}

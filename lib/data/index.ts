@@ -6,15 +6,19 @@ import 'server-only';
 import type { AgentData } from '@/lib/db/queries';
 import type { Tool } from '../db/schema';
 
-export const mapTool = ({
-  id,
-  name,
-  verboseName,
-  source,
-  data,
-  visibility,
-  description,
-}: Tool) => {
+export const mapTool = (
+  authUserId: string,
+  {
+    id,
+    name,
+    verboseName,
+    source,
+    data,
+    visibility,
+    description,
+    userId,
+  }: Tool,
+) => {
   return {
     id,
     name,
@@ -22,21 +26,39 @@ export const mapTool = ({
     source,
     data,
     visibility,
-    description: source === 'internal' ? undefined : description,
+    description: userId !== authUserId ? undefined : description,
   };
 };
 
 export type ClientTool = ReturnType<typeof mapTool>;
 
-export const mapAgent = (agent: AgentData) => {
+export const mapAgent = (
+  authUserId: string,
+  {
+    id,
+    name,
+    userId,
+    systemPrompt,
+    visibility,
+    tools,
+    dynamicBlocks,
+  }: AgentData,
+) => {
   return {
-    ...agent,
-    tools: agent.tools.map(({ tool: { id, name, verboseName } }) => ({
+    id,
+    name,
+    userId,
+    visibility,
+    systemPrompt: userId !== authUserId ? undefined : systemPrompt,
+    tools: tools.map(({ tool: { id, name, verboseName, visibility, data, source } }) => ({
       id,
       name,
       verboseName,
+      visibility,
+      data,
+      source,
     })),
-    dynamicBlocks: agent.dynamicBlocks.map(
+    dynamicBlocks: dynamicBlocks.map(
       ({ dynamicBlock: { name, visibility } }) => ({
         name,
         visibility,

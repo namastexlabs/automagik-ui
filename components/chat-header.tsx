@@ -8,6 +8,7 @@ import {
   type VisibilityType,
 } from '@/components/visibility-selector';
 import type { ClientAgent } from '@/lib/data';
+import { useChatVisibility } from '@/hooks/use-chat-visibility';
 
 export function ChatHeader({
   agents,
@@ -36,6 +37,11 @@ export function ChatHeader({
   changeAgentListDialog: (isOpen: boolean) => void;
   onSubmit: (agentId?: string, agents?: ClientAgent[], tabs?: string[]) => void;
 }) {
+  const { visibilityType, setVisibilityType } = useChatVisibility({
+    chatId,
+    initialVisibility: selectedVisibilityType,
+  });
+
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
       <SidebarToggle />
@@ -45,10 +51,10 @@ export function ChatHeader({
           className="order-1 md:order-2"
         />
       )}
-      {!isReadonly && (
+      {!isReadonly && !!chatId && (
         <VisibilitySelector
-          chatId={chatId}
-          selectedVisibilityType={selectedVisibilityType}
+          selectedVisibilityType={visibilityType}
+          onChange={setVisibilityType}
           className="order-1 md:order-3"
         />
       )}

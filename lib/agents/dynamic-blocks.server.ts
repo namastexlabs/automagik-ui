@@ -24,12 +24,12 @@ export async function getOrCreateAllDynamicBlocks(
 ) {
   const globalDynamicBlocks = await getAllDynamicBlocksByName(
     getDynamicBlockNames(true, formDynamicBlocks),
-    true,
+    'public',
   );
 
   const localDynamicBlocks = await getAllDynamicBlocksByName(
     getDynamicBlockNames(false, formDynamicBlocks),
-    false,
+    'private',
     userId,
   );
 
