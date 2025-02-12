@@ -17,6 +17,7 @@ import {
 } from '@/components/ui/sidebar';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { useUser } from '@/contexts/user';
+import Image from 'next/image';
 
 export function AppSidebar() {
   const { user } = useUser();
@@ -36,7 +37,7 @@ export function AppSidebar() {
               className="flex flex-row gap-3 items-center"
             >
               <span className="font-semibold cursor-pointer">
-                Namastex Chat
+                <Image src="/images/automagik_logo.png" alt="logo" width={200} height={90} />
               </span>
             </Link>
             <Tooltip>
