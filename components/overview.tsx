@@ -1,7 +1,10 @@
 import { motion } from 'framer-motion';
+import { useTheme } from 'next-themes';
 import Image from 'next/image';
 
 export const Overview = () => {
+  const theme = useTheme();
+
   return (
     <motion.div
       key="overview"
@@ -14,10 +17,15 @@ export const Overview = () => {
       <div className="rounded-xl p-6 flex flex-col gap-2 leading-relaxed text-center max-w-xl">
         <p className="flex flex-row justify-center gap-4 items-center">
           <Image
-            src="/images/automagik_logo.png"
+            src={
+              theme.resolvedTheme === 'dark'
+                ? '/images/automagik-logo-white.svg'
+                : '/images/automagik-logo.svg'
+            }
             alt="logo"
             width={600}
-            height={200}
+            height={100}
+            className="w-[600px] h-[100px] object-cover mb-5"
           />
         </p>
         <p>Because magic shouldn&apos;t be complicated.</p>
