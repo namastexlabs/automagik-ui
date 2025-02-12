@@ -156,7 +156,7 @@ export function AgentListDialog({
                   checked={tabs.includes(agent.id)}
                   className="size-6"
                 />
-                <Label className="w-[350px] truncate cursor-pointer">
+                <Label className="w-80 truncate cursor-pointer">
                   {agent.name}
                 </Label>
               </div>
