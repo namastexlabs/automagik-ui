@@ -51,7 +51,7 @@ export function ToolsCombobox({
       onSelect={() => onChange(tool.id)}
     >
       <Checkbox checked={selected.includes(tool.id)} />
-      <span className="w-[350px] truncate cursor-pointer">
+      <span className="w-96 truncate cursor-pointer">
         {tool.verboseName}
       </span>
       <input
@@ -78,7 +78,7 @@ export function ToolsCombobox({
           className="justify-between bg-muted"
         >
           <div className="w-full text-start">
-            <span className="truncate block min-w-[200px] w-[440px]">
+            <span className="w-96 truncate block">
               {selected.length > 0 ? selectedTools : 'Select tools...'}
             </span>
           </div>
@@ -87,7 +87,7 @@ export function ToolsCombobox({
       </PopoverTrigger>
       <PopoverContent
         forceMount
-        className={`mt-3 p-0 w-[400px] h-[200px] ${open ? '' : 'hidden'}`}
+        className={`mt-3 p-0 h-[200px] ${open ? '' : 'hidden'}`}
         align="start"
       >
         {isLoading ? (

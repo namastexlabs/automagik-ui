@@ -2,6 +2,8 @@
 
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
+import Image from 'next/image';
+import { useTheme } from 'next-themes';
 
 import { PlusIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
@@ -20,6 +22,7 @@ import { useUser } from '@/contexts/user';
 
 export function AppSidebar() {
   const { user } = useUser();
+  const theme = useTheme();
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
 
@@ -36,7 +39,17 @@ export function AppSidebar() {
               className="flex flex-row gap-3 items-center"
             >
               <span className="font-semibold cursor-pointer">
-                Namastex Chat
+                <Image
+                  src={
+                    theme.resolvedTheme === 'dark'
+                      ? '/images/automagik-logo-white.svg'
+                      : '/images/automagik-logo.svg'
+                  }
+                  alt="logo"
+                  width={200}
+                  height={40}
+                  className="w-[200px] h-[40px] object-cover"
+                />
               </span>
             </Link>
             <Tooltip>

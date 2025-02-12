@@ -42,7 +42,7 @@ export function FlowsCombobox({
         setOpen(false);
       }}
     >
-      <span className="w-[350px] truncate cursor-pointer">{flow.name}</span>
+      <span className="w-96 truncate cursor-pointer">{flow.name}</span>
       {selected === flow.id && (
         <input
           key={flow.id}
@@ -67,7 +67,7 @@ export function FlowsCombobox({
           className="justify-between bg-muted"
         >
           <div className="w-full text-start">
-            <span className="truncate block min-w-[200px] w-[440px]">
+            <span className="w-96 truncate block">
               {selectedFlow?.name || 'Select flow...'}
             </span>
           </div>
@@ -76,7 +76,7 @@ export function FlowsCombobox({
       </PopoverTrigger>
       <PopoverContent
         forceMount
-        className={`mt-3 p-0 w-[400px] h-[200px] ${open ? '' : 'hidden'}`}
+        className={`mt-3 p-0 h-[200px] ${open ? '' : 'hidden'}`}
         align="start"
       >
         {isLoading ? (
