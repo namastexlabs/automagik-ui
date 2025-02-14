@@ -56,7 +56,7 @@ function PurePreviewMessage({
 
   const { data: agents = [], isLoading: isAgentsLoading } = useSWR<
     ClientAgent[]
-  >('/api/agents');
+  >('/api/agents', null);
 
   const tools = useMemo(() => {
     return agents.flatMap((agent) => agent.tools);
