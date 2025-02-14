@@ -64,20 +64,9 @@ export const chatModels = {
       name: 'Gemini 1.5 Pro',
       supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
     },
-    'gemini-1.5-latest': {
-      name: 'Gemini 1.5',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
     'gemini-1.5-flash': {
       name: 'Gemini 1.5 Flash',
       supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-  },
-  deepseek: {
-    'deepseek-chat': { name: 'DeepSeek Chat', supports: [ModelSupport.TOOLS] },
-    'deepseek-reasoner': {
-      name: 'DeepSeek Reasoner',
-      supports: [ModelSupport.REASONING],
     },
   },
   fireworks: {
@@ -102,11 +91,71 @@ export const chatModels = {
       supports: [ModelSupport.REASONING],
     },
   },
+  togetherai: {
+    'meta-llama/Llama-3-8b-chat-hf': {
+      name: 'Llama 3.8B Chat',
+      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
+    },
+    'google/gemma-2b-it': {
+      name: 'Gemma 2B IT',
+      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
+    },
+    'deepseek-ai/DeepSeek-V3': {
+      name: 'DeepSeek V3',
+      supports: [],
+    },
+    'deepseek-ai/DeepSeek-R1': {
+      name: 'DeepSeek R1',
+      supports: [ModelSupport.REASONING],
+    },
+  },
+  mistral: {
+    'pixtral-large-latest': {
+      name: 'Pixtral Large',
+      supports: [ModelSupport.TOOLS, ModelSupport.IMAGE],
+    },
+    'pixtral-12b-2409': {
+      name: 'Pixtral 12B 2409',
+      supports: [ModelSupport.TOOLS, ModelSupport.IMAGE],
+    },
+    'mistral-small-latest': {
+      name: 'Mistral Small',
+      supports: [ModelSupport.TOOLS],
+    },
+    'mistral-large-latest': {
+      name: 'Mistral Large',
+      supports: [ModelSupport.TOOLS],
+    },
+    'ministral-8b-latest': {
+      name: 'Ministral 8B',
+      supports: [ModelSupport.TOOLS],
+    },
+    'ministral-3b-latest': {
+      name: 'Ministral 3B',
+      supports: [ModelSupport.TOOLS],
+    },
+    'mistral-8x7b-32768': {
+      name: 'Mistral 8x7B 32768',
+      supports: [ModelSupport.TOOLS],
+    },
+  },
 } as const;
 
 export const imageModels = {
   openai: {
     'dall-e-3': { name: 'DALL-E 3' },
+  },
+  togetherai: {
+    'stabilityai/stable-diffusion-xl-base-1.0': { name: 'Stable Diffusion XL' },
+    'black-forest-labs/FLUX.1-dev': { name: 'FLUX 1 Dev' },
+    'black-forest-labs/FLUX.1-dev-lora': { name: 'FLUX 1 Dev Lora' },
+    'black-forest-labs/FLUX.1-schnell': { name: 'FLUX 1 Schnell' },
+    'black-forest-labs/FLUX.1-canny': { name: 'FLUX 1 Canny' },
+    'black-forest-labs/FLUX.1-depth': { name: 'FLUX 1 Depth' },
+    'black-forest-labs/FLUX.1-redux': { name: 'FLUX 1 Redux' },
+    'black-forest-labs/FLUX.1.1-pro': { name: 'FLUX 1.1 Pro' },
+    'black-forest-labs/FLUX.1-pro': { name: 'FLUX 1 Pro' },
+    'black-forest-labs/FLUX.1-schnell-Free': { name: 'FLUX 1 Schnell Free' },
   },
 } as const;
 
@@ -115,7 +164,8 @@ export type ImageModel = typeof imageModels;
 export type ModelData = { name: string; supports: ModelSupport[] };
 
 export const DEFAULT_PROVIDER: keyof ChatModel = 'openai';
-export const DEFAULT_CHAT_MODEL: keyof ChatModel[typeof DEFAULT_PROVIDER] = 'gpt-4o-mini';
+export const DEFAULT_CHAT_MODEL: keyof ChatModel[typeof DEFAULT_PROVIDER] =
+  'gpt-4o-mini';
 
 export const isModelValid = (provider: string, modelId: string) =>
   provider in chatModels && modelId in chatModels[provider as keyof ChatModel];

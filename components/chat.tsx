@@ -3,7 +3,7 @@
 import { generateId, type Attachment, type Message } from 'ai';
 import { useChat } from 'ai/react';
 import { useCallback, useEffect, useState } from 'react';
-import useSWR, { useSWRConfig } from 'swr';
+import useSWR, { SWRConfig, useSWRConfig } from 'swr';
 import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -159,8 +159,8 @@ export function Chat({
       await append(message, {
         body: {
           id: data.id,
-          modelId,
-          provider,
+          modelId: selectedModelId,
+          provider: selectedProvider,
         },
       });
 
@@ -178,8 +178,8 @@ export function Chat({
       messages,
       setInput,
       append,
-      modelId,
-      provider,
+      selectedModelId,
+      selectedProvider,
       chat,
       router,
     ],
@@ -203,7 +203,7 @@ export function Chat({
   }, [tabs, router, currentTab, setTab, addTab, chat, id, agents]);
 
   return (
-    <>
+    <SWRConfig value={{ fallback: { '/api/agents': agents } }}>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
           agents={agents}
@@ -261,6 +261,6 @@ export function Chat({
         votes={votes}
         isReadonly={isReadonly}
       />
-    </>
+    </SWRConfig>
   );
 }

@@ -1,4 +1,6 @@
 import 'server-only';
+import { togetherai } from '@ai-sdk/togetherai';
+import { mistral } from '@ai-sdk/mistral';
 import { openai } from '@ai-sdk/openai';
 import { anthropic } from '@ai-sdk/anthropic';
 import { google } from '@ai-sdk/google';
@@ -40,6 +42,12 @@ export function getModel(provider: string, modelId: string) {
     case 'groq':
       model = groq(modelIdString);
       break;
+    case 'mistral':
+      model = mistral(modelIdString);
+      break;
+    case 'togetherai':
+      model = togetherai(modelIdString);
+      break;
     default:
       throw new Error(`Unknown provider: ${provider}`);
   }
@@ -66,9 +74,12 @@ export const getImageModel = <T extends keyof ImageModel>(
   provider: T,
   modelId: keyof ImageModel[T],
 ) => {
-  if (provider === 'openai') {
-    return openai.image(modelId as string);
+  switch (provider) {
+    case 'togetherai':
+      return togetherai.image(modelId as string);
+    case 'openai':
+      return openai.image(modelId as string);
+    default:
+      throw new Error(`Unknown provider: ${provider}`);
   }
-
-  throw new Error(`Unknown provider: ${provider}`);
 };
