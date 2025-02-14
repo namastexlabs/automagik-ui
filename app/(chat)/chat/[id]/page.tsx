@@ -3,7 +3,12 @@ import { notFound, redirect } from 'next/navigation';
 
 import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat';
-import { DEFAULT_CHAT_MODEL, chatModels } from '@/lib/ai/models';
+import {
+  type ChatModel,
+  DEFAULT_CHAT_MODEL,
+  DEFAULT_PROVIDER,
+  isModelValid,
+} from '@/lib/ai/models';
 import {
   getAvailableAgents,
   getChatById,
@@ -16,6 +21,7 @@ import { AgentTabsProvider } from '@/components/agent-tabs-provider';
 import { mapAgent } from '@/lib/data';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 import { UserProvider } from '@/components/user-provider';
+import { MODEL_COOKIE_KEY, PROVIDER_COOKIE_KEY } from '@/lib/ai/cookies';
 
 export default async function Page({
   params,
@@ -55,10 +61,17 @@ export default async function Page({
 
   const cookieStore = await cookies();
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
-  const modelIdFromCookie = cookieStore.get('model-id')?.value;
-  const selectedChatModelId =
-    chatModels.find((model) => model.id === modelIdFromCookie)?.id ||
-    DEFAULT_CHAT_MODEL;
+  const providerFromCookie = cookieStore.get(PROVIDER_COOKIE_KEY)
+    ?.value as keyof ChatModel;
+  const modelIdFromCookie = cookieStore.get(MODEL_COOKIE_KEY)
+    ?.value as keyof ChatModel[typeof providerFromCookie];
+
+  const [provider, modelId] =
+    providerFromCookie &&
+    modelIdFromCookie &&
+    isModelValid(providerFromCookie, modelIdFromCookie)
+      ? [providerFromCookie, modelIdFromCookie]
+      : [DEFAULT_PROVIDER, DEFAULT_CHAT_MODEL];
 
   return (
     <UserProvider
@@ -78,7 +91,8 @@ export default async function Page({
                 mapAgent(userId, agent),
               )}
               initialMessages={convertToUIMessages(messagesFromDb)}
-              selectedModelId={selectedChatModelId}
+              provider={provider}
+              modelId={modelId}
               selectedVisibilityType={chat.visibility}
               isReadonly={session?.user?.id !== chat.userId}
             />

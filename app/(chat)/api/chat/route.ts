@@ -7,7 +7,15 @@ import {
 } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
-import { myProvider } from '@/lib/ai/models';
+import {
+  getModelData,
+  isImagesAllowed,
+  isModelValid,
+  isReasoningAllowed,
+  isToolsAllowed,
+  type ChatModel,
+} from '@/lib/ai/models';
+import { getModel } from '@/lib/ai/models.server';
 import {
   deleteChatById,
   getChatById,
@@ -17,6 +25,7 @@ import {
 import {
   generateUUID,
   getMostRecentUserMessage,
+  hasAttachment,
   sanitizeResponseMessages,
 } from '@/lib/utils';
 import { toCoreTools } from '@/lib/agents/tool';
@@ -28,9 +37,21 @@ export async function POST(request: Request) {
   const {
     id,
     messages,
-    selectedChatModel,
-  }: { id: string; messages: Array<Message>; selectedChatModel: string } =
+    provider,
+    modelId,
+  }: { id: string; messages: Array<Message>; provider: string; modelId: string } =
     await request.json();
+
+  if (!isModelValid(provider, modelId)) {
+    return new Response('Model not found', { status: 404 });
+  }
+
+  const modelData = getModelData(provider, modelId);
+  if (!isImagesAllowed(modelData) && hasAttachment(messages)) {
+    return new Response('Attachment not allowed for this model', {
+      status: 400,
+    });
+  }
 
   const session = await auth();
 
@@ -68,7 +89,6 @@ export async function POST(request: Request) {
       },
     ],
   });
-
   const agentTools = agent.tools.map(({ tool }) => tool);
 
   const formattedSystemPrompt = insertDynamicBlocksIntoPrompt(
@@ -82,15 +102,21 @@ export async function POST(request: Request) {
         type: 'user-message-id',
         content: userMessageId,
       });
-      const coreTools = toCoreTools(agentTools, {
-        // biome-ignore lint/style/noNonNullAssertion: <explanation>
-        userId: session.user!.id!,
-        dataStream,
-        agent,
-      });
+
+      const coreTools = isToolsAllowed(modelData)
+        ? toCoreTools(agentTools, {
+            // biome-ignore lint/style/noNonNullAssertion: <explanation>
+            userId: session.user!.id!,
+            dataStream,
+            agent,
+          })
+        : undefined;
 
       const result = streamText({
-        model: myProvider.languageModel(selectedChatModel),
+        model: getModel(
+          provider as keyof ChatModel,
+          modelId as keyof ChatModel[keyof ChatModel],
+        ),
         system: formattedSystemPrompt,
         messages: coreMessages,
         maxSteps: 5,
@@ -104,18 +130,18 @@ export async function POST(request: Request) {
                   messages: response.messages,
                   reasoning,
                 });
-    
+
               await saveMessages({
                 messages: responseMessagesWithoutIncompleteToolCalls.map(
                   (message) => {
                     const messageId = generateUUID();
-    
+
                     if (message.role === 'assistant') {
                       dataStream.writeMessageAnnotation({
                         messageIdFromServer: messageId,
                       });
                     }
-    
+
                     return {
                       id: messageId,
                       chatId: chat.id,
@@ -138,7 +164,7 @@ export async function POST(request: Request) {
       });
 
       result.mergeIntoDataStream(dataStream, {
-        sendReasoning: true,
+        sendReasoning: isReasoningAllowed(modelData),
       });
     },
     onError: (error) => {

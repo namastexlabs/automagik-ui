@@ -3,7 +3,12 @@ import { redirect } from 'next/navigation';
 
 import { auth } from '@/app/(auth)/auth';
 import { Chat } from '@/components/chat';
-import { DEFAULT_CHAT_MODEL, chatModels } from '@/lib/ai/models';
+import {
+  type ChatModel,
+  DEFAULT_CHAT_MODEL,
+  DEFAULT_PROVIDER,
+  isModelValid,
+} from '@/lib/ai/models';
 import { getAvailableAgents } from '@/lib/db/queries';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
@@ -11,6 +16,7 @@ import { AgentTabsProvider } from '@/components/agent-tabs-provider';
 import { AGENT_COOKIE_KEY } from '@/lib/agents/cookies';
 import { mapAgent } from '@/lib/data';
 import { UserProvider } from '@/components/user-provider';
+import { MODEL_COOKIE_KEY, PROVIDER_COOKIE_KEY } from '@/lib/ai/cookies';
 
 export default async function Page() {
   const session = await auth();
@@ -23,13 +29,20 @@ export default async function Page() {
   const userId = session.user.id!;
   const cookieStore = await cookies();
   const agentsFromDb = await getAvailableAgents({ userId });
+
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
   const tabCookie = cookieStore.get(AGENT_COOKIE_KEY)?.value;
-  const modelIdFromCookie = cookieStore.get('model-id')?.value;
+  const providerFromCookie = cookieStore.get(PROVIDER_COOKIE_KEY)
+    ?.value as keyof ChatModel;
+  const modelIdFromCookie = cookieStore.get(MODEL_COOKIE_KEY)
+    ?.value as keyof ChatModel[typeof providerFromCookie];
 
-  const selectedModelId =
-    chatModels.find((model) => model.id === modelIdFromCookie)?.id ||
-    DEFAULT_CHAT_MODEL;
+  const [provider, modelId] =
+    providerFromCookie &&
+    modelIdFromCookie &&
+    isModelValid(providerFromCookie, modelIdFromCookie)
+      ? [providerFromCookie, modelIdFromCookie]
+      : [DEFAULT_PROVIDER, DEFAULT_CHAT_MODEL];
 
   return (
     <UserProvider
@@ -48,7 +61,8 @@ export default async function Page() {
               initialAgents={agentsFromDb.map((agent) =>
                 mapAgent(userId, agent),
               )}
-              selectedModelId={selectedModelId}
+              modelId={modelId}
+              provider={provider}
               selectedVisibilityType="private"
               isReadonly={false}
             />

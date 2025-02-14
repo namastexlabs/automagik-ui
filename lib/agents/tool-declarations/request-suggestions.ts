@@ -9,7 +9,8 @@ import type { Suggestion } from '@/lib/db/schema';
 import type { DocumentExecuteReturn } from '../types';
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { myProvider } from '@/lib/ai/models';
+import { accessModel } from '@/lib/ai/models';
+import { getModel } from '@/lib/ai/models.server';
 import { suggestionPrompt } from '@/lib/ai/prompts';
 
 export const requestSuggestionsTool = createToolDefinition({
@@ -35,7 +36,7 @@ export const requestSuggestionsTool = createToolDefinition({
     > = [];
 
     const { elementStream } = streamObject({
-      model: myProvider.languageModel('block-model'),
+      model: getModel(...accessModel('openai', 'gpt-4o-mini')),
       system: suggestionPrompt,
       prompt: document.content,
       output: 'array',

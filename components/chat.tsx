@@ -24,15 +24,17 @@ export function Chat({
   chat,
   initialAgents,
   initialMessages,
-  selectedModelId,
   selectedVisibilityType,
   isReadonly,
+  modelId,
+  provider,
 }: {
   chat?: ChatType;
   initialMessages: Array<Message>;
   initialAgents: ClientAgent[];
   selectedVisibilityType: VisibilityType;
-  selectedModelId: string;
+  modelId: string;
+  provider: string;
   isReadonly: boolean;
 }) {
   const { mutate } = useSWRConfig();
@@ -40,7 +42,6 @@ export function Chat({
   const router = useRouter();
 
   const { addTab, tabs } = useAgentTabs();
-
   const { currentTab, setTab } = useCurrentAgentTab();
 
   const { data: votes } = useSWR<Array<Vote>>(
@@ -62,12 +63,10 @@ export function Chat({
     initialMessages,
     experimental_throttle: 100,
     sendExtraMessageFields: true,
-    body: {
-      id: chat?.id,
-      selectedChatModel: selectedModelId,
-    },
   });
 
+  const [selectedProvider, setProvider] = useState(provider);
+  const [selectedModelId, setModelId] = useState(modelId);
   const { data: agents = [] } = useSWR<ClientAgent[]>('/api/agents', fetcher, {
     fallbackData: initialAgents,
     revalidateOnMount: false,
@@ -160,7 +159,8 @@ export function Chat({
       await append(message, {
         body: {
           id: data.id,
-          modelId: selectedModelId,
+          modelId,
+          provider,
         },
       });
 
@@ -169,18 +169,19 @@ export function Chat({
       }
     },
     [
-      tabs,
-      chat,
       currentTab,
+      agents,
+      tabs,
       input,
       attachments,
+      getOrCreateChat,
+      messages,
       setInput,
       append,
-      selectedModelId,
-      messages,
+      modelId,
+      provider,
+      chat,
       router,
-      agents,
-      getOrCreateChat,
     ],
   );
 
@@ -207,7 +208,10 @@ export function Chat({
         <ChatHeader
           agents={agents}
           chatId={chat?.id}
-          selectedModelId={selectedModelId}
+          modelId={selectedModelId}
+          provider={selectedProvider}
+          onChangeProvider={setProvider}
+          onChangeModelId={setModelId}
           selectedVisibilityType={selectedVisibilityType}
           isReadonly={isReadonly}
           openAgentListDialog={openAgentListDialog}
