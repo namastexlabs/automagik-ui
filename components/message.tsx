@@ -16,7 +16,7 @@ import {
   type InternalToolInvocationPayload,
 } from '@/lib/agents/tool-declarations/client';
 import type { Vote } from '@/lib/db/schema';
-import { cn, fetcher } from '@/lib/utils';
+import { cn } from '@/lib/utils';
 import type { ClientAgent } from '@/lib/data';
 
 import { Markdown } from './markdown';
@@ -56,9 +56,7 @@ function PurePreviewMessage({
 
   const { data: agents = [], isLoading: isAgentsLoading } = useSWR<
     ClientAgent[]
-  >('/api/agents', fetcher, {
-    revalidateOnMount: false,
-  });
+  >('/api/agents');
 
   const tools = useMemo(() => {
     return agents.flatMap((agent) => agent.tools);

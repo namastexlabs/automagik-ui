@@ -6,7 +6,7 @@ import { ThemeProvider } from '@/components/theme-provider';
 import './globals.css';
 
 export const metadata: Metadata = {
-  metadataBase: new URL('https://localhost:3000'),
+  metadataBase: new URL('https://automagik.namastex.ai/'),
   title: 'AutoMagik UI',
   description: 'AI apps in minutes',
 };

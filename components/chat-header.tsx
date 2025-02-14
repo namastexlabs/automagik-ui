@@ -13,7 +13,10 @@ import { useChatVisibility } from '@/hooks/use-chat-visibility';
 export function ChatHeader({
   agents,
   chatId,
-  selectedModelId,
+  modelId,
+  provider,
+  onChangeProvider,
+  onChangeModelId,
   selectedVisibilityType,
   isReadonly,
   agentDialog,
@@ -24,7 +27,8 @@ export function ChatHeader({
 }: {
   agents: ClientAgent[];
   chatId?: string;
-  selectedModelId: string;
+  modelId: string;
+  provider: string;
   selectedVisibilityType: VisibilityType;
   isReadonly: boolean;
   openAgentListDialog: boolean;
@@ -33,6 +37,8 @@ export function ChatHeader({
     isOpen: boolean;
     isSubmitting: boolean;
   };
+  onChangeProvider: (provider: string) => void;
+  onChangeModelId: (modelId: string) => void;
   changeAgentDialog: (isOpen: boolean, agentId?: string, isSubmitting?: boolean) => void;
   changeAgentListDialog: (isOpen: boolean) => void;
   onSubmit: (agentId?: string, agents?: ClientAgent[], tabs?: string[]) => void;
@@ -47,7 +53,10 @@ export function ChatHeader({
       <SidebarToggle />
       {!isReadonly && (
         <ModelSelector
-          selectedModelId={selectedModelId}
+          selectedModelId={modelId}
+          selectedProvider={provider}
+          onChangeModelId={onChangeModelId}
+          onChangeProvider={onChangeProvider}
           className="order-1 md:order-2"
         />
       )}

@@ -1,38 +1,46 @@
 'use client';
 
-import { startTransition, useMemo, useOptimistic, useState } from 'react';
+import { useState } from 'react';
 
-import { saveModelId } from '@/app/(chat)/actions';
 import { Button } from '@/components/ui/button';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { chatModels } from '@/lib/ai/models';
+import { chatModels, getModelData } from '@/lib/ai/models';
 import { cn } from '@/lib/utils';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from '@/components/ui/popover';
+import {
+  Command,
+  CommandEmpty,
+  CommandGroup,
+  CommandInput,
+  CommandItem,
+  CommandList,
+} from '@/components/ui/command';
 
 import { CheckCircleFillIcon, ChevronDownIcon } from './icons';
+import { setModelCookie } from '@/lib/ai/cookies';
 
 export function ModelSelector({
   selectedModelId,
+  selectedProvider,
+  onChangeModelId,
+  onChangeProvider,
   className,
 }: {
   selectedModelId: string;
+  selectedProvider: string;
+  onChangeModelId: (modelId: string) => void;
+  onChangeProvider: (provider: string) => void;
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
-  const [optimisticModelId, setOptimisticModelId] =
-    useOptimistic(selectedModelId);
 
-  const selectedChatModel = useMemo(
-    () => chatModels.find((chatModel) => chatModel.id === optimisticModelId),
-    [optimisticModelId],
-  );
+  const modelData = getModelData(selectedProvider, selectedModelId);
 
   return (
-    <DropdownMenu open={open} onOpenChange={setOpen}>
-      <DropdownMenuTrigger
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger
         asChild
         className={cn(
           'w-fit data-[state=open]:bg-accent data-[state=open]:text-accent-foreground',
@@ -40,42 +48,44 @@ export function ModelSelector({
         )}
       >
         <Button variant="outline" className="md:px-2 md:h-[34px]">
-          {selectedChatModel?.name}
+          {modelData?.name}
           <ChevronDownIcon />
         </Button>
-      </DropdownMenuTrigger>
-      <DropdownMenuContent align="start" className="min-w-[300px]">
-        {chatModels.map((chatModel) => {
-          const { id } = chatModel;
-
-          return (
-            <DropdownMenuItem
-              key={id}
-              onSelect={() => {
-                setOpen(false);
-
-                startTransition(() => {
-                  setOptimisticModelId(id);
-                  saveModelId(id);
-                });
-              }}
-              className="gap-4 group/item flex flex-row justify-between items-center"
-              data-active={id === optimisticModelId}
-            >
-              <div className="flex flex-col gap-1 items-start">
-                <div>{chatModel.name}</div>
-                <div className="text-xs text-muted-foreground">
-                  {chatModel.description}
-                </div>
-              </div>
-
-              <div className="text-foreground dark:text-foreground opacity-0 group-data-[active=true]/item:opacity-100">
-                <CheckCircleFillIcon />
-              </div>
-            </DropdownMenuItem>
-          );
-        })}
-      </DropdownMenuContent>
-    </DropdownMenu>
+      </PopoverTrigger>
+      <PopoverContent align="start" className="p-0">
+        <Command>
+          <CommandInput placeholder="Search models..." />
+          <CommandEmpty>No models found</CommandEmpty>
+          <CommandList>
+            {Object.entries(chatModels).map(([provider, models]) => (
+              <CommandGroup
+                key={provider}
+                heading={provider}
+                className="capitalize"
+              >
+                {Object.entries(models).map(([modelId, model]) => (
+                  <CommandItem
+                    key={modelId}
+                    className="cursor-pointer"
+                    onSelect={() => {
+                      onChangeProvider(provider);
+                      onChangeModelId(modelId);
+                      setModelCookie(provider, modelId);
+                      setOpen(false);
+                    }}
+                  >
+                    {model.name}
+                    {selectedProvider === provider &&
+                    selectedModelId === modelId ? (
+                      <CheckCircleFillIcon />
+                    ) : null}
+                  </CommandItem>
+                ))}
+              </CommandGroup>
+            ))}
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
   );
 }
