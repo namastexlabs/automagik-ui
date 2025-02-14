@@ -1,13 +1,19 @@
 import 'server-only';
 import { z } from 'zod';
-import { experimental_generateImage, smoothStream, streamObject, streamText } from 'ai';
+import {
+  experimental_generateImage,
+  smoothStream,
+  streamObject,
+  streamText,
+} from 'ai';
 
 import { getDocumentById, saveDocument } from '@/lib/db/queries';
 
 import type { DocumentExecuteReturn } from '../types';
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { myProvider } from '@/lib/ai/models';
+import { accessModel } from '@/lib/ai/models';
+import { getImageModel, getModel } from '@/lib/ai/models.server';
 import { updateDocumentPrompt } from '@/lib/ai/prompts';
 
 export const updateDocumentTool = createToolDefinition({
@@ -44,7 +50,7 @@ export const updateDocumentTool = createToolDefinition({
 
     if (document.kind === 'text') {
       const { fullStream } = streamText({
-        model: myProvider.languageModel('block-model'),
+        model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: updateDocumentPrompt(currentContent, 'text'),
         experimental_transform: smoothStream({ chunking: 'word' }),
         prompt: description,
@@ -75,7 +81,7 @@ export const updateDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     } else if (document.kind === 'code') {
       const { fullStream } = streamObject({
-        model: myProvider.languageModel('block-model'),
+        model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: updateDocumentPrompt(currentContent, 'code'),
         prompt: description,
         schema: z.object({
@@ -104,7 +110,7 @@ export const updateDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     } else if (document.kind === 'image') {
       const { image } = await experimental_generateImage({
-        model: myProvider.imageModel('small-model'),
+        model: getImageModel('openai', 'dall-e-3'),
         prompt: description,
         n: 1,
       });
@@ -119,7 +125,7 @@ export const updateDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     } else if (document.kind === 'sheet') {
       const { fullStream } = streamObject({
-        model: myProvider.languageModel('block-model'),
+        model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: updateDocumentPrompt(currentContent, 'sheet'),
         prompt: description,
         schema: z.object({

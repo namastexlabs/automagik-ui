@@ -99,7 +99,10 @@ export function convertToUIMessages(
     let reasoning: string | undefined = undefined;
     const toolInvocations: Array<ToolInvocation> = [];
 
-    if (typeof message.content === 'string' || typeof message.content === 'number') {
+    if (
+      typeof message.content === 'string' ||
+      typeof message.content === 'number'
+    ) {
       textContent = String(message.content);
     } else if (Array.isArray(message.content)) {
       for (const content of message.content) {
@@ -219,6 +222,15 @@ export function getMostRecentUserMessage(messages: Array<CoreMessage>) {
   return userMessages.at(-1);
 }
 
+export function hasAttachment(messages: Array<Message>) {
+  return messages.some(
+    (message) =>
+      message.role === 'user' &&
+      message.experimental_attachments &&
+      message.experimental_attachments.length > 0,
+  );
+}
+
 export function getDocumentTimestampByIndex(
   documents: Array<Document>,
   index: number,
@@ -249,6 +261,8 @@ export function getDynamicBlockNames(
   dynamicBlocks: { name: string; visibility: 'private' | 'public' }[],
 ) {
   return dynamicBlocks
-    .filter(({ visibility }) => visibility === (isPublic ? 'public' : 'private'))
+    .filter(
+      ({ visibility }) => visibility === (isPublic ? 'public' : 'private'),
+    )
     .map(({ name }) => name);
 }

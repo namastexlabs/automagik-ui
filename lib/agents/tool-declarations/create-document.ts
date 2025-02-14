@@ -9,12 +9,13 @@ import {
 
 import { generateUUID } from '@/lib/utils';
 import { saveDocument } from '@/lib/db/queries';
-import { myProvider } from '@/lib/ai/models';
 
 import type { DocumentExecuteReturn } from '../types';
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
 import { codePrompt, sheetPrompt, textPrompt } from '@/lib/ai/prompts';
+import { accessModel } from '@/lib/ai/models';
+import { getImageModel, getModel } from '@/lib/ai/models.server';
 
 export const createDocumentTool = createToolDefinition({
   name: InternalToolName.createDocument,
@@ -52,7 +53,7 @@ export const createDocumentTool = createToolDefinition({
 
     if (kind === 'text') {
       const { fullStream } = streamText({
-        model: myProvider.languageModel('block-model'),
+        model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: textPrompt,
         experimental_transform: smoothStream({ chunking: 'word' }),
         prompt: title,
@@ -75,7 +76,7 @@ export const createDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     } else if (kind === 'code') {
       const { fullStream } = streamObject({
-        model: myProvider.languageModel('block-model'),
+        model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: codePrompt,
         prompt: title,
         schema: z.object({
@@ -104,7 +105,7 @@ export const createDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     } else if (kind === 'image') {
       const { image } = await experimental_generateImage({
-        model: myProvider.imageModel('small-model'),
+        model: getImageModel('openai', 'dall-e-3'),
         prompt: title,
         n: 1,
       });
@@ -119,7 +120,7 @@ export const createDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     } else if (kind === 'sheet') {
       const { fullStream } = streamObject({
-        model: myProvider.languageModel('block-model'),
+        model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: sheetPrompt,
         prompt: title,
         schema: z.object({
