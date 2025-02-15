@@ -4,146 +4,135 @@ export enum ModelSupport {
   REASONING = 'reasoning',
 }
 
+export type ModelData = {
+  name: string;
+  supports: ModelSupport[];
+};
+
+const createModelData = (name: string, supports: ModelSupport[]): ModelData => {
+  return {
+    name,
+    supports,
+  };
+};
+
 export const chatModels = {
   openai: {
-    'gpt-4o': {
-      name: 'GPT-4o',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    'gpt-4o-mini': {
-      name: 'GPT-4o Mini',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    'gpt-4-turbo': {
-      name: 'GPT-4 Turbo',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    o1: { name: 'GPT-o1', supports: [ModelSupport.IMAGE, ModelSupport.TOOLS] },
-    'o1-mini': {
-      name: 'GPT-o1 Mini',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    'o3-mini': { name: 'GPT-o3 Mini', supports: [ModelSupport.TOOLS] },
+    'gpt-4o': createModelData('GPT-4o', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+    ]),
+    'gpt-4o-mini': createModelData('GPT-4o Mini', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+    ]),
+    'gpt-4-turbo': createModelData('GPT-4 Turbo', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+    ]),
+    o1: createModelData('GPT-o1', [ModelSupport.IMAGE, ModelSupport.TOOLS]),
+    'o1-mini': createModelData('GPT-o1 Mini', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+    ]),
+    'o3-mini': createModelData('GPT-o3 Mini', [ModelSupport.TOOLS]),
   },
   anthropic: {
-    'claude-3-5-sonnet-latest': {
-      name: 'Claude 3.5 Sonnet',
-      supports: [
-        ModelSupport.IMAGE,
-        ModelSupport.TOOLS,
-        ModelSupport.REASONING,
-      ],
-    },
-    'claude-3-5-haiku-latest': {
-      name: 'Claude 3.5 Haiku',
-      supports: [ModelSupport.TOOLS, ModelSupport.REASONING],
-    },
-    'claude-3-opus-latest': {
-      name: 'Claude 3 Opus',
-      supports: [
-        ModelSupport.IMAGE,
-        ModelSupport.TOOLS,
-        ModelSupport.REASONING,
-      ],
-    },
+    'claude-3-5-sonnet-latest': createModelData('Claude 3.5 Sonnet', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+      ModelSupport.REASONING,
+    ]),
+    'claude-3-5-haiku-latest': createModelData('Claude 3.5 Haiku', [
+      ModelSupport.TOOLS,
+      ModelSupport.REASONING,
+    ]),
+    'claude-3-opus-latest': createModelData('Claude 3 Opus', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+      ModelSupport.REASONING,
+    ]),
   },
   google: {
-    'gemini-2.0-flash': {
-      name: 'Gemini 2.0 Flash',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    'gemini-2.0-flash-exp': {
-      name: 'Gemini 2.0 Flash Experimental',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    'gemini-2.0-pro-exp-02-05': {
-      name: 'Gemini 2.0 Pro Exp 02-05',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    'gemini-2.0-flash-lite-preview-02-05': {
-      name: 'Gemini 2.0 Flash Lite Preview 02-05',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    'gemini-1.5-pro-latest': {
-      name: 'Gemini 1.5 Pro',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    'gemini-1.5-flash': {
-      name: 'Gemini 1.5 Flash',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
+    'gemini-2.0-flash': createModelData('Gemini 2.0 Flash', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+    ]),
+    'gemini-2.0-flash-exp': createModelData('Gemini 2.0 Flash Experimental', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+    ]),
+    'gemini-2.0-pro-exp-02-05': createModelData('Gemini 2.0 Pro Exp 02-05', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+    ]),
+    'gemini-2.0-flash-lite-preview-02-05': createModelData(
+      'Gemini 2.0 Flash Lite Preview 02-05',
+      [ModelSupport.IMAGE, ModelSupport.TOOLS],
+    ),
+    'gemini-1.5-pro-latest': createModelData('Gemini 1.5 Pro', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+    ]),
+    'gemini-1.5-flash': createModelData('Gemini 1.5 Flash', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+    ]),
   },
   groq: {
-    'gemma2-9b-it': { name: 'Gemma 2 9B IT', supports: [ModelSupport.TOOLS] },
-    'gemma2-7b-it': { name: 'Gemma 2 7B IT', supports: [ModelSupport.TOOLS] },
-    'deepseek-r1-distill-llama-70b': {
-      name: 'DeepSeek R1 Distill LLaMA 70B',
-      supports: [ModelSupport.REASONING],
-    },
-    'deepseek-r1-distill-qwen-32b': {
-      name: 'DeepSeek R1 Distill Qwen 32B',
-      supports: [ModelSupport.REASONING],
-    },
-    'llama-3.3-70b-versatile': {
-      name: 'LLaMA 3.3 70B Versatile',
-      supports: [ModelSupport.TOOLS],
-    },
+    'gemma2-9b-it': createModelData('Gemma 2 9B IT', [ModelSupport.TOOLS]),
+    'deepseek-r1-distill-llama-70b': createModelData(
+      'DeepSeek R1 Distill LLaMA 70B',
+      [ModelSupport.REASONING],
+    ),
+    'deepseek-r1-distill-qwen-32b': createModelData(
+      'DeepSeek R1 Distill Qwen 32B',
+      [ModelSupport.REASONING],
+    ),
+    'llama-3.3-70b-versatile': createModelData('LLaMA 3.3 70B Versatile', [
+      ModelSupport.TOOLS,
+    ]),
   },
   togetherai: {
-    'meta-llama/Llama-3-8b-chat-hf': {
-      name: 'Llama 3.8B Chat',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    'deepseek-ai/DeepSeek-V3': {
-      name: 'DeepSeek V3',
-      supports: [],
-    },
-    'deepseek-ai/DeepSeek-R1': {
-      name: 'DeepSeek R1',
-      supports: [ModelSupport.REASONING],
-    },
-    'deepseek-ai/DeepSeek-R1-Distill-Llama-70B': {
-      name: 'DeepSeek R1 Distill LLaMA 70B',
-      supports: [ModelSupport.REASONING],
-    },
-    'meta-llama/Llama-3.3-70B-Instruct-Turbo': {
-      name: 'Llama 3.3 70B Instruct Turbo',
-      supports: [ModelSupport.TOOLS],
-    },
-    'Qwen/QwQ-32B-Preview': {
-      name: 'QwQ 32B Preview',
-      supports: [],
-    },
-    'Qwen/Qwen2.5-Coder-32B-Instruct': {
-      name: 'Qwen2.5 Coder 32B Instruct',
-      supports: [],
-    },
-    'Qwen/Qwen2-VL-72B-Instruct': {
-      name: 'Qwen2 VL 72B Instruct',
-      supports: [],
-    },
-    'Qwen/Qwen2-72B-Instruct': {
-      name: 'Qwen2 72B Instruct',
-      supports: [],
-    },
+    'meta-llama/Llama-3-8b-chat-hf': createModelData('Llama 3.8B Chat', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+    ]),
+    'deepseek-ai/DeepSeek-V3': createModelData('DeepSeek V3', []),
+    'deepseek-ai/DeepSeek-R1': createModelData('DeepSeek R1', [
+      ModelSupport.REASONING,
+    ]),
+    'deepseek-ai/DeepSeek-R1-Distill-Llama-70B': createModelData(
+      'DeepSeek R1 Distill LLaMA 70B',
+      [ModelSupport.REASONING],
+    ),
+    'meta-llama/Llama-3.3-70B-Instruct-Turbo': createModelData(
+      'Llama 3.3 70B Instruct Turbo',
+      [ModelSupport.TOOLS],
+    ),
+    'Qwen/QwQ-32B-Preview': createModelData('QwQ 32B Preview', []),
+    'Qwen/Qwen2-7B-Instruct': createModelData('Qwen2 7B Instruct', []),
+    'Qwen/Qwen2.5-Coder-32B-Instruct': createModelData(
+      'Qwen2.5 Coder 32B Instruct',
+      [],
+    ),
+    'Qwen/Qwen2-VL-72B-Instruct': createModelData('Qwen2 VL 72B Instruct', []),
+    'Qwen/Qwen2-72B-Instruct': createModelData('Qwen2 72B Instruct', []),
   },
   mistral: {
-    'codestral-latest': {
-      name: 'Codestral Large',
-      supports: [ModelSupport.TOOLS],
-    },
-    'pixtral-large-latest': {
-      name: 'Pixtral Large',
-      supports: [ModelSupport.TOOLS, ModelSupport.IMAGE],
-    },
-    'mistral-small-latest': {
-      name: 'Mistral Small',
-      supports: [ModelSupport.TOOLS],
-    },
-    'mistral-large-latest': {
-      name: 'Mistral Large',
-      supports: [ModelSupport.TOOLS],
-    },
+    'codestral-latest': createModelData('Codestral Large', [
+      ModelSupport.TOOLS,
+    ]),
+    'pixtral-large-latest': createModelData('Pixtral Large', [
+      ModelSupport.TOOLS,
+      ModelSupport.IMAGE,
+    ]),
+    'mistral-small-latest': createModelData('Mistral Small', [
+      ModelSupport.TOOLS,
+    ]),
+    'mistral-large-latest': createModelData('Mistral Large', [
+      ModelSupport.TOOLS,
+    ]),
   },
 } as const;
 
@@ -167,7 +156,6 @@ export const imageModels = {
 
 export type ChatModel = typeof chatModels;
 export type ImageModel = typeof imageModels;
-export type ModelData = { name: string; supports: ModelSupport[] };
 
 export const DEFAULT_PROVIDER: keyof ChatModel = 'openai';
 export const DEFAULT_CHAT_MODEL: keyof ChatModel[typeof DEFAULT_PROVIDER] =

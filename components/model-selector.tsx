@@ -81,6 +81,7 @@ export function ModelSelector({
                         ? currentModelRef
                         : undefined
                     }
+                    keywords={[provider, model.name]}
                     className="cursor-pointer"
                     onSelect={() => {
                       onChangeProvider(provider);

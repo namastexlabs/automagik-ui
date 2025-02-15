@@ -1,6 +1,6 @@
 'use client';
 
-import { generateId, type Attachment, type Message } from 'ai';
+import type { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
 import { useCallback, useEffect, useState } from 'react';
 import useSWR, { SWRConfig, useSWRConfig } from 'swr';
@@ -10,7 +10,7 @@ import { useParams, useRouter } from 'next/navigation';
 import type { ClientAgent } from '@/lib/data';
 import type { Chat as ChatType, Vote } from '@/lib/db/schema';
 import { ChatHeader } from '@/components/chat-header';
-import { fetcher } from '@/lib/utils';
+import { fetcher, generateUUID } from '@/lib/utils';
 import { createChat } from '@/app/(chat)/actions';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { useBlockSelector } from '@/hooks/use-block';
@@ -58,6 +58,7 @@ export function Chat({
     isLoading,
     stop,
     reload,
+    error,
   } = useChat({
     id: chat?.id,
     initialMessages,
@@ -65,6 +66,7 @@ export function Chat({
     sendExtraMessageFields: true,
   });
 
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [selectedProvider, setProvider] = useState(provider);
   const [selectedModelId, setModelId] = useState(modelId);
   const { data: agents = [] } = useSWR<ClientAgent[]>('/api/agents', fetcher, {
@@ -95,6 +97,7 @@ export function Chat({
   const getOrCreateChat = useCallback(
     async (messages: Message[], tab: string) => {
       if (!chat) {
+        setIsCreatingChat(true);
         const { status, data } = await createChat({
           agentId: tab,
           messages,
@@ -110,6 +113,7 @@ export function Chat({
             return [data, ...history];
           },
         });
+        setIsCreatingChat(false);
 
         return data;
       }
@@ -118,6 +122,19 @@ export function Chat({
     },
     [chat, mutate],
   );
+
+  const reloadMessage = useCallback(() => {
+    return reload({
+      body: {
+        id: chat?.id,
+        modelId: selectedModelId,
+        provider: selectedProvider,
+      },
+    });
+  }, [reload, chat?.id, selectedModelId, selectedProvider]);
+
+  const shouldRemoveLastMessage =
+    !!error && messages.at(-1)?.role === 'assistant';
 
   const onSubmit = useCallback(
     async (
@@ -140,7 +157,7 @@ export function Chat({
       }
 
       const message: Message = {
-        id: generateId(),
+        id: generateUUID(),
         createdAt: new Date(),
         role: 'user',
         content: input,
@@ -155,6 +172,10 @@ export function Chat({
 
       setInput('');
       setAttachments([]);
+
+      if (shouldRemoveLastMessage) {
+        setMessages(messages.slice(0, -1));
+      }
 
       await append(message, {
         body: {
@@ -173,6 +194,7 @@ export function Chat({
       agents,
       tabs,
       input,
+      shouldRemoveLastMessage,
       attachments,
       getOrCreateChat,
       messages,
@@ -181,6 +203,7 @@ export function Chat({
       selectedModelId,
       selectedProvider,
       chat,
+      setMessages,
       router,
     ],
   );
@@ -201,6 +224,12 @@ export function Chat({
       setTab(tabs[0] || null);
     }
   }, [tabs, router, currentTab, setTab, addTab, chat, id, agents]);
+
+  const isAssistantFirstMessageMissing =
+    !!chat && messages.length === 1 && messages[0]?.role === 'user';
+  const currentMessages = shouldRemoveLastMessage
+    ? messages.slice(0, -1)
+    : messages;
 
   return (
     <SWRConfig value={{ fallback: { '/api/agents': agents } }}>
@@ -225,10 +254,11 @@ export function Chat({
           chatId={chat?.id}
           isLoading={isLoading}
           votes={votes}
-          messages={messages}
+          messages={currentMessages}
           setMessages={setMessages}
-          reload={reload}
+          reload={reloadMessage}
           isReadonly={isReadonly}
+          hasError={!!error || isAssistantFirstMessageMissing}
         />
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
           {!isReadonly && (
@@ -236,7 +266,7 @@ export function Chat({
               input={input}
               setInput={setInput}
               handleSubmit={onSubmit}
-              isLoading={isLoading}
+              isLoading={isLoading || isCreatingChat}
               stop={stop}
               attachments={attachments}
               setAttachments={setAttachments}
@@ -255,9 +285,9 @@ export function Chat({
         attachments={attachments}
         setAttachments={setAttachments}
         append={append}
-        messages={messages}
+        messages={currentMessages}
         setMessages={setMessages}
-        reload={reload}
+        reload={reloadMessage}
         votes={votes}
         isReadonly={isReadonly}
       />
