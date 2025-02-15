@@ -13,17 +13,22 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { ClientAgent } from '@/lib/data';
 import { getDynamicBlocksFromPrompt } from '@/lib/agents/dynamic-blocks';
+import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
 
 export function PromptTemplate({
   name,
   placeholder,
   agent,
   formId,
+  openDialog,
+  setOpenDialog,
 }: {
   name: string;
   placeholder: string;
   agent?: ClientAgent | null;
   formId: string;
+  openDialog: boolean;
+  setOpenDialog: (isOpen: boolean) => void;
 }) {
   const [open, setOpen] = useState<number | null>(null);
   const [template, setTemplate] = useState(agent?.systemPrompt || '');
@@ -118,15 +123,33 @@ export function PromptTemplate({
 
   return (
     <>
+      <Dialog open={openDialog} onOpenChange={setOpenDialog}>
+        <DialogContent hideOverlay className="flex flex-col w-[90vw] h-[90vh] max-w-none">
+          <DialogTitle className="h-min">System Prompt</DialogTitle>
+          <Textarea
+            name={name}
+            className="resize-none bg-muted text-lg flex-1"
+            value={template}
+            onChange={(e) => setTemplate(e.target.value)}
+          />
+          <div className="flex gap-2 items-center overflow-x-auto w-[87vw] py-2">
+            {badges}
+          </div>
+        </DialogContent>
+      </Dialog>
       <Textarea
+        disabled={openDialog}
         name={name}
-        className="bg-muted text-md md:text-sm md:h-[140px]"
+        rows={10}
+        className="bg-muted text-md md:text-sm md:max-h-[240px] resize-none"
         placeholder={placeholder}
         required
         value={template}
         onChange={(e) => setTemplate(e.target.value)}
       />
-      <div className="flex flex-wrap gap-2 items-center">{badges}</div>
+      <div className="flex gap-2 items-center overflow-x-auto w-[29rem] py-2">
+        {badges}
+      </div>
     </>
   );
 }

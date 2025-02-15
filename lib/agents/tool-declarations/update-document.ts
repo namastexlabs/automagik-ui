@@ -62,6 +62,14 @@ export const updateDocumentTool = createToolDefinition({
             },
           },
         },
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'update-document-text',
+          metadata: {
+            userId,
+            documentId: id,
+          },
+        }
       });
 
       for await (const delta of fullStream) {
@@ -87,6 +95,14 @@ export const updateDocumentTool = createToolDefinition({
         schema: z.object({
           code: z.string(),
         }),
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'update-document-code',
+          metadata: {
+            userId,
+            documentId: id,
+          },
+        }
       });
 
       for await (const delta of fullStream) {
@@ -131,6 +147,14 @@ export const updateDocumentTool = createToolDefinition({
         schema: z.object({
           csv: z.string(),
         }),
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'update-document-sheet',
+          metadata: {
+            userId,
+            documentId: id,
+          },
+        }
       });
 
       for await (const delta of fullStream) {

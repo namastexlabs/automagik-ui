@@ -38,10 +38,12 @@ import type { ClientAgent } from '@/lib/data';
 export function AgentListDialog({
   agents,
   openAgentDialog,
+  isAgentDialogOpen,
   isOpenAgentListDialog,
   openAgentListDialog,
 }: {
   agents: ClientAgent[];
+  isAgentDialogOpen: boolean;
   openAgentDialog: (agentId?: string) => void;
   openAgentListDialog: (isOpen: boolean) => void;
   isOpenAgentListDialog: boolean;
@@ -130,7 +132,17 @@ export function AgentListDialog({
   };
 
   return (
-    <Dialog open={isOpenAgentListDialog} onOpenChange={openAgentListDialog}>
+    <Dialog
+      modal={!isAgentDialogOpen}
+      open={isOpenAgentListDialog}
+      onOpenChange={(open) => {
+        if (!open && isAgentDialogOpen) {
+          return;
+        }
+
+        openAgentListDialog(open);
+      }}
+    >
       <DialogContent className="w-[600px]">
         <DialogHeader>
           <DialogTitle>Agents</DialogTitle>

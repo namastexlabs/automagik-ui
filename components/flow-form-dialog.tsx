@@ -25,6 +25,15 @@ import { Textarea } from './ui/textarea';
 import { SubmitButton } from './submit-button';
 import { FlowsCombobox } from './flows-combobox';
 import { VisibilitySelector } from './visibility-selector';
+import {
+  AlertDialog,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+} from './ui/alert-dialog';
 
 export function FlowFormDialog({
   tool,
@@ -35,6 +44,7 @@ export function FlowFormDialog({
 }) {
   const formId = useId();
   const [open, setOpen] = useState(false);
+  const [isCloseAttempt, setCloseAttempt] = useState(false);
   const [visibility, setVisibility] = useState(tool?.visibility ?? 'public');
   const [selectedFlow, setSelectedFlow] = useState(tool?.data.flowId || null);
   const [name, setName] = useState(tool?.name || '');
@@ -84,86 +94,122 @@ export function FlowFormDialog({
   };
 
   return (
-    <Dialog open={open} onOpenChange={setOpen}>
-      <DialogTrigger asChild>
-        <Button
-          variant="ghost"
-          className="py-0.5 px-2 gap-1 ml-auto text-[0.8rem] h-max justify-start"
-        >
-          <PlusIcon />
-          New Tool
-        </Button>
-      </DialogTrigger>
-      <DialogContent>
-        <DialogHeader>
-          <DialogTitle className="flex items-center justify-between pr-6">
-            {tool ? `${tool.verboseName}` : 'New Tool'}
-            <VisibilitySelector
-              selectedVisibilityType={visibility}
-              onChange={setVisibility}
-            />
-          </DialogTitle>
-        </DialogHeader>
-        <Form id={formId} action={formAction}>
-          <input type="hidden" name="id" value={tool?.id} />
-          <input type="hidden" name="name" value={toCamelCase(name)} />
-          <input type="hidden" name="visibility" value={visibility} />
-          <div className="flex flex-col gap-5 py-3">
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor={`${formId}-verboseName`}
-                className="text-zinc-600 font-normal dark:text-zinc-400"
-              >
-                Name
-              </Label>
-              <Input
-                id={`${formId}-verboseName`}
-                name="verboseName"
-                className="bg-muted text-md md:text-sm"
-                placeholder="Save data"
-                required
-                autoFocus
-                value={name}
-                onChange={(e) => setName(e.target.value)}
+    <>
+      <Dialog
+        open={open}
+        onOpenChange={(open) => {
+          if (!open) {
+            setCloseAttempt(true);
+          } else {
+            setOpen(open);
+          }
+        }}
+      >
+        <DialogTrigger asChild>
+          <Button
+            variant="ghost"
+            className="py-0.5 px-2 gap-1 ml-auto text-[0.8rem] h-max justify-start"
+          >
+            <PlusIcon />
+            New Tool
+          </Button>
+        </DialogTrigger>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center justify-between pr-6">
+              {tool ? `${tool.verboseName}` : 'New Tool'}
+              <VisibilitySelector
+                selectedVisibilityType={visibility}
+                onChange={setVisibility}
               />
+            </DialogTitle>
+          </DialogHeader>
+          <Form id={formId} action={formAction}>
+            <input type="hidden" name="id" value={tool?.id} />
+            <input type="hidden" name="name" value={toCamelCase(name)} />
+            <input type="hidden" name="visibility" value={visibility} />
+            <div className="flex flex-col gap-5 py-3">
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor={`${formId}-verboseName`}
+                  className="text-zinc-600 font-normal dark:text-zinc-400"
+                >
+                  Name
+                </Label>
+                <Input
+                  id={`${formId}-verboseName`}
+                  name="verboseName"
+                  className="bg-muted text-md md:text-sm"
+                  placeholder="Save data"
+                  required
+                  autoFocus
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor={`${formId}-description`}
+                  className="text-zinc-600 font-normal dark:text-zinc-400"
+                >
+                  Description
+                </Label>
+                <Textarea
+                  id={`${formId}-description`}
+                  name="description"
+                  className="bg-muted text-md md:text-sm md:h-[140px]"
+                  placeholder="Use this tool when..."
+                  required
+                  defaultValue={tool?.description}
+                />
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor={`${formId}-flow-id`}
+                  className="text-zinc-600 font-normal dark:text-zinc-400"
+                >
+                  Flow
+                </Label>
+                <FlowsCombobox
+                  formId={formId}
+                  selected={selectedFlow}
+                  onChange={onChange}
+                />
+              </div>
             </div>
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor={`${formId}-description`}
-                className="text-zinc-600 font-normal dark:text-zinc-400"
-              >
-                Description
-              </Label>
-              <Textarea
-                id={`${formId}-description`}
-                name="description"
-                className="bg-muted text-md md:text-sm md:h-[140px]"
-                placeholder="Use this tool when..."
-                required
-                defaultValue={tool?.description}
-              />
+            <div className="flex justify-end mt-3">
+              <SubmitButton isSuccessful={formState.status === 'success'}>
+                Save
+              </SubmitButton>
             </div>
-            <div className="flex flex-col gap-2">
-              <Label
-                htmlFor={`${formId}-flow-id`}
-                className="text-zinc-600 font-normal dark:text-zinc-400"
-              >
-                Flow
-              </Label>
-              <FlowsCombobox
-                formId={formId}
-                selected={selectedFlow}
-                onChange={onChange}
-              />
-            </div>
-          </div>
-          <div className="flex justify-end mt-3">
-            <SubmitButton isSuccessful={formState.status === 'success'}>
-              Save
-            </SubmitButton>
-          </div>
-        </Form>
-      </DialogContent>
-    </Dialog>
+          </Form>
+        </DialogContent>
+      </Dialog>
+      <AlertDialog open={isCloseAttempt} onOpenChange={setCloseAttempt}>
+        <AlertDialogContent>
+          <AlertDialogHeader>
+            <AlertDialogTitle>Are you absolutely sure?</AlertDialogTitle>
+            <AlertDialogDescription>
+              This action cannot be undone. The filled fields can&apos;t be
+              recovered.
+            </AlertDialogDescription>
+          </AlertDialogHeader>
+          <AlertDialogFooter>
+            <AlertDialogCancel>Cancel</AlertDialogCancel>
+            <Button
+              type="button"
+              variant="destructive"
+              onClick={() => {
+                setCloseAttempt(false);
+                setOpen(false);
+              }}
+              className="bg-destructive hover:bg-destructive"
+            >
+              Continue
+            </Button>
+          </AlertDialogFooter>
+        </AlertDialogContent>
+      </AlertDialog>
+    </>
   );
 }
