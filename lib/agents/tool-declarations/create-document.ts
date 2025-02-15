@@ -57,6 +57,14 @@ export const createDocumentTool = createToolDefinition({
         system: textPrompt,
         experimental_transform: smoothStream({ chunking: 'word' }),
         prompt: title,
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'create-document-text',
+          metadata: {
+            userId,
+            documentId: id,
+          },
+        }
       });
 
       for await (const delta of fullStream) {
@@ -82,6 +90,14 @@ export const createDocumentTool = createToolDefinition({
         schema: z.object({
           code: z.string(),
         }),
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'create-document-code',
+          metadata: {
+            userId,
+            documentId: id,
+          },
+        }
       });
 
       for await (const delta of fullStream) {
@@ -126,6 +142,14 @@ export const createDocumentTool = createToolDefinition({
         schema: z.object({
           csv: z.string().describe('CSV data'),
         }),
+        experimental_telemetry: {
+          isEnabled: true,
+          functionId: 'create-document-sheet',
+          metadata: {
+            userId,
+            documentId: id,
+          },
+        }
       });
 
       for await (const delta of fullStream) {
@@ -159,7 +183,7 @@ export const createDocumentTool = createToolDefinition({
       title,
       kind,
       content: draftText,
-      userId: userId,
+      userId,
     });
 
     return {

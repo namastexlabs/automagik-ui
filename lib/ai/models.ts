@@ -80,7 +80,6 @@ export const chatModels = {
     ]),
   },
   groq: {
-    'gemma2-9b-it': createModelData('Gemma 2 9B IT', [ModelSupport.TOOLS]),
     'deepseek-r1-distill-llama-70b': createModelData(
       'DeepSeek R1 Distill LLaMA 70B',
       [ModelSupport.REASONING],
@@ -94,10 +93,6 @@ export const chatModels = {
     ]),
   },
   togetherai: {
-    'meta-llama/Llama-3-8b-chat-hf': createModelData('Llama 3.8B Chat', [
-      ModelSupport.IMAGE,
-      ModelSupport.TOOLS,
-    ]),
     'deepseek-ai/DeepSeek-V3': createModelData('DeepSeek V3', []),
     'deepseek-ai/DeepSeek-R1': createModelData('DeepSeek R1', [
       ModelSupport.REASONING,
@@ -111,7 +106,6 @@ export const chatModels = {
       [ModelSupport.TOOLS],
     ),
     'Qwen/QwQ-32B-Preview': createModelData('QwQ 32B Preview', []),
-    'Qwen/Qwen2-7B-Instruct': createModelData('Qwen2 7B Instruct', []),
     'Qwen/Qwen2.5-Coder-32B-Instruct': createModelData(
       'Qwen2.5 Coder 32B Instruct',
       [],

@@ -226,7 +226,7 @@ export function Chat({
   }, [tabs, router, currentTab, setTab, addTab, chat, id, agents]);
 
   const isAssistantFirstMessageMissing =
-    !!chat && messages.length === 1 && messages[0]?.role === 'user';
+    !!chat && !isLoading && messages.length === 1 && messages[0]?.role === 'user';
   const currentMessages = shouldRemoveLastMessage
     ? messages.slice(0, -1)
     : messages;
