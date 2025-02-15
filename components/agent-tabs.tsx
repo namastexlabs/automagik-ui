@@ -167,6 +167,7 @@ export function AgentTabs({
         </Tooltip>
         <AgentListDialog
           agents={agents}
+          isAgentDialogOpen={agentDialog.isOpen}
           openAgentDialog={(agentId) => changeAgentDialog(true, agentId)}
           openAgentListDialog={changeAgentListDialog}
           isOpenAgentListDialog={openAgentListDialog}
@@ -179,7 +180,6 @@ export function AgentTabs({
           setOpen={(open) =>
             changeAgentDialog(open, agentDialog.agentId || undefined)
           }
-          openAgentListDialog={openAgentListDialog}
         />
       </div>
     </>
