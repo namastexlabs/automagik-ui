@@ -78,12 +78,12 @@ export async function POST(request: Request) {
     return new Response('No user message found', { status: 400 });
   }
 
-  const userMessageId = generateUUID();
   await saveMessages({
     messages: [
       {
         ...userMessage,
-        id: userMessageId,
+        // biome-ignore lint/style/noNonNullAssertion: Checked userMessasge
+        id: messages.at(-1)!.id,
         createdAt: new Date(),
         chatId: chat.id,
       },
@@ -98,11 +98,6 @@ export async function POST(request: Request) {
 
   return createDataStreamResponse({
     execute: (dataStream) => {
-      dataStream.writeData({
-        type: 'user-message-id',
-        content: userMessageId,
-      });
-
       const coreTools = isToolsAllowed(modelData)
         ? toCoreTools(agentTools, {
             // biome-ignore lint/style/noNonNullAssertion: <explanation>
@@ -122,8 +117,8 @@ export async function POST(request: Request) {
         maxSteps: 5,
         tools: coreTools,
         experimental_transform: smoothStream({ chunking: 'word' }),
-        onFinish: async ({ response, reasoning }) => {
-          if (session.user?.id) {
+        onFinish: async ({ response, reasoning, finishReason }) => {
+          if (session.user?.id && finishReason !== 'error') {
             try {
               const responseMessagesWithoutIncompleteToolCalls =
                 sanitizeResponseMessages({

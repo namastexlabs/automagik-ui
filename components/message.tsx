@@ -210,6 +210,7 @@ function PurePreviewMessage({
 export const PreviewMessage = memo(
   PurePreviewMessage,
   (prevProps, nextProps) => {
+    if (prevProps.reload !== nextProps.reload) return false;
     if (prevProps.isLoading !== nextProps.isLoading) return false;
     if (prevProps.message.reasoning !== nextProps.message.reasoning)
       return false;
