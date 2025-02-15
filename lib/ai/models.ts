@@ -28,19 +28,23 @@ export const chatModels = {
   anthropic: {
     'claude-3-5-sonnet-latest': {
       name: 'Claude 3.5 Sonnet',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
+      supports: [
+        ModelSupport.IMAGE,
+        ModelSupport.TOOLS,
+        ModelSupport.REASONING,
+      ],
     },
     'claude-3-5-haiku-latest': {
       name: 'Claude 3.5 Haiku',
-      supports: [ModelSupport.TOOLS],
+      supports: [ModelSupport.TOOLS, ModelSupport.REASONING],
     },
-    'claude-3-5-hai-latest': {
-      name: 'Claude 3.5 Hai',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    'claude-3-5-opus-latest': {
-      name: 'Claude 3.5 Opus',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
+    'claude-3-opus-latest': {
+      name: 'Claude 3 Opus',
+      supports: [
+        ModelSupport.IMAGE,
+        ModelSupport.TOOLS,
+        ModelSupport.REASONING,
+      ],
     },
   },
   google: {
@@ -69,35 +73,25 @@ export const chatModels = {
       supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
     },
   },
-  fireworks: {
-    'accounts/fireworks/models/deepseek-r1': {
-      name: 'DeepSeek R1',
-      supports: [ModelSupport.REASONING],
-    },
-  },
   groq: {
     'gemma2-9b-it': { name: 'Gemma 2 9B IT', supports: [ModelSupport.TOOLS] },
     'gemma2-7b-it': { name: 'Gemma 2 7B IT', supports: [ModelSupport.TOOLS] },
-    'llama3-70b-8192': {
-      name: 'LLaMA 3 70B 8192',
-      supports: [ModelSupport.TOOLS],
-    },
-    'mixtral-8x7b-32768': {
-      name: 'Mixtral 8x7B 32768',
-      supports: [ModelSupport.TOOLS],
-    },
     'deepseek-r1-distill-llama-70b': {
       name: 'DeepSeek R1 Distill LLaMA 70B',
       supports: [ModelSupport.REASONING],
+    },
+    'deepseek-r1-distill-qwen-32b': {
+      name: 'DeepSeek R1 Distill Qwen 32B',
+      supports: [ModelSupport.REASONING],
+    },
+    'llama-3.3-70b-versatile': {
+      name: 'LLaMA 3.3 70B Versatile',
+      supports: [ModelSupport.TOOLS],
     },
   },
   togetherai: {
     'meta-llama/Llama-3-8b-chat-hf': {
       name: 'Llama 3.8B Chat',
-      supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
-    },
-    'google/gemma-2b-it': {
-      name: 'Gemma 2B IT',
       supports: [ModelSupport.IMAGE, ModelSupport.TOOLS],
     },
     'deepseek-ai/DeepSeek-V3': {
@@ -108,14 +102,38 @@ export const chatModels = {
       name: 'DeepSeek R1',
       supports: [ModelSupport.REASONING],
     },
+    'deepseek-ai/DeepSeek-R1-Distill-Llama-70B': {
+      name: 'DeepSeek R1 Distill LLaMA 70B',
+      supports: [ModelSupport.REASONING],
+    },
+    'meta-llama/Llama-3.3-70B-Instruct-Turbo': {
+      name: 'Llama 3.3 70B Instruct Turbo',
+      supports: [ModelSupport.TOOLS],
+    },
+    'Qwen/QwQ-32B-Preview': {
+      name: 'QwQ 32B Preview',
+      supports: [],
+    },
+    'Qwen/Qwen2.5-Coder-32B-Instruct': {
+      name: 'Qwen2.5 Coder 32B Instruct',
+      supports: [],
+    },
+    'Qwen/Qwen2-VL-72B-Instruct': {
+      name: 'Qwen2 VL 72B Instruct',
+      supports: [],
+    },
+    'Qwen/Qwen2-72B-Instruct': {
+      name: 'Qwen2 72B Instruct',
+      supports: [],
+    },
   },
   mistral: {
+    'codestral-latest': {
+      name: 'Codestral Large',
+      supports: [ModelSupport.TOOLS],
+    },
     'pixtral-large-latest': {
       name: 'Pixtral Large',
-      supports: [ModelSupport.TOOLS, ModelSupport.IMAGE],
-    },
-    'pixtral-12b-2409': {
-      name: 'Pixtral 12B 2409',
       supports: [ModelSupport.TOOLS, ModelSupport.IMAGE],
     },
     'mistral-small-latest': {
@@ -124,18 +142,6 @@ export const chatModels = {
     },
     'mistral-large-latest': {
       name: 'Mistral Large',
-      supports: [ModelSupport.TOOLS],
-    },
-    'ministral-8b-latest': {
-      name: 'Ministral 8B',
-      supports: [ModelSupport.TOOLS],
-    },
-    'ministral-3b-latest': {
-      name: 'Ministral 3B',
-      supports: [ModelSupport.TOOLS],
-    },
-    'mistral-8x7b-32768': {
-      name: 'Mistral 8x7B 32768',
       supports: [ModelSupport.TOOLS],
     },
   },

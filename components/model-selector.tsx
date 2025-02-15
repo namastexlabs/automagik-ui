@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { chatModels, getModelData } from '@/lib/ai/models';
@@ -35,8 +35,17 @@ export function ModelSelector({
   onChangeProvider: (provider: string) => void;
 } & React.ComponentProps<typeof Button>) {
   const [open, setOpen] = useState(false);
+  const currentModelRef = useRef<HTMLDivElement>(null);
 
   const modelData = getModelData(selectedProvider, selectedModelId);
+
+  useEffect(() => {
+    if (open) {
+      currentModelRef.current?.scrollIntoView({
+        block: 'start',
+      });
+    }
+  }, [selectedModelId, selectedProvider, open]);
 
   return (
     <Popover open={open} onOpenChange={setOpen}>
@@ -52,7 +61,7 @@ export function ModelSelector({
           <ChevronDownIcon />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className="p-0">
+      <PopoverContent align="start" className={`p-0 ${open ? '' : 'hidden'}`} forceMount>
         <Command>
           <CommandInput placeholder="Search models..." />
           <CommandEmpty>No models found</CommandEmpty>
@@ -66,6 +75,12 @@ export function ModelSelector({
                 {Object.entries(models).map(([modelId, model]) => (
                   <CommandItem
                     key={modelId}
+                    ref={
+                      selectedModelId === modelId &&
+                      selectedProvider === provider
+                        ? currentModelRef
+                        : undefined
+                    }
                     className="cursor-pointer"
                     onSelect={() => {
                       onChangeProvider(provider);
