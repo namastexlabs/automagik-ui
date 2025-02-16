@@ -2,7 +2,6 @@
 const nextConfig = {
   experimental: {
     ppr: true,
-    instrumentationHook: true,
   },
   images: {
     remotePatterns: [
