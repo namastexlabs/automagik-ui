@@ -55,7 +55,7 @@ export function AgentFormDialog({
   setOpen: (isOpen: boolean) => void;
 }) {
   const formId = useId();
-  const { mutate, cache } = useSWRConfig();
+  const { mutate } = useSWRConfig();
   const onSuccessRef = useRef(onSuccess);
   const [isCloseAttempt, setCloseAttempt] = useState(false);
   const [openPromptTemplate, setOpenPromptTemplate] = useState(false);
@@ -71,18 +71,28 @@ export function AgentFormDialog({
     FormData
   >(saveAgent, { status: 'idle', data: null });
 
+  const reset = useCallback((agent?: ClientAgent) => {
+    setName(agent?.name || '');
+    setSelected(agent?.tools.map((tool) => tool.id) || []);
+    setVisibility(agent?.visibility ?? 'private');
+    setTemplate(agent?.systemPrompt || '');
+  }, []);
+
   useEffect(() => {
     onSuccessRef.current = onSuccess;
   }, [onSuccess]);
 
   useEffect(() => {
-    if (['idle', 'failed', 'invalid_data'].includes(formState.status)) {
-      setName(agent?.name || '');
-      setSelected(agent?.tools.map((tool) => tool.id) || []);
-      setVisibility(agent?.visibility ?? 'private');
-      setTemplate(agent?.systemPrompt || '');
+    if (isOpen) {
+      reset(agent || undefined);
     }
-  }, [agent, formState]);
+  }, [agent, isOpen, reset]);
+
+  useEffect(() => {
+    if (['idle', 'failed', 'invalid_data'].includes(formState.status)) {
+      reset(agent || undefined);
+    }
+  }, [reset, agent, formState]);
 
   useEffect(() => {
     if (formState.status === 'failed') {
@@ -92,10 +102,7 @@ export function AgentFormDialog({
     } else if (formState.status === 'success' && formState.data) {
       toast.success('Agent created successfully');
       mutate<ClientAgent[], ClientAgent>('/api/agents', formState.data, {
-        populateCache: (
-          data,
-          agents = cache.get('/api/agents') as ClientAgent[],
-        ) => {  
+        populateCache: (data, agents = []) => {
           const hasAgent = agents.some((agent) => agent.id === data.id);
           if (hasAgent) {
             return agents.map((agent) => {
@@ -114,7 +121,7 @@ export function AgentFormDialog({
       setOpen(false);
       onSuccessRef.current(formState.data);
     }
-  }, [formState, setOpen, mutate, cache]);
+  }, [formState, setOpen, mutate]);
 
   const toggleTool = useCallback((toolId: string) => {
     setSelected((selected) => {

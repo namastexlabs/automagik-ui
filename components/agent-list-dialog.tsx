@@ -140,6 +140,11 @@ export function AgentListDialog({
           return;
         }
 
+        if (!open && currentTab && !tabs.includes(currentTab)) {
+          router.push('/');
+          setTab(tabs[0] || null);
+        }
+
         openAgentListDialog(open);
       }}
     >
