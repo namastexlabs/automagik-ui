@@ -53,6 +53,12 @@ export function AgentTabs({
     .filter((agent) => tabs.includes(agent.id))
     .toSorted((a, b) => tabs.indexOf(a.id) - tabs.indexOf(b.id));
 
+  const handleOpenAgentDialog = useCallback(
+    (open: boolean, agentId?: string) =>
+      open ? changeAgentDialog(open, agentId) : changeAgentDialog(false),
+    [changeAgentDialog],
+  );
+
   const onSaveAgent = useCallback(
     (agent: ClientAgent) => {
       if (agentDialog.isSubmitting) {
@@ -100,7 +106,6 @@ export function AgentTabs({
           }}
         >
           New Chat <PlusIcon />
-          <span className="md:sr-only">New Chat</span>
         </Button>
       )}
       <div className="flex order-4 items-center w-full overflow-x-auto">
@@ -110,7 +115,7 @@ export function AgentTabs({
               <div
                 key={agent.id}
                 className={cn(
-                  `${buttonVariants({ variant: 'ghost' })} group relative flex p-0 shrink-0 w-[160px] h-[30px] z-10 bg-background text-accent-foreground rounded-2xl ${selectedStyle(agent.id)}`,
+                  `${buttonVariants({ variant: 'ghost' })} group relative flex p-0 shrink-0 w-[220px] h-[30px] z-10 bg-background text-accent-foreground rounded-2xl ${selectedStyle(agent.id)}`,
                 )}
               >
                 <button
@@ -173,13 +178,10 @@ export function AgentTabs({
           isOpenAgentListDialog={openAgentListDialog}
         />
         <AgentFormDialog
-          key={agentDialog.isOpen ? 'open' : 'closed'}
           agent={agents.find((agent) => agent.id === agentDialog.agentId)}
           onSuccess={onSaveAgent}
           isOpen={agentDialog.isOpen}
-          setOpen={(open) =>
-            changeAgentDialog(open, agentDialog.agentId || undefined)
-          }
+          setOpen={handleOpenAgentDialog}
         />
       </div>
     </>

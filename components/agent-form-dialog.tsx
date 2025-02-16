@@ -15,6 +15,7 @@ import { useSWRConfig } from 'swr';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
 } from '@/components/ui/dialog';
@@ -39,7 +40,8 @@ import {
 } from './ui/alert-dialog';
 import { Button } from './ui/button';
 import { Fullscreen } from 'lucide-react';
-
+import { Tooltip, TooltipTrigger } from './ui/tooltip';
+import { TooltipContent } from '@radix-ui/react-tooltip';
 
 export function AgentFormDialog({
   onSuccess,
@@ -53,10 +55,12 @@ export function AgentFormDialog({
   setOpen: (isOpen: boolean) => void;
 }) {
   const formId = useId();
-  const { mutate } = useSWRConfig();
+  const { mutate, cache } = useSWRConfig();
   const onSuccessRef = useRef(onSuccess);
   const [isCloseAttempt, setCloseAttempt] = useState(false);
   const [openPromptTemplate, setOpenPromptTemplate] = useState(false);
+  const [name, setName] = useState(agent?.name || '');
+  const [template, setTemplate] = useState(agent?.systemPrompt || '');
   const [visibility, setVisibility] = useState(agent?.visibility ?? 'private');
   const [selected, setSelected] = useState<string[]>(
     agent?.tools.map((tool) => tool.id) || [],
@@ -73,9 +77,12 @@ export function AgentFormDialog({
 
   useEffect(() => {
     if (['idle', 'failed', 'invalid_data'].includes(formState.status)) {
+      setName(agent?.name || '');
       setSelected(agent?.tools.map((tool) => tool.id) || []);
+      setVisibility(agent?.visibility ?? 'private');
+      setTemplate(agent?.systemPrompt || '');
     }
-  }, [agent?.tools, formState]);
+  }, [agent, formState]);
 
   useEffect(() => {
     if (formState.status === 'failed') {
@@ -85,7 +92,10 @@ export function AgentFormDialog({
     } else if (formState.status === 'success' && formState.data) {
       toast.success('Agent created successfully');
       mutate<ClientAgent[], ClientAgent>('/api/agents', formState.data, {
-        populateCache: (data, agents = []) => {
+        populateCache: (
+          data,
+          agents = cache.get('/api/agents') as ClientAgent[],
+        ) => {  
           const hasAgent = agents.some((agent) => agent.id === data.id);
           if (hasAgent) {
             return agents.map((agent) => {
@@ -104,7 +114,7 @@ export function AgentFormDialog({
       setOpen(false);
       onSuccessRef.current(formState.data);
     }
-  }, [formState, setOpen, mutate, agent]);
+  }, [formState, setOpen, mutate, cache]);
 
   const toggleTool = useCallback((toolId: string) => {
     setSelected((selected) => {
@@ -121,6 +131,7 @@ export function AgentFormDialog({
   return (
     <>
       <Dialog
+        modal={!openPromptTemplate}
         open={isOpen}
         onOpenChange={(open) => {
           if (openPromptTemplate) {
@@ -143,9 +154,14 @@ export function AgentFormDialog({
                 onChange={setVisibility}
               />
             </DialogTitle>
+            <DialogDescription>
+              {agent ? 'Edit' : 'Create'} {`${agent?.name} agent` || 'Agent'}
+            </DialogDescription>
           </DialogHeader>
           <Form id={form} action={formAction}>
-            <input type="hidden" name="id" value={agent?.id} />
+            {agent ? (
+              <input readOnly type="hidden" name="id" value={agent.id} />
+            ) : null}
             <input type="hidden" name="visibility" value={visibility} />
             <div className="flex flex-col gap-5 py-3">
               <div className="flex flex-col gap-2">
@@ -162,7 +178,8 @@ export function AgentFormDialog({
                   placeholder="Content Writer"
                   required
                   autoFocus
-                  defaultValue={agent?.name}
+                  value={name}
+                  onChange={(e) => setName(e.target.value)}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -173,14 +190,19 @@ export function AgentFormDialog({
                   >
                     System Prompt
                   </Label>
-                  <Button
-                    type="button"
-                    variant="ghost"
-                    className="p-1 size-6"
-                    onClick={() => setOpenPromptTemplate(true)}
-                  >
-                    <Fullscreen />
-                  </Button>
+                  <Tooltip>
+                    <TooltipTrigger asChild>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        className="p-1 size-6"
+                        onClick={() => setOpenPromptTemplate(true)}
+                      >
+                        <Fullscreen />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent>Open fullscreen</TooltipContent>
+                  </Tooltip>
                 </div>
                 <PromptTemplate
                   formId={form}
@@ -189,6 +211,8 @@ export function AgentFormDialog({
                   agent={agent}
                   openDialog={openPromptTemplate}
                   setOpenDialog={setOpenPromptTemplate}
+                  template={template}
+                  onChange={setTemplate}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -203,9 +227,7 @@ export function AgentFormDialog({
               </div>
             </div>
             <div className="flex justify-end mt-3">
-              <SubmitButton isSuccessful={formState.status === 'success'}>
-                Save
-              </SubmitButton>
+              <SubmitButton>Save</SubmitButton>
             </div>
           </Form>
         </DialogContent>

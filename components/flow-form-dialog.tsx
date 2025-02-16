@@ -14,6 +14,7 @@ import type { ToolData } from '@/lib/agents/types';
 import {
   Dialog,
   DialogContent,
+  DialogDescription,
   DialogHeader,
   DialogTitle,
   DialogTrigger,
@@ -123,6 +124,9 @@ export function FlowFormDialog({
                 onChange={setVisibility}
               />
             </DialogTitle>
+            <DialogDescription>
+              {tool ? 'Edit' : 'Create'} {tool ? `${tool?.verboseName} tool` : 'Tool'}
+            </DialogDescription>
           </DialogHeader>
           <Form id={formId} action={formAction}>
             <input type="hidden" name="id" value={tool?.id} />
@@ -178,9 +182,7 @@ export function FlowFormDialog({
               </div>
             </div>
             <div className="flex justify-end mt-3">
-              <SubmitButton isSuccessful={formState.status === 'success'}>
-                Save
-              </SubmitButton>
+              <SubmitButton>Save</SubmitButton>
             </div>
           </Form>
         </DialogContent>

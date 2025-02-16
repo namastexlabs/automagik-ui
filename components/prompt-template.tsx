@@ -13,7 +13,12 @@ import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
 import type { ClientAgent } from '@/lib/data';
 import { getDynamicBlocksFromPrompt } from '@/lib/agents/dynamic-blocks';
-import { Dialog, DialogContent, DialogTitle } from './ui/dialog';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogTitle,
+} from './ui/dialog';
 
 export function PromptTemplate({
   name,
@@ -22,7 +27,11 @@ export function PromptTemplate({
   formId,
   openDialog,
   setOpenDialog,
+  template,
+  onChange,
 }: {
+  template: string;
+  onChange: (template: string) => void;
   name: string;
   placeholder: string;
   agent?: ClientAgent | null;
@@ -31,7 +40,6 @@ export function PromptTemplate({
   setOpenDialog: (isOpen: boolean) => void;
 }) {
   const [open, setOpen] = useState<number | null>(null);
-  const [template, setTemplate] = useState(agent?.systemPrompt || '');
 
   const deferredTemplate = useDeferredValue(template);
   const [dynamicBlocks, setDynamicBlocks] = useState<
@@ -124,13 +132,14 @@ export function PromptTemplate({
   return (
     <>
       <Dialog open={openDialog} onOpenChange={setOpenDialog}>
-        <DialogContent hideOverlay className="flex flex-col w-[90vw] h-[90vh] max-w-none">
+        <DialogContent className="flex flex-col w-[90vw] h-[90vh] max-w-none">
           <DialogTitle className="h-min">System Prompt</DialogTitle>
+          <DialogDescription>Update your system prompt.</DialogDescription>
           <Textarea
             name={name}
             className="resize-none bg-muted text-lg flex-1"
             value={template}
-            onChange={(e) => setTemplate(e.target.value)}
+            onChange={(e) => onChange(e.target.value)}
           />
           <div className="flex gap-2 items-center overflow-x-auto w-[87vw] py-2">
             {badges}
@@ -141,11 +150,11 @@ export function PromptTemplate({
         disabled={openDialog}
         name={name}
         rows={10}
-        className="bg-muted text-md md:text-sm md:max-h-[240px] resize-none"
+        className="bg-muted text-md md:text-sm resize-none"
         placeholder={placeholder}
         required
         value={template}
-        onChange={(e) => setTemplate(e.target.value)}
+        onChange={(e) => onChange(e.target.value)}
       />
       <div className="flex gap-2 items-center overflow-x-auto w-[29rem] py-2">
         {badges}
