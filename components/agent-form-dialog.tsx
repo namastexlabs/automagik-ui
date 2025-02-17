@@ -1,13 +1,6 @@
 'use client';
 
-import {
-  useActionState,
-  useCallback,
-  useEffect,
-  useId,
-  useRef,
-  useState,
-} from 'react';
+import { useActionState, useCallback, useEffect, useId, useState } from 'react';
 import Form from 'next/form';
 import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
@@ -22,7 +15,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { SubmitButton } from '@/components/submit-button';
-import { saveAgent } from '@/app/(chat)/actions';
+import { type AgentSchema, saveAgent } from '@/app/(chat)/actions';
 import { ToolsCombobox } from '@/components/tools-combobox';
 import type { ClientAgent } from '@/lib/data';
 import type { ActionStateData } from '@/app/types';
@@ -56,9 +49,9 @@ export function AgentFormDialog({
 }) {
   const formId = useId();
   const { mutate } = useSWRConfig();
-  const onSuccessRef = useRef(onSuccess);
   const [isCloseAttempt, setCloseAttempt] = useState(false);
   const [openPromptTemplate, setOpenPromptTemplate] = useState(false);
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [name, setName] = useState(agent?.name || '');
   const [template, setTemplate] = useState(agent?.systemPrompt || '');
   const [visibility, setVisibility] = useState(agent?.visibility ?? 'private');
@@ -66,62 +59,67 @@ export function AgentFormDialog({
     agent?.tools.map((tool) => tool.id) || [],
   );
 
-  const [formState, formAction] = useActionState<
-    ActionStateData<ClientAgent>,
+  const [, formAction] = useActionState<
+    ActionStateData<ClientAgent, AgentSchema>,
     FormData
-  >(saveAgent, { status: 'idle', data: null });
+  >(
+    async (state, formData) => {
+      const newState = await saveAgent(state, formData);
+      setErrors({});
 
-  const reset = useCallback((agent?: ClientAgent) => {
-    setName(agent?.name || '');
-    setSelected(agent?.tools.map((tool) => tool.id) || []);
-    setVisibility(agent?.visibility ?? 'private');
-    setTemplate(agent?.systemPrompt || '');
-  }, []);
+      if (newState.status === 'failed') {
+        toast.error('Unexpected error, please try again!');
+      } else if (newState.status === 'invalid_data') {
+        setErrors(
+          Object.entries(newState.errors || {}).reduce(
+            (acc, [key, value]) => {
+              if (Object.hasOwn(value, '_errors')) {
+                acc[key] = (value as { _errors: string[] })._errors[0];
+              } else {
+                acc[key] = (value as string[])[0];
+              }
+              return acc;
+            },
+            {} as { [key: string]: string },
+          ),
+        );
+      } else if (newState.status === 'success' && newState.data) {
+        toast.success('Agent created successfully');
+        mutate<ClientAgent[], ClientAgent>('/api/agents', newState.data, {
+          populateCache: (data, agents = []) => {
+            const hasAgent = agents.some((agent) => agent.id === data.id);
+            if (hasAgent) {
+              return agents.map((agent) => {
+                if (agent.id === data.id) {
+                  return data;
+                }
+                return agent;
+              });
+            }
 
-  useEffect(() => {
-    onSuccessRef.current = onSuccess;
-  }, [onSuccess]);
+            return [...agents, data];
+          },
+          revalidate: false,
+        });
+
+        setOpen(false);
+        onSuccess(newState.data);
+      }
+
+      return newState;
+    },
+    { status: 'idle', data: null },
+  );
 
   useEffect(() => {
     if (isOpen) {
-      reset(agent || undefined);
+      setErrors({});
+      setName(agent?.name || '');
+      setSelected(agent?.tools.map((tool) => tool.id) || []);
+      setVisibility(agent?.visibility ?? 'private');
+      setTemplate(agent?.systemPrompt || '');
     }
-  }, [agent, isOpen, reset]);
-
-  useEffect(() => {
-    if (['idle', 'failed', 'invalid_data'].includes(formState.status)) {
-      reset(agent || undefined);
-    }
-  }, [reset, agent, formState]);
-
-  useEffect(() => {
-    if (formState.status === 'failed') {
-      toast.error('Unexpected error, please try again!');
-    } else if (formState.status === 'invalid_data') {
-      toast.error('Failed validating your submission!');
-    } else if (formState.status === 'success' && formState.data) {
-      toast.success('Agent created successfully');
-      mutate<ClientAgent[], ClientAgent>('/api/agents', formState.data, {
-        populateCache: (data, agents = []) => {
-          const hasAgent = agents.some((agent) => agent.id === data.id);
-          if (hasAgent) {
-            return agents.map((agent) => {
-              if (agent.id === data.id) {
-                return data;
-              }
-              return agent;
-            });
-          }
-
-          return [...agents, data];
-        },
-        revalidate: false,
-      });
-
-      setOpen(false);
-      onSuccessRef.current(formState.data);
-    }
-  }, [formState, setOpen, mutate]);
+  }, [agent, isOpen]);
 
   const toggleTool = useCallback((toolId: string) => {
     setSelected((selected) => {
@@ -162,7 +160,10 @@ export function AgentFormDialog({
               />
             </DialogTitle>
             <DialogDescription>
-              {agent ? 'Edit' : 'Create'} {`${agent?.name} agent` || 'Agent'}
+              {agent ? 'Edit' : 'Create'}{' '}
+              {agent
+                ? `${agent.name} agent`
+                : 'Agent with a system prompt and tools'}
             </DialogDescription>
           </DialogHeader>
           <Form id={form} action={formAction}>
@@ -188,6 +189,11 @@ export function AgentFormDialog({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
+                {!!errors.name && (
+                  <span className="text-sm text-destructive">
+                    {errors.name}
+                  </span>
+                )}
               </div>
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2 items-center">
@@ -221,6 +227,11 @@ export function AgentFormDialog({
                   template={template}
                   onChange={setTemplate}
                 />
+                {!!errors.systemPrompt && (
+                  <span className="text-sm text-destructive">
+                    {errors.systemPrompt}
+                  </span>
+                )}
               </div>
               <div className="flex flex-col gap-2">
                 <Label className="text-zinc-600 font-normal dark:text-zinc-400">

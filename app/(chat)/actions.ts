@@ -9,7 +9,7 @@ import {
 import { z } from 'zod';
 import { zerialize } from 'zodex';
 
-import {
+import isUniqueConstraintError, {
   createAllAgentToTools,
   deleteAgentById,
   deleteChatById,
@@ -29,6 +29,7 @@ import {
   createAllAgentToDynamicBlocks,
   deleteAllAgentToDynamicBlocks,
   deleteAllDynamicBlocksHanging,
+  getAgentByNameAndUserId,
 } from '@/lib/db/queries';
 import { getOrCreateAllDynamicBlocks } from '@/lib/agents/dynamic-blocks.server';
 import { auth } from '@/app/(auth)/auth';
@@ -41,7 +42,12 @@ import {
   getDiffRelation,
   getMostRecentUserMessage,
 } from '@/lib/utils';
-import { mapAgent, mapTool, type ClientAgent } from '@/lib/data';
+import {
+  type ClientTool,
+  type ClientAgent,
+  mapAgent,
+  mapTool,
+} from '@/lib/data';
 import { createChatFlowTool } from '@/lib/agents/automagik';
 import { accessModel } from '@/lib/ai/models';
 import { getModel } from '@/lib/ai/models.server';
@@ -65,6 +71,8 @@ const agentFormSchema = z.object({
     .default([]),
 });
 
+export type AgentSchema = typeof agentFormSchema;
+
 const flowToolSchema = z.object({
   name: z.string().trim(),
   verboseName: z.string().trim(),
@@ -72,6 +80,8 @@ const flowToolSchema = z.object({
   flowId: z.string().trim(),
   visibility: z.enum(['public', 'private']).optional(),
 });
+
+export type FlowToolSchema = typeof flowToolSchema;
 
 export async function generateTitleFromUserMessage({
   message,
@@ -199,9 +209,9 @@ export async function deleteChat({ id }: { id: string }): Promise<{
 }
 
 export async function saveAgent(
-  _: ActionStateData<ClientAgent>,
+  _: ActionStateData<ClientAgent, typeof agentFormSchema>,
   formData: FormData,
-): Promise<ActionStateData<ClientAgent>> {
+): Promise<ActionStateData<ClientAgent, typeof agentFormSchema>> {
   try {
     const session = await auth();
 
@@ -316,10 +326,97 @@ export async function saveAgent(
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { status: 'invalid_data', data: null, errors: error.errors };
+      const zodError = error as z.ZodError<z.infer<typeof agentFormSchema>>;
+      return {
+        status: 'invalid_data',
+        data: null,
+        errors: zodError.format(),
+      };
+    }
+
+    if (isUniqueConstraintError(error)) {
+      const errorMessage = `Agent with the same name already exists ${formData.get('visibility') === 'private' ? 'for this user' : 'for the application, change the visiblity to private or change the name'}`;
+      return {
+        status: 'invalid_data',
+        data: null,
+        errors: {
+          _errors: [],
+          name: {
+            _errors: [errorMessage],
+          },
+        },
+      };
     }
 
     console.error('Failed to save agent', error);
+    return { status: 'failed', data: null };
+  }
+}
+
+export async function duplicateAgent({ id }: { id: string }) {
+  const session = await auth();
+
+  if (!session?.user?.id) {
+    return notFound();
+  }
+
+  const agent = await getAgentById({ id });
+
+  const isOwner = session.user.id === agent?.userId;
+  if (!agent || (!isOwner && agent.visibility === 'private')) {
+    return notFound();
+  }
+
+  try {
+    const hasSameAgent = await getAgentByNameAndUserId({
+      name: agent.name,
+      userId: session.user.id,
+    });
+
+    if (hasSameAgent) {
+      return {
+        status: 'exists',
+        data: null,
+      };
+    }
+
+    const newAgent = await createAgent({
+      name: agent.name,
+      systemPrompt: agent.systemPrompt,
+      visibility: 'private',
+      userId: session.user.id,
+    });
+
+    if (agent.tools.length > 0) {
+      await createAllAgentToTools(
+        agent.tools.map(({ tool }) => ({
+          agentId: newAgent.id,
+          toolId: tool.id,
+        })),
+      );
+    }
+
+    if (agent.dynamicBlocks.length > 0) {
+      await createAllAgentToDynamicBlocks(
+        agent.dynamicBlocks.map(({ dynamicBlock }) => ({
+          agentId: newAgent.id,
+          dynamicBlockId: dynamicBlock.id,
+        })),
+      );
+    }
+
+    return {
+      status: 'success',
+      data: mapAgent(session.user.id, {
+        ...newAgent,
+        tools: agent.tools.map(({ tool }) => ({ tool })),
+        dynamicBlocks: agent.dynamicBlocks.map(({ dynamicBlock }) => ({
+          dynamicBlock,
+        })),
+      }),
+    };
+  } catch (error) {
+    console.error('Failed to duplicate agent', error);
     return { status: 'failed', data: null };
   }
 }
@@ -336,9 +433,9 @@ export async function deleteAgent({ id }: { id: string }) {
 }
 
 export async function saveFlowTool(
-  _: ActionStateData,
+  _: ActionStateData<ClientTool, typeof flowToolSchema>,
   formData: FormData,
-): Promise<ActionStateData> {
+): Promise<ActionStateData<ClientTool, typeof flowToolSchema>> {
   try {
     const session = await auth();
 
@@ -384,7 +481,27 @@ export async function saveFlowTool(
     return { status: 'success', data: mapTool(session.user.id, tool) };
   } catch (error) {
     if (error instanceof z.ZodError) {
-      return { status: 'invalid_data', data: null, errors: error.errors };
+      return {
+        status: 'invalid_data',
+        data: null,
+        errors: error.format() as z.ZodFormattedError<
+          z.infer<typeof flowToolSchema>
+        >,
+      };
+    }
+
+    if (isUniqueConstraintError(error)) {
+      const errorMessage = `Tool with the same name already exists ${formData.get('visibility') === 'private' ? 'for this user' : 'for the application, change the visiblity to private or change the name'}`;
+      return {
+        status: 'invalid_data',
+        data: null,
+        errors: {
+          _errors: [],
+          verboseName: {
+            _errors: [errorMessage],
+          },
+        },
+      };
     }
 
     console.error('Failed to save tool', error);

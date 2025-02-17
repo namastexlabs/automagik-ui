@@ -1,12 +1,12 @@
 'use client';
 
-import { useActionState, useEffect, useId, useState } from 'react';
+import { useActionState, useId, useState } from 'react';
 import Form from 'next/form';
 import { toast } from 'sonner';
 import { PlusIcon } from 'lucide-react';
 import { useSWRConfig } from 'swr';
 
-import { saveFlowTool } from '@/app/(chat)/actions';
+import { type FlowToolSchema, saveFlowTool } from '@/app/(chat)/actions';
 import type { ActionStateData } from '@/app/types';
 import type { ClientTool } from '@/lib/data';
 import type { ToolData } from '@/lib/agents/types';
@@ -44,6 +44,7 @@ export function FlowFormDialog({
   onCreate: (tool: ClientTool) => void;
 }) {
   const formId = useId();
+  const [errors, setErrors] = useState<{ [key: string]: string }>({});
   const [open, setOpen] = useState(false);
   const [isCloseAttempt, setCloseAttempt] = useState(false);
   const [visibility, setVisibility] = useState(tool?.visibility ?? 'public');
@@ -52,39 +53,57 @@ export function FlowFormDialog({
 
   const { mutate } = useSWRConfig();
 
-  const [formState, formAction] = useActionState<
-    ActionStateData<ClientTool>,
+  const [, formAction] = useActionState<
+    ActionStateData<ClientTool, FlowToolSchema>,
     FormData
-  >(saveFlowTool, { status: 'idle', data: null });
+  >(
+    async (state, formData) => {
+      const newState = await saveFlowTool(state, formData);
 
-  useEffect(() => {
-    if (formState.status === 'failed') {
-      toast.error('Unexpected error, please try again!');
-    } else if (formState.status === 'invalid_data') {
-      toast.error('Failed validating your submission!');
-    } else if (formState.status === 'success' && formState.data) {
-      onCreate(formState.data);
-      toast.success('Tool created successfully');
-
-      mutate<ClientTool[], ClientTool>('/api/tools', formState.data, {
-        populateCache: (data, tools = []) => {
-          const hasTool = tools.some((tool) => tool.id === data.id);
-          if (hasTool) {
-            return tools.map((tool) => {
-              if (tool.id === data.id) {
-                return data;
+      if (newState.status === 'failed') {
+        toast.error('Unexpected error, please try again!');
+      } else if (newState.status === 'invalid_data') {
+        toast.error('Invalid data, please try again!');
+        setErrors(
+          Object.entries(newState.errors || {}).reduce(
+            (acc, [key, value]) => {
+              if (Object.hasOwn(value, '_errors')) {
+                acc[key] = (value as { _errors: string[] })._errors[0];
+              } else {
+                acc[key] = (value as string[])[0];
               }
-              return tool;
-            });
-          }
+              return acc;
+            },
+            {} as { [key: string]: string },
+          ),
+        );
+      } else if (newState.status === 'success' && newState.data) {
+        onCreate(newState.data);
+        toast.success('Tool created successfully');
 
-          return [...tools, data];
-        },
-        revalidate: false,
-      });
-      setOpen(false);
-    }
-  }, [formState, setOpen, mutate, tool, onCreate]);
+        mutate<ClientTool[], ClientTool>('/api/tools', newState.data, {
+          populateCache: (data, tools = []) => {
+            const hasTool = tools.some((tool) => tool.id === data.id);
+            if (hasTool) {
+              return tools.map((tool) => {
+                if (tool.id === data.id) {
+                  return data;
+                }
+                return tool;
+              });
+            }
+
+            return [...tools, data];
+          },
+          revalidate: false,
+        });
+        setOpen(false);
+      }
+
+      return newState;
+    },
+    { status: 'idle', data: null },
+  );
 
   const toCamelCase = (str: string) => {
     return str.replace(/\s([a-z])/g, (_, char) => char.toUpperCase());
@@ -125,11 +144,12 @@ export function FlowFormDialog({
               />
             </DialogTitle>
             <DialogDescription>
-              {tool ? 'Edit' : 'Create'} {tool ? `${tool?.verboseName} tool` : 'Tool'}
+              {tool ? 'Edit' : 'Create'}{' '}
+              {tool ? `${tool?.verboseName} tool` : 'Tool'}
             </DialogDescription>
           </DialogHeader>
           <Form id={formId} action={formAction}>
-            <input type="hidden" name="id" value={tool?.id} />
+            {tool ? <input type="hidden" name="id" value={tool.id} /> : null}
             <input type="hidden" name="name" value={toCamelCase(name)} />
             <input type="hidden" name="visibility" value={visibility} />
             <div className="flex flex-col gap-5 py-3">

@@ -19,6 +19,14 @@ import * as schema from './schema';
 const client = postgres(process.env.POSTGRES_URL!);
 export const db = drizzle(client, { schema });
 
+const isUniqueConstraintError = (error: unknown): boolean => {
+  /** https://github.com/porsager/postgres/pull/901 */
+  // eslint-disable-next-line import/no-named-as-default-member
+  return (error as Error & { code?: string })?.code === '23505';
+};
+
+export default isUniqueConstraintError;
+
 export async function getUser(email: string): Promise<Array<schema.User>> {
   try {
     return await db
@@ -427,6 +435,24 @@ export async function getAgentById({
   }
 }
 
+export async function getAgentByNameAndUserId({
+  name,
+  userId,
+}: {
+  name: string;
+  userId: string;
+}) {
+  try {
+    return await db.query.agent.findFirst({
+      where: (agent, { and, eq }) =>
+        and(eq(agent.name, name), eq(agent.userId, userId)),
+    });
+  } catch (error) {
+    console.error('Failed to get agent in database');
+    throw error;
+  }
+}
+
 export async function createAgent(data: {
   name: string;
   systemPrompt: string;
@@ -441,7 +467,7 @@ export async function createAgent(data: {
 
     return createdAgent;
   } catch (error) {
-    console.error(`Failed to create agent ${name} in database`);
+    console.error(`Failed to create agent ${data.name} in database`);
     throw error;
   }
 }
