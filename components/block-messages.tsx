@@ -1,10 +1,12 @@
 'use client';
 
 import type { ChatRequestOptions, Message } from 'ai';
+import { AlertCircle } from 'lucide-react';
 import { memo } from 'react';
 import equal from 'fast-deep-equal';
 
 import type { Vote } from '@/lib/db/schema';
+import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 
 import { PreviewMessage } from './message';
 import { useScrollToBottom } from './use-scroll-to-bottom';
@@ -23,6 +25,7 @@ interface BlockMessagesProps {
   ) => Promise<string | null | undefined>;
   isReadonly: boolean;
   blockStatus: UIBlock['status'];
+  hasError: boolean;
 }
 
 function PureBlockMessages({
@@ -33,8 +36,8 @@ function PureBlockMessages({
   setMessages,
   reload,
   isReadonly,
+  hasError,
 }: BlockMessagesProps) {
-
   const [messagesContainerRef, messagesEndRef] =
     useScrollToBottom<HTMLDivElement>();
 
@@ -60,6 +63,17 @@ function PureBlockMessages({
         />
       ))}
 
+      {hasError && (
+        <div className="mx-auto px-4 max-w-3xl w-full">
+          <Alert variant="destructive">
+            <AlertCircle className="size-5" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              Something went wrong, edit the last message or send a new one
+            </AlertDescription>
+          </Alert>
+        </div>
+      )}
       <div
         ref={messagesEndRef}
         className="shrink-0 min-w-[24px] min-h-[24px]"
@@ -82,6 +96,7 @@ function areEqual(
   if (prevProps.isLoading && nextProps.isLoading) return false;
   if (prevProps.messages.length !== nextProps.messages.length) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
+  if (prevProps.hasError !== nextProps.hasError) return false;
 
   return true;
 }

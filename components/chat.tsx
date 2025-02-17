@@ -300,6 +300,7 @@ export function Chat({
         reload={reloadMessage}
         votes={votes}
         isReadonly={isReadonly}
+        hasError={!!error || isAssistantFirstMessageMissing}
       />
     </>
   );
