@@ -17,7 +17,7 @@ import {
 import useSWR, { useSWRConfig } from 'swr';
 import { useDebounceCallback, useWindowSize } from 'usehooks-ts';
 import type { Document, Vote } from '@/lib/db/schema';
-import { fetcher } from '@/lib/utils';
+import { cn, fetcher } from '@/lib/utils';
 import { MultimodalInput } from './multimodal-input';
 import { Toolbar } from './toolbar';
 import { VersionFooter } from './version-footer';
@@ -345,7 +345,7 @@ function PureBlock({
           )}
 
           <motion.div
-            className="fixed dark:bg-muted bg-background h-dvh flex flex-col overflow-y-scroll md:border-l dark:border-zinc-700 border-zinc-200"
+            className="fixed dark:bg-muted bg-background h-dvh flex flex-col md:border-l dark:border-zinc-700 border-zinc-200"
             initial={
               isMobile
                 ? {
@@ -449,7 +449,12 @@ function PureBlock({
               />
             </div>
 
-            <div className="dark:bg-muted bg-background h-full overflow-y-scroll !max-w-full items-center">
+            <div className={cn(
+                'dark:bg-muted bg-background h-full overflow-y-scroll !max-w-full pb-40 items-center',
+                {
+                  'py-2 px-2': block.kind === 'code',
+                  'py-8 md:p-20 px-4': block.kind === 'text',
+                })}>
               <blockDefinition.content
                 title={block.title}
                 content={
