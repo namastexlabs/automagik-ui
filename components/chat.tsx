@@ -218,7 +218,14 @@ export function Chat({
   }, [initialAgents, mutate]);
 
   useEffect(() => {
-    if (currentTab || agents.length === 0) {
+    if (agents.length === 0 || (!chat && tabs.length === 0)) {
+      return;
+    }
+    if (currentTab) {
+      if (!tabs.includes(currentTab)) {
+        setTab(null);
+      }
+
       return;
     }
     const hasAgentForChat =
