@@ -137,6 +137,8 @@ export function Chat({
 
   const onSubmit = useCallback(
     async (
+      content = input,
+      newAttachments: Array<Attachment> = attachments,
       currentAgent: string | null = currentTab,
       currentAgents = agents,
       currentTabs = tabs,
@@ -159,8 +161,8 @@ export function Chat({
         id: generateUUID(),
         createdAt: new Date(),
         role: 'user',
-        content: input,
-        experimental_attachments: attachments,
+        content,
+        experimental_attachments: newAttachments,
       };
 
       const data = await getOrCreateChat([...messages, message], currentAgent);
@@ -294,7 +296,6 @@ export function Chat({
         stop={stop}
         attachments={attachments}
         setAttachments={setAttachments}
-        append={append}
         messages={currentMessages}
         setMessages={setMessages}
         reload={reloadMessage}

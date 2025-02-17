@@ -1,6 +1,8 @@
-import type { Suggestion } from '@/lib/db/schema';
-import type { UseChatHelpers } from 'ai/react';
+import type { Attachment } from 'ai';
 import type { ComponentType, Dispatch, ReactNode, SetStateAction } from 'react';
+
+import type { Suggestion } from '@/lib/db/schema';
+import type { ClientAgent } from '@/lib/data';
 import type { DataStreamDelta } from './data-stream-handler';
 import type { UIBlock } from './block';
 
@@ -23,13 +25,27 @@ type BlockAction<M = any> = {
 };
 
 export type BlockToolbarContext = {
-  appendMessage: UseChatHelpers['append'];
+  handleSubmit: (
+    content?: string,
+    attachments?: Attachment[],
+    agentId?: string,
+    agents?: ClientAgent[],
+    tabs?: string[],
+  ) => void;
 };
 
 export type BlockToolbarItem = {
   description: string;
   icon: ReactNode;
-  onClick: (context: BlockToolbarContext) => void;
+  onClick: (context: {
+    handleSubmit: (
+      content?: string,
+      attachments?: Attachment[],
+      agentId?: string,
+      agents?: ClientAgent[],
+      tabs?: string[],
+    ) => void;
+  }) => void;
 };
 
 interface BlockContent<M = any> {

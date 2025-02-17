@@ -249,21 +249,15 @@ export const codeBlock = new Block<'code', Metadata>({
     {
       icon: <MessageIcon />,
       description: 'Add comments',
-      onClick: ({ appendMessage }) => {
-        appendMessage({
-          role: 'user',
-          content: 'Add comments to the code snippet for understanding',
-        });
+      onClick: ({ handleSubmit }) => {
+        handleSubmit('Add comments to the code snippet for understanding');
       },
     },
     {
       icon: <LogsIcon />,
       description: 'Add logs',
-      onClick: ({ appendMessage }) => {
-        appendMessage({
-          role: 'user',
-          content: 'Add logs to the code snippet for debugging',
-        });
+      onClick: ({ handleSubmit }) => {
+        handleSubmit('Add logs to the code snippet for debugging');
       },
     },
   ],

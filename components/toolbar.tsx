@@ -1,8 +1,10 @@
 'use client';
 
-import type { ChatRequestOptions, CreateMessage, Message } from 'ai';
+import type {
+  Attachment,
+  Message,
+} from 'ai';
 import cx from 'classnames';
-import type { UseChatHelpers } from 'ai/react';
 import {
   AnimatePresence,
   motion,
@@ -28,6 +30,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { sanitizeUIMessages } from '@/lib/utils';
+import type { ClientAgent } from '@/lib/data';
 
 import { ArrowUpIcon, StopIcon, SummarizeIcon } from './icons';
 import { blockDefinitions, type BlockKind } from './block';
@@ -41,14 +44,21 @@ type ToolProps = {
   isToolbarVisible?: boolean;
   setIsToolbarVisible?: Dispatch<SetStateAction<boolean>>;
   isAnimating: boolean;
-  append: (
-    message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
-  onClick: ({
-    appendMessage,
-  }: {
-    appendMessage: UseChatHelpers['append'];
+  handleSubmit: (
+    content?: string,
+    attachments?: Attachment[],
+    agentId?: string,
+    agents?: ClientAgent[],
+    tabs?: string[],
+  ) => void;
+  onClick: (context: {
+    handleSubmit: (
+      content?: string,
+      attachments?: Attachment[],
+      agentId?: string,
+      agents?: ClientAgent[],
+      tabs?: string[],
+    ) => void;
   }) => void;
 };
 
@@ -60,7 +70,7 @@ const Tool = ({
   isToolbarVisible,
   setIsToolbarVisible,
   isAnimating,
-  append,
+  handleSubmit,
   onClick,
 }: ToolProps) => {
   const [isHovered, setIsHovered] = useState(false);
@@ -87,7 +97,7 @@ const Tool = ({
       setSelectedTool(description);
     } else {
       setSelectedTool(null);
-      onClick({ appendMessage: append });
+      onClick({ handleSubmit });
     }
   };
 
@@ -140,15 +150,18 @@ const randomArr = [...Array(6)].map((x) => nanoid(5));
 
 const ReadingLevelSelector = ({
   setSelectedTool,
-  append,
+  handleSubmit,
   isAnimating,
 }: {
   setSelectedTool: Dispatch<SetStateAction<string | null>>;
   isAnimating: boolean;
-  append: (
-    message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
+  handleSubmit: (
+    content?: string,
+    attachments?: Attachment[],
+    agentId?: string,
+    agents?: ClientAgent[],
+    tabs?: string[],
+  ) => void;
 }) => {
   const LEVELS = [
     'Elementary',
@@ -222,11 +235,9 @@ const ReadingLevelSelector = ({
               }}
               onClick={() => {
                 if (currentLevel !== 2 && hasUserSelectedLevel) {
-                  append({
-                    role: 'user',
-                    content: `Please adjust the reading level to ${LEVELS[currentLevel]} level.`,
-                  });
-
+                  handleSubmit(
+                    `Please adjust the reading level to ${LEVELS[currentLevel]} level.`,
+                  );
                   setSelectedTool(null);
                 }
               }}
@@ -251,7 +262,7 @@ export const Tools = ({
   isToolbarVisible,
   selectedTool,
   setSelectedTool,
-  append,
+  handleSubmit,
   isAnimating,
   setIsToolbarVisible,
   tools,
@@ -259,10 +270,13 @@ export const Tools = ({
   isToolbarVisible: boolean;
   selectedTool: string | null;
   setSelectedTool: Dispatch<SetStateAction<string | null>>;
-  append: (
-    message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
+  handleSubmit: (
+    content?: string,
+    attachments?: Attachment[],
+    agentId?: string,
+    agents?: ClientAgent[],
+    tabs?: string[],
+  ) => void;
   isAnimating: boolean;
   setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
   tools: Array<BlockToolbarItem>;
@@ -285,7 +299,7 @@ export const Tools = ({
               icon={secondaryTool.icon}
               selectedTool={selectedTool}
               setSelectedTool={setSelectedTool}
-              append={append}
+              handleSubmit={handleSubmit}
               isAnimating={isAnimating}
               onClick={secondaryTool.onClick}
             />
@@ -299,7 +313,7 @@ export const Tools = ({
         setSelectedTool={setSelectedTool}
         isToolbarVisible={isToolbarVisible}
         setIsToolbarVisible={setIsToolbarVisible}
-        append={append}
+        handleSubmit={handleSubmit}
         isAnimating={isAnimating}
         onClick={primaryTool.onClick}
       />
@@ -310,7 +324,7 @@ export const Tools = ({
 const PureToolbar = ({
   isToolbarVisible,
   setIsToolbarVisible,
-  append,
+  handleSubmit,
   isLoading,
   stop,
   setMessages,
@@ -319,10 +333,13 @@ const PureToolbar = ({
   isToolbarVisible: boolean;
   setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
   isLoading: boolean;
-  append: (
-    message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
+  handleSubmit: (
+    content?: string,
+    attachments?: Attachment[],
+    agentId?: string,
+    agents?: ClientAgent[],
+    tabs?: string[],
+  ) => void;
   stop: () => void;
   setMessages: Dispatch<SetStateAction<Message[]>>;
   blockKind: BlockKind;
@@ -445,14 +462,14 @@ const PureToolbar = ({
         ) : selectedTool === 'adjust-reading-level' ? (
           <ReadingLevelSelector
             key="reading-level-selector"
-            append={append}
+            handleSubmit={handleSubmit}
             setSelectedTool={setSelectedTool}
             isAnimating={isAnimating}
           />
         ) : (
           <Tools
             key="tools"
-            append={append}
+            handleSubmit={handleSubmit}
             isAnimating={isAnimating}
             isToolbarVisible={isToolbarVisible}
             selectedTool={selectedTool}
@@ -470,6 +487,7 @@ export const Toolbar = memo(PureToolbar, (prevProps, nextProps) => {
   if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.isToolbarVisible !== nextProps.isToolbarVisible) return false;
   if (prevProps.blockKind !== nextProps.blockKind) return false;
+  if (prevProps.handleSubmit !== nextProps.handleSubmit) return false;
 
   return true;
 });

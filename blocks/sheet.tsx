@@ -93,22 +93,19 @@ export const sheetBlock = new Block<'sheet', Metadata>({
     {
       description: 'Format and clean data',
       icon: <SparklesIcon />,
-      onClick: ({ appendMessage }) => {
-        appendMessage({
-          role: 'user',
-          content: 'Can you please format and clean the data?',
-        });
+      onClick: ({ handleSubmit }) => {
+        handleSubmit(
+          'Please format and clean the data.',
+        );
       },
     },
     {
       description: 'Analyze and visualize data',
       icon: <LineChartIcon />,
-      onClick: ({ appendMessage }) => {
-        appendMessage({
-          role: 'user',
-          content:
-            'Can you please analyze and visualize the data by creating a new code block in python?',
-        });
+      onClick: ({ handleSubmit }) => {
+        handleSubmit(
+          'Can you please analyze and visualize the data by creating a new code block in python?',
+        );
       },
     },
   ],

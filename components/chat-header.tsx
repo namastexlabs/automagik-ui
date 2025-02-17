@@ -1,5 +1,7 @@
 'use client';
 
+import type { Attachment } from 'ai';
+
 import { ModelSelector } from '@/components/model-selector';
 import { SidebarToggle } from '@/components/sidebar-toggle';
 import { AgentTabs } from '@/components/agent-tabs';
@@ -39,9 +41,19 @@ export function ChatHeader({
   };
   onChangeProvider: (provider: string) => void;
   onChangeModelId: (modelId: string) => void;
-  changeAgentDialog: (isOpen: boolean, agentId?: string, isSubmitting?: boolean) => void;
+  changeAgentDialog: (
+    isOpen: boolean,
+    agentId?: string,
+    isSubmitting?: boolean,
+  ) => void;
   changeAgentListDialog: (isOpen: boolean) => void;
-  onSubmit: (agentId?: string, agents?: ClientAgent[], tabs?: string[]) => void;
+  onSubmit: (
+    content?: string,
+    attachments?: Attachment[],
+    agentId?: string,
+    agents?: ClientAgent[],
+    tabs?: string[],
+  ) => void;
 }) {
   const { visibilityType, setVisibilityType } = useChatVisibility({
     chatId,
