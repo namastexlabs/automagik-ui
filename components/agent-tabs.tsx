@@ -4,6 +4,7 @@ import { useCallback } from 'react';
 import { XIcon } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
+import type { Attachment } from 'ai';
 
 import { cn } from '@/lib/utils';
 import { Button, buttonVariants } from '@/components/ui/button';
@@ -41,7 +42,13 @@ export function AgentTabs({
     isOpen: boolean;
     isSubmitting: boolean;
   };
-  onSubmit: (agentId?: string, agents?: ClientAgent[], tabs?: string[]) => void;
+  onSubmit: (
+    content?: string,
+    attachments?: Attachment[],
+    agentId?: string,
+    agents?: ClientAgent[],
+    tabs?: string[],
+  ) => void;
 }) {
   const router = useRouter();
   const { open } = useSidebar();
@@ -62,7 +69,7 @@ export function AgentTabs({
   const onSaveAgent = useCallback(
     (agent: ClientAgent) => {
       if (agentDialog.isSubmitting) {
-        onSubmit(agent.id, [agent], [agent.id]);
+        onSubmit(undefined, undefined, agent.id, [agent], [agent.id]);
       }
 
       if (agents.length === 0) {
@@ -109,9 +116,9 @@ export function AgentTabs({
         </Button>
       )}
       <div className="flex order-4 items-center w-full overflow-x-auto">
-        {openAgents.length > 0 && (
-          <div className="flex px-3 py-1 gap-1.5 items-center max-w-[61vw]">
-            {openAgents.map((agent) => (
+        <div className="flex px-3 py-1 gap-1.5 items-center w-1">
+          {openAgents.length > 0 &&
+            openAgents.map((agent) => (
               <div
                 key={agent.id}
                 className={cn(
@@ -148,28 +155,27 @@ export function AgentTabs({
                 )}
               </div>
             ))}
-          </div>
-        )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              variant="ghost"
-              type="button"
-              className={`relative p-2 h-fit ${openAgents.length === 0 ? '' : 'ml-2'}`}
-              onClick={() => {
-                if (agents.length === 0) {
-                  changeAgentDialog(true);
-                } else {
-                  changeAgentListDialog(true);
-                }
-              }}
-            >
-              {agents.length === 0 && 'New Agent '}
-              <PlusIcon />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Add a new agent</TooltipContent>
-        </Tooltip>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                variant="ghost"
+                type="button"
+                className={`relative p-2 h-fit ${openAgents.length === 0 ? '' : 'ml-2'}`}
+                onClick={() => {
+                  if (agents.length === 0) {
+                    changeAgentDialog(true);
+                  } else {
+                    changeAgentListDialog(true);
+                  }
+                }}
+              >
+                {agents.length === 0 && 'New Agent '}
+                <PlusIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Add a new agent</TooltipContent>
+          </Tooltip>
+        </div>
         <AgentListDialog
           agents={agents}
           isAgentDialogOpen={agentDialog.isOpen}
