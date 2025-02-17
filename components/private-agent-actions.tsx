@@ -21,7 +21,7 @@ export function PrivateAgentActions({ openAgentDialog, setAgentDelete, agent }: 
           <Button
             type="button"
             variant="ghost"
-            className="size-8 p-1"
+            className="size-[48px] p-1"
             onClick={(e) => {
               e.stopPropagation();
               openAgentDialog(agent.id);
@@ -37,7 +37,7 @@ export function PrivateAgentActions({ openAgentDialog, setAgentDelete, agent }: 
           <Button
             type="button"
             variant="ghost"
-            className="hover:bg-destructive size-8 p-1"
+            className="hover:bg-destructive size-[48px] p-1"
             onClick={(e) => {
               e.stopPropagation();
               setAgentDelete(agent.id);

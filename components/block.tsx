@@ -1,9 +1,9 @@
 import type {
   Attachment,
   ChatRequestOptions,
-  CreateMessage,
   Message,
 } from 'ai';
+import equal from 'fast-deep-equal';
 import { formatDistance } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
@@ -16,8 +16,16 @@ import {
 } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useDebounceCallback, useWindowSize } from 'usehooks-ts';
+
 import type { Document, Vote } from '@/lib/db/schema';
 import { cn, fetcher } from '@/lib/utils';
+import { useBlock } from '@/hooks/use-block';
+import { textBlock } from '@/blocks/text';
+import { imageBlock } from '@/blocks/image';
+import { codeBlock } from '@/blocks/code';
+import { sheetBlock } from '@/blocks/sheet';
+import type { ClientAgent } from '@/lib/data';
+
 import { MultimodalInput } from './multimodal-input';
 import { Toolbar } from './toolbar';
 import { VersionFooter } from './version-footer';
@@ -25,12 +33,6 @@ import { BlockActions } from './block-actions';
 import { BlockCloseButton } from './block-close-button';
 import { BlockMessages } from './block-messages';
 import { useSidebar } from './ui/sidebar';
-import { useBlock } from '@/hooks/use-block';
-import { textBlock } from '@/blocks/text';
-import { imageBlock } from '@/blocks/image';
-import { codeBlock } from '@/blocks/code';
-import equal from 'fast-deep-equal';
-import { sheetBlock } from '@/blocks/sheet';
 
 export const blockDefinitions = [textBlock, codeBlock, imageBlock, sheetBlock];
 export type BlockKind = (typeof blockDefinitions)[number]['kind'];
@@ -59,7 +61,6 @@ function PureBlock({
   stop,
   attachments,
   setAttachments,
-  append,
   messages,
   setMessages,
   reload,
@@ -77,11 +78,13 @@ function PureBlock({
   messages: Array<Message>;
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
   votes: Array<Vote> | undefined;
-  append: (
-    message: Message | CreateMessage,
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
-  handleSubmit: () => void;
+  handleSubmit: (
+    content?: string,
+    attachments?: Attachment[],
+    agentId?: string,
+    agents?: ClientAgent[],
+    tabs?: string[],
+  ) => void;
   reload: (
     chatRequestOptions?: ChatRequestOptions,
   ) => Promise<string | null | undefined>;
@@ -450,7 +453,7 @@ function PureBlock({
             </div>
 
             <div className={cn(
-                'dark:bg-muted bg-background h-full overflow-y-scroll !max-w-full pb-40 items-center',
+                'dark:bg-muted bg-background h-full overflow-y-scroll !max-w-full items-center',
                 {
                   'py-2 px-2': block.kind === 'code',
                   'py-8 md:p-20 px-4': block.kind === 'text',
@@ -480,7 +483,7 @@ function PureBlock({
                   <Toolbar
                     isToolbarVisible={isToolbarVisible}
                     setIsToolbarVisible={setIsToolbarVisible}
-                    append={append}
+                    handleSubmit={handleSubmit}
                     isLoading={isLoading}
                     stop={stop}
                     setMessages={setMessages}
@@ -511,6 +514,7 @@ export const Block = memo(PureBlock, (prevProps, nextProps) => {
   if (!equal(prevProps.votes, nextProps.votes)) return false;
   if (prevProps.input !== nextProps.input) return false;
   if (!equal(prevProps.messages, nextProps.messages.length)) return false;
+  if (prevProps.handleSubmit !== nextProps.handleSubmit) return false;
 
   return true;
 });

@@ -193,7 +193,7 @@ export function AgentListDialog({
             Select agents to chat with or create a new one
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-3 pt-3 max-h-[40vh] overflow-y-auto">
+        <div className="flex flex-col gap-[12px] pt-[12px] max-h-[40vh] overflow-y-auto">
           {sortedAgents.map((agent) => (
             // biome-ignore lint/a11y/useKeyWithClickEvents: This is already interactive with the checkbox
             // biome-ignore lint/nursery/noStaticElementInteractions: This is already interactive with the checkbox
@@ -211,7 +211,7 @@ export function AgentListDialog({
                   checked={tabs.includes(agent.id)}
                   className="size-6"
                 />
-                <Label className="w-80 truncate cursor-pointer">
+                <Label className="w-[280px] truncate cursor-pointer">
                   {agent.name}
                 </Label>
               </div>
@@ -227,7 +227,7 @@ export function AgentListDialog({
                     <Button
                       type="button"
                       variant="ghost"
-                      className="size-8 p-1"
+                      className="size-[48px] p-1"
                       disabled={isDuplicatingAgent}
                       onClick={(e) => {
                         e.stopPropagation();

@@ -155,23 +155,19 @@ export const textBlock = new Block<'text', TextBlockMetadata>({
     {
       icon: <PenIcon />,
       description: 'Add final polish',
-      onClick: ({ appendMessage }) => {
-        appendMessage({
-          role: 'user',
-          content:
+      onClick: ({ handleSubmit }) => {
+        handleSubmit(
             'Please add final polish and check for grammar, add section titles for better structure, and ensure everything reads smoothly.',
-        });
+        );
       },
     },
     {
       icon: <MessageIcon />,
       description: 'Request suggestions',
-      onClick: ({ appendMessage }) => {
-        appendMessage({
-          role: 'user',
-          content:
+      onClick: ({ handleSubmit }) => {
+        handleSubmit(
             'Please add suggestions you have that could improve the writing.',
-        });
+        );
       },
     },
   ],

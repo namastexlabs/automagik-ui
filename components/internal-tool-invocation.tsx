@@ -87,10 +87,12 @@ export function ToolInvocation<T extends InternalToolName>({
       requestSuggestions: (toolInvocation) =>
         renderBlockToolInvocation('request-suggestions', toolInvocation),
       saveMemories: (toolInvocation) => (
-        <div className="flex text-sm leading-relaxed">
-          <Bookmark className="mr-1" size={24} />
-          <span className="mr-3 font-bold">Updated Memories</span>
-          <span className="flex gap-1">
+        <div className="flex text-sm leading-relaxed max-w-3xl gap-1 flex-wrap">
+          <div className="flex items-center mb-1">
+            <Bookmark className="mr-1" size={24} />
+            <span className="mr-3 font-bold">Updated Memories</span>
+          </div>
+          <span className="flex gap-1 flex-wrap">
             {getResult<InternalToolName.saveMemories>(
               toolInvocation,
             )?.result.map(({ name }) => (
@@ -102,27 +104,27 @@ export function ToolInvocation<T extends InternalToolName>({
         </div>
       ),
       syncFlow: () => (
-        <div className="flex text-lg leading-relaxed">
+        <div className="flex text-lg leading-relaxed  max-w-3xl">
           <Badge variant="secondary" className="text-md">syncFlow Called</Badge>
         </div>
       ),
       listFlows: () => (
-        <div className="flex leading-relaxed">
+        <div className="flex leading-relaxed max-w-3xl">
           <Badge variant="secondary" className="text-md">listFlows Called</Badge>
         </div>
       ),
       listLangflowFlows: () => (
-        <div className="flex text-lg leading-relaxed">
+        <div className="flex text-lg leading-relaxed max-w-3xl">
           <Badge variant="secondary" className="text-md">listLangflowFlows Called</Badge>
         </div>
       ),
       scheduleFlow: () => (
-        <div className="flex text-lg leading-relaxed">
+        <div className="flex text-lg leading-relaxed max-w-3xl">
           <Badge variant="secondary" className="text-md">scheduleFlow Called</Badge>
         </div>
       ),
       listTasks: () => (
-        <div className="flex text-lg leading-relaxed">
+        <div className="flex text-lg leading-relaxed max-w-3xl">
           <Badge variant="secondary" className="text-md">listTasks Called</Badge>
         </div>
       ),
