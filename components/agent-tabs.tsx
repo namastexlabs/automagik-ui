@@ -56,9 +56,7 @@ export function AgentTabs({
   const { tabs, addTab, removeTab } = useAgentTabs();
   const { currentTab, setTab } = useCurrentAgentTab();
 
-  const openAgents = agents
-    .filter((agent) => tabs.includes(agent.id))
-    .toSorted((a, b) => tabs.indexOf(a.id) - tabs.indexOf(b.id));
+  const openAgents = agents.filter((agent) => tabs.includes(agent.id));
 
   const handleOpenAgentDialog = useCallback(
     (open: boolean, agentId?: string) =>
@@ -88,14 +86,14 @@ export function AgentTabs({
 
   const handleRemoveTab = (agentId: string) => {
     const currentIndex = tabs.indexOf(agentId);
-    if (currentIndex === 0) {
-      router.push('/');
-      setTab(null);
-    } else if (agentId === currentTab) {
-      setTab(tabs[currentIndex - 1]);
-    }
-
     removeTab(agentId);
+    if (agentId === currentTab) {
+      router.push('/');
+
+      if (tabs.length > 1) {
+        setTab(tabs[currentIndex === 0 ? 1 : currentIndex - 1]);
+      }
+    }
   };
 
   const selectedStyle = (id: string) =>

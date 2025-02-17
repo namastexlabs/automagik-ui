@@ -99,11 +99,13 @@ export function AgentListDialog({
     toast.promise(deleteAgent({ id: agentId }), {
       loading: 'Deleting agent...',
       success: () => {
+        const currentIndex = tabs.indexOf(agentId);
+        removeTab(agentId);
         if (agentId === currentTab) {
-          if (tabs.length === 1) {
-            setTab(null);
-          } else {
-            setTab(tabs[0] || null);
+          router.push('/');
+    
+          if (tabs.length > 1) {
+            setTab(tabs[currentIndex === 0 ? 1 : currentIndex - 1]);
           }
         }
 
@@ -162,7 +164,8 @@ export function AgentListDialog({
   };
 
   const handleCheckboxChange = (agentId: string, isChecked: boolean) => {
-    if (isChecked && tabs.length === 0) {
+    console.log(isChecked, currentTab, tabs);
+    if (isChecked && (!currentTab || !tabs.includes(currentTab))) {
       setTab(agentId);
     }
 

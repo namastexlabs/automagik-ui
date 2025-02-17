@@ -2,6 +2,7 @@
 
 import { useMemo, useState } from 'react';
 import { useLocalStorage } from 'usehooks-ts';
+import useSWR from 'swr';
 
 import {
   AgentTabsContext,
@@ -10,11 +11,20 @@ import {
   type AgentTabsContextValue,
 } from '@/contexts/agent-tabs';
 import { resetTabCookie, setTabCookie } from '@/lib/agents/cookies';
+import type { ClientAgent } from '@/lib/data';
+import { fetcher } from '@/lib/utils';
 
 export function AgentTabsProvider({
   children,
   initialTab,
-}: { children: React.ReactNode; initialTab?: string }) {
+}: {
+  children: React.ReactNode;
+  initialTab?: string;
+}) {
+  const { data: agents = [] } = useSWR<ClientAgent[]>('/api/agents', fetcher, {
+    revalidateOnMount: false,
+  });
+
   const [tabs, setTabs] = useLocalStorage<string[]>('agent-tabs', [], {
     initializeWithValue: false,
   });
@@ -35,10 +45,19 @@ export function AgentTabsProvider({
     [currentTab],
   );
 
+  const openTabs = useMemo(
+    () =>
+      tabs
+        .filter((tab) => agents.some((a) => a.id === tab))
+        .toSorted((a, b) => tabs.indexOf(a) - tabs.indexOf(b)),
+    [agents, tabs],
+  );
+
   const tabsContext = useMemo(
     (): AgentTabsContextValue => ({
-      tabs,
-      addTab: (tab: string) => setTabs((state) => [...state, tab]),
+      tabs: openTabs,
+      addTab: (tab: string) =>
+        setTabs((state) => Array.from(new Set([...state, tab]))),
       removeTab: (tab: string) =>
         setTabs((state) => state.filter((t) => t !== tab)),
       toggleTab: (tab: string) =>
@@ -50,7 +69,7 @@ export function AgentTabsProvider({
           }
         }),
     }),
-    [tabs, setTabs],
+    [openTabs, setTabs],
   );
 
   return (

@@ -241,6 +241,7 @@ function PureMultimodalInput({
 export const MultimodalInput = memo(
   PureMultimodalInput,
   (prevProps, nextProps) => {
+    if (prevProps.handleSubmit !== nextProps.handleSubmit) return false;
     if (prevProps.input !== nextProps.input) return false;
     if (prevProps.isLoading !== nextProps.isLoading) return false;
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
