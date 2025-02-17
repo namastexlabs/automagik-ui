@@ -82,7 +82,7 @@ export const textBlock = new Block<'text', TextBlockMetadata>({
 
     return (
       <>
-        <div className="flex flex-row py-8 md:p-20 px-4">
+        <div className="flex flex-row">
           <Editor
             content={content}
             suggestions={metadata ? metadata.suggestions : []}

@@ -1,10 +1,10 @@
 import React, { useMemo, useState } from 'react';
-import { EditIcon, PlusIcon, TrashIcon } from 'lucide-react';
+import { CopyPlus, PlusIcon } from 'lucide-react';
 import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useSWRConfig } from 'swr';
 
-import { deleteAgent } from '@/app/(chat)/actions';
+import { deleteAgent, duplicateAgent } from '@/app/(chat)/actions';
 import {
   Tooltip,
   TooltipTrigger,
@@ -35,6 +35,8 @@ import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { useUser } from '@/contexts/user';
 import type { ClientAgent } from '@/lib/data';
 
+import { PrivateAgentActions } from './private-agent-actions';
+
 export function AgentListDialog({
   agents,
   openAgentDialog,
@@ -48,6 +50,7 @@ export function AgentListDialog({
   openAgentListDialog: (isOpen: boolean) => void;
   isOpenAgentListDialog: boolean;
 }) {
+  const [isDuplicatingAgent, setIsDuplicatingAgent] = useState(false);
   const [agentDelete, setAgentDelete] = useState<string | null>(null);
   const router = useRouter();
   const { mutate } = useSWRConfig();
@@ -123,6 +126,41 @@ export function AgentListDialog({
     });
   };
 
+  const handleDuplicate = (agentId: string) => {
+    toast.promise(async () => {
+      setIsDuplicatingAgent(true);
+      try {
+        const { status, data } = await duplicateAgent({ id: agentId });
+
+        if (status === 'failed') {
+          throw new Error('Failed to duplicate agent');
+        }
+
+        if (status === 'exists') {
+          throw new Error('Agent with the same name already exists');
+        }
+
+        return data;
+      } finally {
+        setIsDuplicatingAgent(false);
+      }
+    }, {
+      loading: 'Duplicating agent...',
+      success: (data) => {
+        if (data) {
+          mutate('/api/agents', (agents: ClientAgent[] = []) => [
+            ...agents,
+            data,
+          ]);
+        }
+        return 'Agent duplicated successfully';
+      },
+      error: (error) => {
+        return String(error.message);
+      },
+    });
+  };
+
   const handleCheckboxChange = (agentId: string, isChecked: boolean) => {
     if (isChecked && tabs.length === 0) {
       setTab(agentId);
@@ -138,6 +176,11 @@ export function AgentListDialog({
       onOpenChange={(open) => {
         if (!open && isAgentDialogOpen) {
           return;
+        }
+
+        if (!open && currentTab && !tabs.includes(currentTab)) {
+          router.push('/');
+          setTab(tabs[0] || null);
         }
 
         openAgentListDialog(open);
@@ -172,41 +215,30 @@ export function AgentListDialog({
                   {agent.name}
                 </Label>
               </div>
-              {agent.userId === user.id && (
-                <div className="flex item-center space-x-2">
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="size-8 p-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          openAgentDialog(agent.id);
-                        }}
-                      >
-                        <EditIcon />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Edit Agent</TooltipContent>
-                  </Tooltip>
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        className="hover:bg-destructive size-8 p-1"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          setAgentDelete(agent.id);
-                        }}
-                      >
-                        <TrashIcon />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Delete Agent</TooltipContent>
-                  </Tooltip>
-                </div>
+              {agent.userId === user.id ? (
+                <PrivateAgentActions
+                  openAgentDialog={openAgentDialog}
+                  setAgentDelete={setAgentDelete}
+                  agent={agent}
+                />
+              ) : (
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      className="size-8 p-1"
+                      disabled={isDuplicatingAgent}
+                      onClick={(e) => {
+                        e.stopPropagation();
+                        handleDuplicate(agent.id);
+                      }}
+                    >
+                      <CopyPlus />
+                    </Button>
+                  </TooltipTrigger>
+                  <TooltipContent>Duplicate Agent</TooltipContent>
+                </Tooltip>
               )}
             </div>
           ))}

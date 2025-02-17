@@ -27,7 +27,7 @@ export const createDocumentTool = createToolDefinition({
     kind: z.enum(['text', 'code', 'image', 'sheet']),
   }),
   execute: async ({ title, kind }, context): Promise<DocumentExecuteReturn> => {
-    const { dataStream, userId } = context;
+    const { dataStream, userId, chat, agent } = context;
     const id = generateUUID();
     let draftText = '';
 
@@ -61,8 +61,10 @@ export const createDocumentTool = createToolDefinition({
           isEnabled: true,
           functionId: 'create-document-text',
           metadata: {
-            userId,
-            documentId: id,
+            user_id: userId,
+            document_id: id,
+            thread_id: chat.id,
+            agent_id: agent.id,
           },
         }
       });
@@ -94,8 +96,10 @@ export const createDocumentTool = createToolDefinition({
           isEnabled: true,
           functionId: 'create-document-code',
           metadata: {
-            userId,
-            documentId: id,
+            user_id: userId,
+            document_id: id,
+            thread_id: chat.id,
+            agent_id: agent.id,
           },
         }
       });
@@ -146,8 +150,10 @@ export const createDocumentTool = createToolDefinition({
           isEnabled: true,
           functionId: 'create-document-sheet',
           metadata: {
-            userId,
-            documentId: id,
+            user_id: userId,
+            document_id: id,
+            thread_id: chat.id,
+            agent_id: agent.id,
           },
         }
       });

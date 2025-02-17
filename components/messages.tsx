@@ -36,14 +36,10 @@ function PureMessages({
   isReadonly,
   hasError,
 }: MessagesProps) {
-  const [messagesContainerRef, messagesEndRef] =
-    useScrollToBottom<HTMLDivElement>();
+  const messagesEndRef = useScrollToBottom<HTMLDivElement>(messages);
 
   return (
-    <div
-      ref={messagesContainerRef}
-      className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4"
-    >
+    <div className="flex flex-col min-w-0 gap-6 flex-1 overflow-y-scroll pt-4">
       {messages.length === 0 && <Overview />}
 
       {messages.map((message, index) => (
@@ -69,13 +65,13 @@ function PureMessages({
 
       {hasError && (
         <div className="mx-auto max-w-3xl w-full">
-        <Alert variant="destructive" className="ml-4 w-max">
-          <AlertCircle className="size-5" />
-          <AlertTitle>Error</AlertTitle>
-          <AlertDescription>
-            Something went wrong, edit the last message or send a new one
-          </AlertDescription>
-        </Alert>
+          <Alert variant="destructive" className="ml-4 w-max">
+            <AlertCircle className="size-5" />
+            <AlertTitle>Error</AlertTitle>
+            <AlertDescription>
+              Something went wrong, edit the last message or send a new one
+            </AlertDescription>
+          </Alert>
         </div>
       )}
       <div

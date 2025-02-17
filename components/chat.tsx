@@ -3,7 +3,7 @@
 import type { Attachment, Message } from 'ai';
 import { useChat } from 'ai/react';
 import { useCallback, useEffect, useState } from 'react';
-import useSWR, { SWRConfig, useSWRConfig } from 'swr';
+import useSWR, { useSWRConfig } from 'swr';
 import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 
@@ -70,7 +70,6 @@ export function Chat({
   const [selectedProvider, setProvider] = useState(provider);
   const [selectedModelId, setModelId] = useState(modelId);
   const { data: agents = [] } = useSWR<ClientAgent[]>('/api/agents', fetcher, {
-    fallbackData: initialAgents,
     revalidateOnMount: false,
   });
 
@@ -209,16 +208,24 @@ export function Chat({
   );
 
   useEffect(() => {
-    if (currentTab) {
+    if (initialAgents.length > 0) {
+      mutate('/api/agents', initialAgents, {
+        revalidate: false,
+      });
+    }
+  }, [initialAgents, mutate]);
+
+  useEffect(() => {
+    if (currentTab || agents.length === 0) {
       return;
     }
-
     const hasAgentForChat =
       !!id && agents.some((agent) => agent.id === chat?.agentId);
-    if (chat?.agentId && hasAgentForChat && id === chat.id) {
-      if (tabs.includes(chat.agentId)) {
-        setTab(chat.agentId);
+    if (chat && hasAgentForChat) {
+      if (!tabs.includes(chat.agentId)) {
+        addTab(chat.agentId);
       }
+      setTab(chat.agentId);
     } else {
       router.push('/');
       setTab(tabs[0] || null);
@@ -226,13 +233,16 @@ export function Chat({
   }, [tabs, router, currentTab, setTab, addTab, chat, id, agents]);
 
   const isAssistantFirstMessageMissing =
-    !!chat && !isLoading && messages.length === 1 && messages[0]?.role === 'user';
+    !!chat &&
+    !isLoading &&
+    messages.length === 1 &&
+    messages[0]?.role === 'user';
   const currentMessages = shouldRemoveLastMessage
     ? messages.slice(0, -1)
     : messages;
 
   return (
-    <SWRConfig value={{ fallback: { '/api/agents': agents } }}>
+    <>
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
           agents={agents}
@@ -290,7 +300,8 @@ export function Chat({
         reload={reloadMessage}
         votes={votes}
         isReadonly={isReadonly}
+        hasError={!!error || isAssistantFirstMessageMissing}
       />
-    </SWRConfig>
+    </>
   );
 }

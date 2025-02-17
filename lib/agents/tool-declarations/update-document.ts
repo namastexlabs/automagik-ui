@@ -31,7 +31,7 @@ export const updateDocumentTool = createToolDefinition({
     { id, description },
     context,
   ): Promise<DocumentExecuteReturn> => {
-    const { dataStream, userId } = context;
+    const { dataStream, userId, agent, chat } = context;
     const document = await getDocumentById({ id });
 
     if (!document) {
@@ -66,8 +66,10 @@ export const updateDocumentTool = createToolDefinition({
           isEnabled: true,
           functionId: 'update-document-text',
           metadata: {
-            userId,
-            documentId: id,
+            user_id: userId,
+            document_id: id,
+            thread_id: chat.id,
+            agent_id: agent.id,
           },
         }
       });
@@ -99,8 +101,10 @@ export const updateDocumentTool = createToolDefinition({
           isEnabled: true,
           functionId: 'update-document-code',
           metadata: {
-            userId,
-            documentId: id,
+            user_id: userId,
+            document_id: id,
+            thread_id: chat.id,
+            agent_id: agent.id,
           },
         }
       });
@@ -151,8 +155,10 @@ export const updateDocumentTool = createToolDefinition({
           isEnabled: true,
           functionId: 'update-document-sheet',
           metadata: {
-            userId,
-            documentId: id,
+            user_id: userId,
+            document_id: id,
+            thread_id: chat.id,
+            agent_id: agent.id,
           },
         }
       });

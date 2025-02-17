@@ -31,7 +31,7 @@ import {
 import { toCoreTools } from '@/lib/agents/tool';
 import { insertDynamicBlocksIntoPrompt } from '@/lib/agents/dynamic-blocks.server';
 
-export const maxDuration = 60;
+export const maxDuration = 300;
 
 export async function POST(request: Request) {
   const {
@@ -104,6 +104,7 @@ export async function POST(request: Request) {
             userId: session.user!.id!,
             dataStream,
             agent,
+            chat,
           })
         : undefined;
 
@@ -157,7 +158,9 @@ export async function POST(request: Request) {
           functionId: 'stream-text',
           metadata: {
             // biome-ignore lint/style/noNonNullAssertion: <explanation>
-            userId: session.user?.id!,
+            user_id: session.user?.id!,
+            thread_id: chat.id,
+            agent_id: agent.id,
           },
         },
       });
