@@ -40,7 +40,7 @@ const components: Partial<Components> = {
     return (
       // @ts-expect-error
       <Link
-        className="text-blue-500 hover:underline"
+        className="text-blue-500 hover:underline break-words"
         target="_blank"
         rel="noreferrer"
         {...props}
@@ -91,13 +91,22 @@ const components: Partial<Components> = {
       </h6>
     );
   },
+  table: ({ children }) => {
+    return (
+      <div className="overflow-x-auto">
+        <table className="min-w-full border-collapse">
+          {children}
+        </table>
+      </div>
+    );
+  },
 };
 
 const remarkPlugins = [remarkGfm];
 
 const NonMemoizedMarkdown = ({ children }: { children: string }) => {
   return (
-    <ReactMarkdown remarkPlugins={remarkPlugins} components={components}>
+    <ReactMarkdown disallowedElements={['img']} remarkPlugins={remarkPlugins} components={components}>
       {children}
     </ReactMarkdown>
   );

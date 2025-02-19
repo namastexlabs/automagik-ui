@@ -56,6 +56,7 @@ export function ToolInvocation<T extends InternalToolName>({
             isReadonly={isReadonly}
             args={toolInvocation.args}
             result={getResult<BlockToolName>(toolInvocation)}
+            type={kind}
           />
         );
       }

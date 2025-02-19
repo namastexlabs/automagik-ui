@@ -41,7 +41,7 @@ function PureBlockMessages({
   const messagesEndRef = useScrollToBottom<HTMLDivElement>(messages);
 
   return (
-    <div className="flex flex-col gap-4 h-full items-center overflow-y-scroll px-4 pt-20">
+    <div className="flex flex-col max-w-full gap-4 h-full items-center overflow-y-scroll px-4 pt-20">
       {messages.map((message, index) => (
         <PreviewMessage
           chatId={chatId}
@@ -60,7 +60,7 @@ function PureBlockMessages({
       ))}
 
       {hasError && (
-        <div className="mx-auto px-4 max-w-3xl w-full">
+        <div className="mx-auto px-4 max-w-sm w-full">
           <Alert variant="destructive">
             <AlertCircle className="size-5" />
             <AlertTitle>Error</AlertTitle>

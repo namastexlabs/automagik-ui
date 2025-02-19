@@ -34,7 +34,7 @@ const visibilities: Array<{
   {
     id: 'public',
     label: 'Public',
-    description: 'Anyone with the link can access',
+    description: 'Anyone signed up can access',
     icon: <GlobeIcon />,
   },
 ];
