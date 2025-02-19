@@ -26,11 +26,13 @@ interface DocumentPreviewProps {
   isReadonly: boolean;
   result?: any;
   args?: any;
+  type: 'create' | 'update' | 'request-suggestions';
 }
 
 export function DocumentPreview({
   isReadonly,
   result,
+  type,
   args,
 }: DocumentPreviewProps) {
   const { block, setBlock } = useBlock();
@@ -61,9 +63,9 @@ export function DocumentPreview({
     if (result) {
       return (
         <DocumentToolResult
-          type="create"
           result={{ id: result.id, title: result.title, kind: result.kind }}
           isReadonly={isReadonly}
+          type={type}
         />
       );
     }
@@ -71,7 +73,7 @@ export function DocumentPreview({
     if (args) {
       return (
         <DocumentToolCall
-          type="create"
+          type={type}
           args={{ title: args.title }}
           isReadonly={isReadonly}
         />
