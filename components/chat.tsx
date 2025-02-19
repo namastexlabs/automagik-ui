@@ -62,7 +62,7 @@ export function Chat({
   } = useChat({
     id: chat?.id,
     initialMessages,
-    experimental_throttle: 100,
+    experimental_throttle: 50,
     sendExtraMessageFields: true,
   });
 
@@ -132,8 +132,14 @@ export function Chat({
     });
   }, [reload, chat?.id, selectedModelId, selectedProvider]);
 
+  // Really weird error when a stream overflows or something like that
+  const isStreamInputError =
+    !!error &&
+    error?.message.toLocaleLowerCase().includes('error in input stream');
+
+  const hasError = !!error && !isStreamInputError
   const shouldRemoveLastMessage =
-    !!error && messages.at(-1)?.role === 'assistant';
+  hasError && messages.at(-1)?.role === 'assistant';
 
   const onSubmit = useCallback(
     async (
@@ -277,7 +283,7 @@ export function Chat({
           setMessages={setMessages}
           reload={reloadMessage}
           isReadonly={isReadonly}
-          hasError={!!error || isAssistantFirstMessageMissing}
+          hasError={hasError || isAssistantFirstMessageMissing}
         />
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
           {!isReadonly && (
@@ -308,7 +314,7 @@ export function Chat({
         reload={reloadMessage}
         votes={votes}
         isReadonly={isReadonly}
-        hasError={!!error || isAssistantFirstMessageMissing}
+        hasError={hasError || isAssistantFirstMessageMissing}
       />
     </>
   );

@@ -4,6 +4,7 @@ import {
   convertToCoreMessages,
   smoothStream,
   streamText,
+  generateText,
 } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
@@ -39,8 +40,12 @@ export async function POST(request: Request) {
     messages,
     provider,
     modelId,
-  }: { id: string; messages: Array<Message>; provider: string; modelId: string } =
-    await request.json();
+  }: {
+    id: string;
+    messages: Array<Message>;
+    provider: string;
+    modelId: string;
+  } = await request.json();
 
   if (!isModelValid(provider, modelId)) {
     return new Response('Model not found', { status: 404 });
@@ -58,10 +63,11 @@ export async function POST(request: Request) {
   if (!session || !session.user || !session.user.id) {
     return new Response('Unauthorized', { status: 401 });
   }
+  const userId = session.user.id;
 
   const chat = await getChatById({ id });
 
-  if (!chat || chat.userId !== session.user.id) {
+  if (!chat || chat.userId !== userId) {
     return new Response('Chat not found', { status: 404 });
   }
 
@@ -90,7 +96,6 @@ export async function POST(request: Request) {
     ],
   });
   const agentTools = agent.tools.map(({ tool }) => tool);
-
   const formattedSystemPrompt = insertDynamicBlocksIntoPrompt(
     agent.systemPrompt,
     agent.dynamicBlocks.map(({ dynamicBlock }) => dynamicBlock),
@@ -98,25 +103,26 @@ export async function POST(request: Request) {
 
   return createDataStreamResponse({
     execute: (dataStream) => {
-      const coreTools = isToolsAllowed(modelData)
+      const tools = isToolsAllowed(modelData)
         ? toCoreTools(agentTools, {
-            // biome-ignore lint/style/noNonNullAssertion: <explanation>
-            userId: session.user!.id!,
+            userId,
             dataStream,
             agent,
             chat,
           })
         : undefined;
 
+      const model = getModel(
+        provider as keyof ChatModel,
+        modelId as keyof ChatModel[keyof ChatModel],
+      );
+      const system = formattedSystemPrompt;
       const result = streamText({
-        model: getModel(
-          provider as keyof ChatModel,
-          modelId as keyof ChatModel[keyof ChatModel],
-        ),
-        system: formattedSystemPrompt,
+        model,
+        system,
         messages: coreMessages,
         maxSteps: 5,
-        tools: coreTools,
+        tools,
         experimental_transform: smoothStream({ chunking: 'word' }),
         onFinish: async ({ response, reasoning, finishReason }) => {
           if (session.user?.id && finishReason !== 'error') {
@@ -153,12 +159,64 @@ export async function POST(request: Request) {
             }
           }
         },
+        experimental_repairToolCall: async ({ toolCall, tools, error }) => {
+          const result = await generateText({
+            model,
+            system,
+            tools,
+            experimental_telemetry: {
+              isEnabled: true,
+              functionId: 'tool-repair',
+              metadata: {
+                user_id: userId,
+                thread_id: chat.id,
+                agent_id: agent.id,
+              },
+            },
+            messages: [
+              ...coreMessages,
+              {
+                role: 'assistant',
+                content: [
+                  {
+                    type: 'tool-call',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    args: JSON.parse(toolCall.args),
+                  },
+                ],
+              },
+              {
+                role: 'tool',
+                content: [
+                  {
+                    type: 'tool-result',
+                    toolCallId: toolCall.toolCallId,
+                    toolName: toolCall.toolName,
+                    result: `Something went wrong, the assistant should fix this tool call. \n${error.message}`,
+                  },
+                ],
+              },
+            ],
+          });
+          const newToolCall = result.toolCalls.findLast(
+            (newToolCall) => newToolCall.toolName === toolCall.toolName,
+          );
+
+          return newToolCall !== undefined
+            ? {
+                toolCallType: 'function',
+                toolCallId: toolCall.toolCallId,
+                toolName: toolCall.toolName,
+                args: JSON.stringify(newToolCall.args),
+              }
+            : null;
+        },
         experimental_telemetry: {
           isEnabled: true,
           functionId: 'stream-text',
           metadata: {
-            // biome-ignore lint/style/noNonNullAssertion: <explanation>
-            user_id: session.user?.id!,
+            user_id: userId,
             thread_id: chat.id,
             agent_id: agent.id,
           },
