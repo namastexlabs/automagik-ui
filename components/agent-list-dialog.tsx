@@ -164,7 +164,6 @@ export function AgentListDialog({
   };
 
   const handleCheckboxChange = (agentId: string, isChecked: boolean) => {
-    console.log(isChecked, currentTab, tabs);
     if (isChecked && (!currentTab || !tabs.includes(currentTab))) {
       setTab(agentId);
     }

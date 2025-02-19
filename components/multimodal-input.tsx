@@ -14,6 +14,7 @@ import {
   memo,
 } from 'react';
 import { toast } from 'sonner';
+import equal from 'fast-deep-equal';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 
 import { sanitizeUIMessages } from '@/lib/utils';
@@ -22,7 +23,6 @@ import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import equal from 'fast-deep-equal';
 
 function PureMultimodalInput({
   input,
@@ -34,6 +34,7 @@ function PureMultimodalInput({
   setMessages,
   handleSubmit,
   className,
+  chatId,
 }: {
   input: string;
   setInput: (value: string) => void;
@@ -44,6 +45,7 @@ function PureMultimodalInput({
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
   handleSubmit: () => void;
   className?: string;
+  chatId?: string;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -111,9 +113,10 @@ function PureMultimodalInput({
     }
   }, [handleSubmit, setLocalStorageInput, width, input]);
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: File, chatId?: string) => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.set('chatId', chatId || '');
 
     try {
       const response = await fetch('/api/files/upload', {
@@ -123,13 +126,7 @@ function PureMultimodalInput({
 
       if (response.ok) {
         const data = await response.json();
-        const { url, pathname, contentType } = data;
-
-        return {
-          url,
-          name: pathname,
-          contentType: contentType,
-        };
+        return data;
       }
       const { error } = await response.json();
       toast.error(error);
@@ -145,7 +142,7 @@ function PureMultimodalInput({
       setUploadQueue(files.map((file) => file.name));
 
       try {
-        const uploadPromises = files.map((file) => uploadFile(file));
+        const uploadPromises = files.map((file) => uploadFile(file, chatId));
         const uploadedAttachments = await Promise.all(uploadPromises);
         const successfullyUploadedAttachments = uploadedAttachments.filter(
           (attachment) => attachment !== undefined,
@@ -161,7 +158,7 @@ function PureMultimodalInput({
         setUploadQueue([]);
       }
     },
-    [setAttachments],
+    [setAttachments, chatId],
   );
 
   return (
@@ -171,6 +168,7 @@ function PureMultimodalInput({
         className="fixed -top-4 -left-4 size-0.5 opacity-0 pointer-events-none"
         ref={fileInputRef}
         multiple
+        accept=".jpeg, .png"
         onChange={handleFileChange}
         tabIndex={-1}
       />
@@ -245,6 +243,7 @@ export const MultimodalInput = memo(
     if (prevProps.input !== nextProps.input) return false;
     if (prevProps.isLoading !== nextProps.isLoading) return false;
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
+    if (prevProps.chatId !== nextProps.chatId) return false;
 
     return true;
   },

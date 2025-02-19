@@ -190,6 +190,7 @@ export function Chat({
           modelId: selectedModelId,
           provider: selectedProvider,
         },
+        experimental_attachments: newAttachments,
       });
 
       if (!chat) {
@@ -214,6 +215,10 @@ export function Chat({
       router,
     ],
   );
+
+  useEffect(() => {
+    setAttachments([]);
+  }, [chat]);
 
   useEffect(() => {
     if (initialAgents.length > 0) {
@@ -289,6 +294,7 @@ export function Chat({
           {!isReadonly && (
             <MultimodalInput
               input={input}
+              chatId={chat?.id}
               setInput={setInput}
               handleSubmit={onSubmit}
               isLoading={isLoading || isCreatingChat}

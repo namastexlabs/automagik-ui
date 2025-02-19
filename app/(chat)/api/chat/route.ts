@@ -31,6 +31,7 @@ import {
 } from '@/lib/utils';
 import { toCoreTools } from '@/lib/agents/tool';
 import { insertDynamicBlocksIntoPrompt } from '@/lib/agents/dynamic-blocks.server';
+import { convertCoreMessageAttachments } from '@/lib/utils.server';
 
 export const maxDuration = 300;
 
@@ -84,10 +85,15 @@ export async function POST(request: Request) {
     return new Response('No user message found', { status: 400 });
   }
 
+  const userMessageWithAttachments = await convertCoreMessageAttachments(
+    userMessage,
+    chat.id,
+  );
+
   await saveMessages({
     messages: [
       {
-        ...userMessage,
+        ...userMessageWithAttachments,
         // biome-ignore lint/style/noNonNullAssertion: Checked userMessasge
         id: messages.at(-1)!.id,
         createdAt: new Date(),
@@ -120,7 +126,7 @@ export async function POST(request: Request) {
       const result = streamText({
         model,
         system,
-        messages: coreMessages,
+        messages: [...coreMessages.slice(0, -1), userMessageWithAttachments],
         maxSteps: 5,
         tools,
         experimental_transform: smoothStream({ chunking: 'word' }),

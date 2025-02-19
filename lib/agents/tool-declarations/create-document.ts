@@ -16,6 +16,7 @@ import { InternalToolName } from './client';
 import { codePrompt, sheetPrompt, textPrompt } from '@/lib/ai/prompts';
 import { accessModel } from '@/lib/ai/models';
 import { getImageModel, getModel } from '@/lib/ai/models.server';
+import { getMessageFile, saveMessageFile } from '@/lib/services/minio';
 
 export const createDocumentTool = createToolDefinition({
   name: InternalToolName.createDocument,

@@ -22,6 +22,7 @@ import { mapAgent } from '@/lib/data';
 import { DataStreamHandler } from '@/components/data-stream-handler';
 import { UserProvider } from '@/components/user-provider';
 import { MODEL_COOKIE_KEY, PROVIDER_COOKIE_KEY } from '@/lib/ai/cookies';
+import { convertAttachmentUrls } from '@/lib/utils.server';
 
 export default async function Page({
   params,
@@ -73,6 +74,12 @@ export default async function Page({
       ? [providerFromCookie, modelIdFromCookie]
       : [DEFAULT_PROVIDER, DEFAULT_CHAT_MODEL];
 
+  const initialMessages = await Promise.all(
+    convertToUIMessages(messagesFromDb).map((message) =>
+      convertAttachmentUrls(message, id),
+    ),
+  );
+
   return (
     <UserProvider
       user={{
@@ -90,7 +97,7 @@ export default async function Page({
               initialAgents={agentsFromDb.map((agent) =>
                 mapAgent(userId, agent),
               )}
-              initialMessages={convertToUIMessages(messagesFromDb)}
+              initialMessages={initialMessages}
               provider={provider}
               modelId={modelId}
               selectedVisibilityType={chat.visibility}

@@ -51,7 +51,8 @@ export const imageBlock = new Block({
       description: 'Copy image to clipboard',
       onClick: ({ content }) => {
         const img = new Image();
-        img.src = `data:image/png;base64,${content}`;
+        const type = content.split('.').pop() || 'png';
+        img.src = content;
 
         img.onload = () => {
           const canvas = document.createElement('canvas');
@@ -62,10 +63,10 @@ export const imageBlock = new Block({
           canvas.toBlob((blob) => {
             if (blob) {
               navigator.clipboard.write([
-                new ClipboardItem({ 'image/png': blob }),
+                new ClipboardItem({ [`image/${type}`]: blob }),
               ]);
             }
-          }, 'image/png');
+          }, `image/${type}`);
         };
 
         toast.success('Copied image to clipboard!');
