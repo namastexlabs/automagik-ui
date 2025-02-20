@@ -19,6 +19,7 @@ import type { VisibilityType } from './visibility-selector';
 import { Block } from './block';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
+import { getModelData, isImagesAllowed } from '@/lib/ai/models';
 
 export function Chat({
   chat,
@@ -220,6 +221,15 @@ export function Chat({
     setAttachments([]);
   }, [chat]);
 
+  const isImageAllowed = isImagesAllowed(
+    getModelData(selectedProvider, selectedModelId),
+  );
+  useEffect(() => {
+    if (!isImageAllowed) {
+      setAttachments([]);
+    }
+  }, [isImageAllowed]);
+
   useEffect(() => {
     if (initialAgents.length > 0) {
       mutate('/api/agents', initialAgents, {
@@ -293,6 +303,7 @@ export function Chat({
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
           {!isReadonly && (
             <MultimodalInput
+              isImageAllowed={isImageAllowed}
               input={input}
               chatId={chat?.id}
               setInput={setInput}
@@ -307,6 +318,7 @@ export function Chat({
         </form>
       </div>
       <Block
+        isImageAllowed={isImageAllowed}
         chatId={chat?.id}
         input={input}
         setInput={setInput}
