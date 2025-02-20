@@ -7,11 +7,13 @@ import { weatherTool } from './get-weather';
 import { requestSuggestionsTool } from './request-suggestions';
 import { saveMemoriesTool } from './save-memories';
 import type { InternalToolName } from './client';
-import { syncFlowTool } from './sync-flow';
-import { listLangflowFlowsTool } from './list-langflow-flows';
-import { listFlowsTool } from './list-flows';
-import { scheduleFlowTool } from './schedule-flow';
+import { syncWorkflowTool } from './sync-workflow';
+import { listRemoteWorkflowsTool } from './list-remote-workflows';
+import { listWorkflowsTool } from './list-workflows';
+import { scheduleWorkflowTool } from './schedule-workflow';
 import { listTasksTool } from './list-tasks';
+import { listRemoteSourcesTool } from './list-remote-sources';
+import { createRemoteSourceTool } from './create-remote-source';
 
 export const INTERNAL_TOOL_MAP = {
   [weatherTool.name]: weatherTool,
@@ -19,11 +21,13 @@ export const INTERNAL_TOOL_MAP = {
   [updateDocumentTool.name]: updateDocumentTool,
   [requestSuggestionsTool.name]: requestSuggestionsTool,
   [saveMemoriesTool.name]: saveMemoriesTool,
-  [syncFlowTool.name]: syncFlowTool,
-  [listLangflowFlowsTool.name]: listLangflowFlowsTool,
-  [listFlowsTool.name]: listFlowsTool,
-  [scheduleFlowTool.name]: scheduleFlowTool,
+  [syncWorkflowTool.name]: syncWorkflowTool,
+  [listRemoteWorkflowsTool.name]: listRemoteWorkflowsTool,
+  [listWorkflowsTool.name]: listWorkflowsTool,
+  [scheduleWorkflowTool.name]: scheduleWorkflowTool,
   [listTasksTool.name]: listTasksTool,
+  [listRemoteSourcesTool.name]: listRemoteSourcesTool,
+  [createRemoteSourceTool.name]: createRemoteSourceTool,
 } as const;
 
 export type InternalToolOptions = typeof INTERNAL_TOOL_MAP;

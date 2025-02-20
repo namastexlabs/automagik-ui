@@ -104,22 +104,32 @@ export function ToolInvocation<T extends InternalToolName>({
           </span>
         </div>
       ),
-      syncFlow: () => (
+      listRemoteSources: () => (
+        <div className="flex text-lg leading-relaxed max-w-3xl">
+          <Badge variant="secondary" className="text-md">listRemoteSources Called</Badge>
+        </div>
+      ),
+      createRemoteSource: () => (
+        <div className="flex text-lg leading-relaxed max-w-3xl">
+          <Badge variant="secondary" className="text-md">createRemoteSource Called</Badge>
+        </div>
+      ),
+      syncWorkflow: () => (
         <div className="flex text-lg leading-relaxed  max-w-3xl">
           <Badge variant="secondary" className="text-md">syncFlow Called</Badge>
         </div>
       ),
-      listFlows: () => (
+      listWorkflows: () => (
         <div className="flex leading-relaxed max-w-3xl">
           <Badge variant="secondary" className="text-md">listFlows Called</Badge>
         </div>
       ),
-      listLangflowFlows: () => (
+      listRemoteWorkflows: () => (
         <div className="flex text-lg leading-relaxed max-w-3xl">
-          <Badge variant="secondary" className="text-md">listLangflowFlows Called</Badge>
+          <Badge variant="secondary" className="text-md">listRemoteWorkflows Called</Badge>
         </div>
       ),
-      scheduleFlow: () => (
+      scheduleWorkflow: () => (
         <div className="flex text-lg leading-relaxed max-w-3xl">
           <Badge variant="secondary" className="text-md">scheduleFlow Called</Badge>
         </div>
