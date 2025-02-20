@@ -112,6 +112,24 @@ export async function syncWorkflow(
   return data;
 }
 
+export async function runWorkflow(workflowId: string, inputValue: string) {
+  if (!checkAutomagikCredentials()) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${AUTOMAGIK_URL}/api/v1/workflows/${workflowId}/run/`,
+    {
+      method: 'POST',
+      headers: AUTOMAGIK_HEADERS,
+      body: inputValue,
+    },
+  );
+
+  const data: FlowData = await response.json();
+  return data;
+}
+
 export async function createSchedule(params: {
   workflow_id: string;
   input_value: string;
@@ -170,7 +188,7 @@ export function createChatFlowTool(
       inputValue: z.string(),
     }),
     execute: async ({ inputValue }): Promise<ExecutionResult> => {
-      // TODO: AUTOMAGIK SCHEDULE/RUN TASK
+      const result = await runWorkflow(flowId, inputValue);
 
       return {
         result: '',
