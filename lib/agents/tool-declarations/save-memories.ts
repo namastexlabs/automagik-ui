@@ -14,6 +14,8 @@ export const saveMemoriesTool = createToolDefinition({
   name: InternalToolName.saveMemories,
   verboseName: 'Save Memories',
   description: 'Insert or update memories from the user',
+  visibility: 'public',
+  namedRefinements: undefined,
   dynamicDescription: (context) => {
     let options = 'None';
     if (context.agent.dynamicBlocks.length > 0) {
@@ -27,7 +29,6 @@ export const saveMemoriesTool = createToolDefinition({
       ${options}
     `;
   },
-  visibility: 'public',
   parameters: z.object({
     memories: z.array(
       z.object({ name: z.string().trim(), content: z.string().trim() }),

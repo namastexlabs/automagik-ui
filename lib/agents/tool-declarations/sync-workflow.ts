@@ -9,7 +9,7 @@ export const syncWorkflowTool = createToolDefinition({
   name: InternalToolName.syncWorkflow,
   verboseName: 'Sync workflow',
   description: 'Sync workflow from a remote source to automagik',
-  visibility: 'private',
+  visibility: 'public',
   namedRefinements: undefined,
   parameters: z.object({
     remoteWorkflowId: z.string(),
@@ -43,6 +43,6 @@ export const syncWorkflowTool = createToolDefinition({
       console.error(error);
     }
 
-    return { data: null, error: 'Flow not found' };
+    return { data: null, error: 'Workflow not found' };
   },
 });

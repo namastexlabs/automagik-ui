@@ -68,7 +68,7 @@ export const createDocumentTool = createToolDefinition({
             thread_id: chat.id,
             agent_id: agent.id,
           },
-        }
+        },
       });
 
       for await (const delta of fullStream) {
@@ -103,7 +103,7 @@ export const createDocumentTool = createToolDefinition({
             thread_id: chat.id,
             agent_id: agent.id,
           },
-        }
+        },
       });
 
       for await (const delta of fullStream) {
@@ -132,7 +132,12 @@ export const createDocumentTool = createToolDefinition({
         n: 1,
       });
 
-      const name = await saveMessageFile(title, Buffer.from(image.uint8Array), chat.id);
+      const name = await saveMessageFile(
+        title,
+        Buffer.from(image.uint8Array),
+        chat.id,
+        'document'
+      );
       draftText = await getMessageFile(name, chat.id);
       dataStream.writeData({
         type: 'image-delta',
@@ -157,7 +162,7 @@ export const createDocumentTool = createToolDefinition({
             thread_id: chat.id,
             agent_id: agent.id,
           },
-        }
+        },
       });
 
       for await (const delta of fullStream) {
@@ -198,6 +203,7 @@ export const createDocumentTool = createToolDefinition({
       id,
       title,
       kind,
+      error: null,
       content: 'A document was created and is now visible to the user.',
     };
   },

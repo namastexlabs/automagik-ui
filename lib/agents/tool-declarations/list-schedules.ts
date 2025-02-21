@@ -3,12 +3,12 @@ import 'server-only';
 import { z } from 'zod';
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { getRemoteWorkflows } from '../automagik';
+import { getSchedules } from '../automagik';
 
-export const listRemoteWorkflowsTool = createToolDefinition({
-  name: InternalToolName.listRemoteWorkflows,
-  verboseName: 'List Remote Workflows',
-  description: 'List 10 workflows per page from remote sources',
+export const listSchedulesTool = createToolDefinition({
+  name: InternalToolName.listSchedules,
+  verboseName: 'List Schedules',
+  description: 'List 10 schedules per page',
   visibility: 'public',
   namedRefinements: undefined,
   parameters: z.object({
@@ -16,12 +16,12 @@ export const listRemoteWorkflowsTool = createToolDefinition({
   }),
   execute: async ({ page }) => {
     try {
-      const workflows = await getRemoteWorkflows();
+      const schedules = await getSchedules();
       return {
         page,
         data: {
-          items: workflows.slice(page * 10, (page + 1) * 10),
-          total: workflows.length,
+          items: schedules.slice(page * 10, (page + 1) * 10),
+          total: schedules.length,
         },
         error: null,
       };

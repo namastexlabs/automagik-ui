@@ -39,6 +39,19 @@ export async function createRemoteSource(params: {
   return await response.json();
 }
 
+export async function deleteRemoteSource(sourceId: string) {
+  if (!checkAutomagikCredentials()) {
+    return null;
+  }
+
+  const response = await fetch(`${AUTOMAGIK_URL}/api/v1/sources/${sourceId}/`, {
+    method: 'DELETE',
+    headers: AUTOMAGIK_HEADERS,
+  });
+
+  return await response.json();
+}
+
 export async function getRemoteSources() {
   if (!checkAutomagikCredentials()) {
     return [];
@@ -122,11 +135,11 @@ export async function runWorkflow(workflowId: string, inputValue: string) {
     {
       method: 'POST',
       headers: AUTOMAGIK_HEADERS,
-      body: inputValue,
+      body: JSON.stringify(inputValue),
     },
   );
 
-  const data: FlowData = await response.json();
+  const data = await response.json();
   return data;
 }
 
@@ -148,6 +161,70 @@ export async function createSchedule(params: {
   });
 
   const data: Schedule = await response.json();
+  return data;
+}
+
+export async function enableSchedule(scheduleId: string) {
+  if (!checkAutomagikCredentials()) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${AUTOMAGIK_URL}/api/v1/schedules/${scheduleId}/enable/`,
+    {
+      method: 'POST',
+      headers: AUTOMAGIK_HEADERS,
+    },
+  );
+
+  const data: Schedule = await response.json();
+  return data;
+}
+
+export async function disableSchedule(scheduleId: string) {
+  if (!checkAutomagikCredentials()) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${AUTOMAGIK_URL}/api/v1/schedules/${scheduleId}/disable/`,
+    {
+      method: 'POST',
+      headers: AUTOMAGIK_HEADERS,
+    },
+  );
+
+  const data: Schedule = await response.json();
+  return data;
+}
+
+export async function deleteSchedule(scheduleId: string) {
+  if (!checkAutomagikCredentials()) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${AUTOMAGIK_URL}/api/v1/schedules/${scheduleId}`,
+    {
+      method: 'DELETE',
+      headers: AUTOMAGIK_HEADERS,
+    },
+  );
+
+  return await response.json();
+}
+
+export async function getSchedules() {
+  if (!checkAutomagikCredentials()) {
+    return [];
+  }
+
+  const response = await fetch(`${AUTOMAGIK_URL}/api/v1/schedules/`, {
+    method: 'GET',
+    headers: AUTOMAGIK_HEADERS,
+  });
+
+  const data: Schedule[] = await response.json();
   return data;
 }
 
@@ -184,16 +261,24 @@ export function createChatFlowTool(
     verboseName,
     description,
     visibility,
+    namedRefinements: undefined,
     parameters: z.object({
       inputValue: z.string(),
     }),
     execute: async ({ inputValue }): Promise<ExecutionResult> => {
-      const result = await runWorkflow(flowId, inputValue);
+      try {
+        const result = await runWorkflow(flowId, inputValue);
 
-      return {
-        result: '',
-        content: 'Flow executed successfully',
-      };
+        return {
+          result: result,
+          content: 'Flow executed successfully',
+        };
+      } catch (error) {
+        return {
+          result: null,
+          content: 'Failed to execute flow',
+        };
+      }
     },
   });
 }

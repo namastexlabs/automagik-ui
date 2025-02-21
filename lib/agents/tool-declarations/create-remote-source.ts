@@ -9,10 +9,10 @@ export const createRemoteSourceTool = createToolDefinition({
   name: InternalToolName.createRemoteSource,
   verboseName: 'Create Remote Source',
   description: 'Create a new remote source for Automagik',
-  visibility: 'private',
+  visibility: 'public',
   namedRefinements: undefined,
   parameters: z.object({
-    url: z.string(),
+    url: z.string().url(),
     apiKey: z.string(),
   }),
   execute: async ({ url, apiKey }) => {
@@ -27,7 +27,7 @@ export const createRemoteSourceTool = createToolDefinition({
       return { data: source, error: null };
     } catch (error) {
       console.error(error);
-      return { data: null, error: 'Error fetching remote sources' };
+      return { data: null, error: 'Error creating remote source' };
     }
   },
 });

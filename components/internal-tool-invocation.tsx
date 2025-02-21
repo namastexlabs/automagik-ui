@@ -11,7 +11,6 @@ import { type DocumentToolResultProps, DocumentToolResult } from './document';
 import { Bookmark } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { DocumentPreview } from './document-preview';
-import type { DocumentExecuteReturn } from '@/lib/agents/types';
 
 type BlockToolName =
   | InternalToolName.createDocument
@@ -25,10 +24,6 @@ const getResult = <T extends InternalToolName>(
     ? (toolInvocation.result as InternalToolReturn<T>)
     : undefined;
 };
-
-const isErrorBlock = (
-  result: DocumentExecuteReturn,
-): result is { error: string } => Object.hasOwn(result, 'error');
 
 export function ToolInvocation<T extends InternalToolName>({
   isReadonly,
@@ -48,9 +43,7 @@ export function ToolInvocation<T extends InternalToolName>({
       kind: DocumentToolResultProps['type'],
       toolInvocation: InternalToolInvocationPayload<BlockToolName>,
     ) => {
-      const result = getResult<BlockToolName>(toolInvocation);
-
-      if (!result) {
+      if (toolInvocation.state !== 'result') {
         return (
           <DocumentPreview
             isReadonly={isReadonly}
@@ -60,9 +53,11 @@ export function ToolInvocation<T extends InternalToolName>({
           />
         );
       }
-      if (isErrorBlock(result)) {
+      if (toolInvocation.result.error !== null) {
         return (
-          <div className="flex text-sm leading-relaxed">{result.error}</div>
+          <div className="flex text-sm leading-relaxed">
+            {toolInvocation.result.error}
+          </div>
         );
       }
 
@@ -70,7 +65,7 @@ export function ToolInvocation<T extends InternalToolName>({
         <DocumentToolResult
           type={kind}
           isReadonly={isReadonly}
-          result={result}
+          result={toolInvocation.result}
         />
       );
     };
@@ -106,37 +101,86 @@ export function ToolInvocation<T extends InternalToolName>({
       ),
       listRemoteSources: () => (
         <div className="flex text-lg leading-relaxed max-w-3xl">
-          <Badge variant="secondary" className="text-md">listRemoteSources Called</Badge>
+          <Badge variant="secondary" className="text-md">
+            List RemoteSources Called
+          </Badge>
         </div>
       ),
       createRemoteSource: () => (
         <div className="flex text-lg leading-relaxed max-w-3xl">
-          <Badge variant="secondary" className="text-md">createRemoteSource Called</Badge>
+          <Badge variant="secondary" className="text-md">
+            create RemoteSource Called
+          </Badge>
         </div>
       ),
       syncWorkflow: () => (
         <div className="flex text-lg leading-relaxed  max-w-3xl">
-          <Badge variant="secondary" className="text-md">syncFlow Called</Badge>
+          <Badge variant="secondary" className="text-md">
+            sync Workflow Called
+          </Badge>
         </div>
       ),
       listWorkflows: () => (
         <div className="flex leading-relaxed max-w-3xl">
-          <Badge variant="secondary" className="text-md">listFlows Called</Badge>
+          <Badge variant="secondary" className="text-md">
+            list Workflows Called
+          </Badge>
         </div>
       ),
       listRemoteWorkflows: () => (
         <div className="flex text-lg leading-relaxed max-w-3xl">
-          <Badge variant="secondary" className="text-md">listRemoteWorkflows Called</Badge>
+          <Badge variant="secondary" className="text-md">
+            List Remote Workflows Called
+          </Badge>
         </div>
       ),
       scheduleWorkflow: () => (
         <div className="flex text-lg leading-relaxed max-w-3xl">
-          <Badge variant="secondary" className="text-md">scheduleFlow Called</Badge>
+          <Badge variant="secondary" className="text-md">
+            Schedule Workflow Called
+          </Badge>
         </div>
       ),
       listTasks: () => (
         <div className="flex text-lg leading-relaxed max-w-3xl">
-          <Badge variant="secondary" className="text-md">listTasks Called</Badge>
+          <Badge variant="secondary" className="text-md">
+            List Tasks Called
+          </Badge>
+        </div>
+      ),
+      listSchedules: () => (
+        <div className="flex text-lg leading-relaxed max-w-3xl">
+          <Badge variant="secondary" className="text-md">
+            List Schedules Called
+          </Badge>
+        </div>
+      ),
+      deleteRemoteSource: () => (
+        <div className="flex text-lg leading-relaxed max-w-3xl">
+          <Badge variant="secondary" className="text-md">
+            Delete Remote Source Called
+          </Badge>
+        </div>
+      ),
+      deleteSchedule: () => (
+        <div className="flex text-lg leading-relaxed max-w-3xl">
+          <Badge variant="secondary" className="text-md">
+            Delete Schedule Called
+          </Badge>
+        </div>
+      ),
+      runWorkflow: () => (
+        <div className="flex text-lg leading-relaxed max-w-3xl">
+          <Badge variant="secondary" className="text-md">
+            Run Workflow Called
+          </Badge>
+        </div>
+      ),
+      enableDisableSchedule: () => (
+        <div className="flex text-lg leading-relaxed max-w-3xl">
+          <Badge variant="secondary" className="text-md">
+            Enable/Disable Schedule Called
+          </Badge>
         </div>
       ),
     };

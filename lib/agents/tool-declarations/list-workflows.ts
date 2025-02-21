@@ -8,7 +8,7 @@ export const listWorkflowsTool = createToolDefinition({
   name: InternalToolName.listWorkflows,
   verboseName: 'List synced Workflows',
   description: 'List synced workflows between a remote source and Automagik',
-  visibility: 'private',
+  visibility: 'public',
   namedRefinements: undefined,
   parameters: undefined,
   execute: async () => {

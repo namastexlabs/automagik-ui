@@ -9,7 +9,7 @@ export const scheduleWorkflowTool = createToolDefinition({
   name: InternalToolName.scheduleWorkflow,
   verboseName: 'Schedule Workflow',
   description: 'Schedule a workflow to run at a specific interval or cron',
-  visibility: 'private',
+  visibility: 'public',
   namedRefinements: undefined,
   parameters: z.object({
     schedule: z.object({
@@ -34,7 +34,7 @@ export const scheduleWorkflowTool = createToolDefinition({
         error: null,
       };
     } catch (error) {
-      return { data: null, error: 'Error scheduling flow' };
+      return { data: null, error: 'Error scheduling workflow' };
     }
   },
 });

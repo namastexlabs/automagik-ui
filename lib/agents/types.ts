@@ -72,10 +72,11 @@ export type DocumentExecuteReturn =
       kind: Document['kind'];
       content?: string;
       message?: string;
+      error: null;
     }
   | {
       error: string;
-    };
+    }
 
 export type WeatherAtLocation = {
   latitude: number;
@@ -210,7 +211,7 @@ export type Schedule = {
   schedule_expr: string;
   // TODO: Discover how to use this
   flow_params: any;
-  status: string;
+  status: 'paused' | 'active' | 'stopped';
   next_run_at: string;
   id: string;
 };

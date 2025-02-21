@@ -2,6 +2,8 @@ import 'server-only';
 import * as Minio from 'minio';
 import { generateUUID } from '../utils';
 
+type ImageSource = 'document' | 'input';
+
 let minioClient: Minio.Client | null = null;
 // biome-ignore lint/style/noNonNullAssertion: <explanation>
 const S3_STORAGE_BUCKET_NAME = process.env.S3_STORAGE_BUCKET_NAME!;
@@ -35,25 +37,46 @@ const getMinioClient = () => {
 const DEFAULT_CHAT_KEY = 'no-chat';
 
 export function getMessageKey(name: string, chatId?: string) {
-  return `messages/${chatId ? `chat-${chatId}` : DEFAULT_CHAT_KEY}/${name}`;
+  return `messages/${chatId ? `chat-${chatId}` : DEFAULT_CHAT_KEY}/${name.replace(
+    /[^a-zA-Z0-9._-]/g,
+    '',
+  )}`;
+}
+
+export function createMessageKey(
+  name: string,
+  source: ImageSource = 'input',
+  chatId?: string,
+) {
+  return getMessageKey(
+    `${source}-${name}`,
+    chatId,
+  );
 }
 
 export function isKeyWithChatId(key: string) {
   return !key.includes(DEFAULT_CHAT_KEY);
 }
 
-export async function saveMessageFile(filename: string, buffer: Buffer, chatId?: string) {
+export async function saveMessageFile(
+  filename: string,
+  buffer: Buffer,
+  chatId?: string,
+  source: ImageSource = 'input',
+) {
   const name = `${generateUUID()}-${filename}`;
+  const key = createMessageKey(name, source, chatId);
 
   try {
     await getMinioClient().putObject(
       S3_STORAGE_BUCKET_NAME,
-      getMessageKey(name, chatId),
+      key,
       buffer,
       buffer.length,
     );
 
-    return name;
+    // biome-ignore lint/style/noNonNullAssertion: <explanation>
+    return key.split('/').pop()!;
   } catch (e) {
     console.log(`Failed to save file ${e}`);
     throw e;
@@ -62,7 +85,10 @@ export async function saveMessageFile(filename: string, buffer: Buffer, chatId?:
 
 export async function deleteMessageFile(name: string, chatId?: string) {
   try {
-    await getMinioClient().removeObject(S3_STORAGE_BUCKET_NAME, getMessageKey(name, chatId));
+    await getMinioClient().removeObject(
+      S3_STORAGE_BUCKET_NAME,
+      getMessageKey(name, chatId),
+    );
   } catch (e) {
     console.log(`Failed to delete file ${e}`);
     throw e;
@@ -102,8 +128,13 @@ export async function getMessageFile(name: string, chatId?: string) {
 
 export function isSignedUrlExpired(url: string) {
   const urlObject = new URL(url);
-  const signedDate = new Date(urlObject.searchParams.get('X-Amz-Date') as string);
-  const expirationTime = Number.parseInt(urlObject.searchParams.get('X-Amz-Expires') as string, 10);
+  const signedDate = new Date(
+    urlObject.searchParams.get('X-Amz-Date') as string,
+  );
+  const expirationTime = Number.parseInt(
+    urlObject.searchParams.get('X-Amz-Expires') as string,
+    10,
+  );
   const now = new Date();
 
   return now.getTime() > signedDate.getTime() + expirationTime * 1000;

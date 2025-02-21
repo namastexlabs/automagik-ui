@@ -25,7 +25,12 @@ export enum InternalToolName {
   listTasks = 'listTasks',
   listRemoteWorkflows = 'listRemoteWorkflows',
   createRemoteSource = 'createRemoteSource',
+  listSchedules = 'listSchedules',
   listRemoteSources = 'listRemoteSources',
+  deleteRemoteSource = 'deleteRemoteSource',
+  deleteSchedule = 'deleteSchedule',
+  runWorkflow = 'runWorkflow',
+  enableDisableSchedule = 'enableDisableSchedule',
 }
 
 export const castToolType = <T extends Source, TOOL extends Tool | ClientTool>(

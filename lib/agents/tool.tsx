@@ -45,7 +45,7 @@ export const toCoreTools = (
         ? dezerialize(
             tool.parameters,
             toolDefinition?.namedRefinements
-              ? { superRefinements: toolDefinition.namedRefinements }
+              ? { superRefinements: toolDefinition.namedRefinements as any }
               : {},
           )
         : z.object({}),
