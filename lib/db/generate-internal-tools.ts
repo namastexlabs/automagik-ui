@@ -44,7 +44,9 @@ const run = async () => {
       verboseName: internalTool.verboseName,
       description: internalTool.description,
       visibility: internalTool.visibility,
-      parameters: internalTool.parameters && zerialize(internalTool.parameters),
+      parameters: internalTool.parameters && zerialize(internalTool.parameters, {
+        superRefinements: internalTool.namedRefinements,
+      }),
       source: 'internal',
       data: {},
     } as const;

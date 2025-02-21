@@ -284,3 +284,9 @@ export function getDynamicBlockNames(
     )
     .map(({ name }) => name);
 }
+
+export function validateUUID(id: string) {
+  return /^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$/.test(
+    id,
+  );
+}

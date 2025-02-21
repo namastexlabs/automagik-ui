@@ -41,7 +41,14 @@ export const toCoreTools = (
 
         ${toolDefinition?.dynamicDescription?.(context) || ''}
       `,
-      parameters: tool.parameters ? dezerialize(tool.parameters) : z.object({}),
+      parameters: tool.parameters
+        ? dezerialize(
+            tool.parameters,
+            toolDefinition?.namedRefinements
+              ? { superRefinements: toolDefinition.namedRefinements }
+              : {},
+          )
+        : z.object({}),
       execute: async (parameters) => {
         if (toolDefinition) {
           if (toolDefinition.parameters) {

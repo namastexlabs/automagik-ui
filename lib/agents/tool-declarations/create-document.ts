@@ -23,6 +23,7 @@ export const createDocumentTool = createToolDefinition({
   verboseName: 'Create Document',
   description: 'Create a document for a writing activity.',
   visibility: 'public',
+  namedRefinements: undefined,
   parameters: z.object({
     title: z.string(),
     kind: z.enum(['text', 'code', 'image', 'sheet']),
@@ -131,11 +132,11 @@ export const createDocumentTool = createToolDefinition({
         n: 1,
       });
 
-      draftText = image.base64;
-
+      const name = await saveMessageFile(title, Buffer.from(image.uint8Array), chat.id);
+      draftText = await getMessageFile(name, chat.id);
       dataStream.writeData({
         type: 'image-delta',
-        content: image.base64,
+        content: draftText,
       });
 
       dataStream.writeData({ type: 'finish', content: '' });

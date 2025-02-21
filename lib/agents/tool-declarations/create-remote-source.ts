@@ -10,6 +10,7 @@ export const createRemoteSourceTool = createToolDefinition({
   verboseName: 'Create Remote Source',
   description: 'Create a new remote source for Automagik',
   visibility: 'private',
+  namedRefinements: undefined,
   parameters: z.object({
     url: z.string(),
     apiKey: z.string(),

@@ -10,6 +10,7 @@ export const listRemoteWorkflowsTool = createToolDefinition({
   verboseName: 'List Remote Workflows',
   description: 'List 10 workflows per pagefrom remote sources',
   visibility: 'private',
+  namedRefinements: undefined,
   parameters: z.object({
     page: z.number().optional(),
   }),

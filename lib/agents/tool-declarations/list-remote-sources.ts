@@ -9,6 +9,7 @@ export const listRemoteSourcesTool = createToolDefinition({
   verboseName: 'List Remote Sources',
   description: 'List remote sources for Automagik',
   visibility: 'private',
+  namedRefinements: undefined,
   parameters: undefined,
   execute: async () => {
     try {

@@ -10,6 +10,7 @@ export const scheduleWorkflowTool = createToolDefinition({
   verboseName: 'Schedule Workflow',
   description: 'Schedule a workflow to run at a specific interval or cron',
   visibility: 'private',
+  namedRefinements: undefined,
   parameters: z.object({
     schedule: z.object({
       workflowId: z.string(),

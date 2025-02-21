@@ -15,29 +15,35 @@ export type ToolRequestContext = {
   chat: Chat;
 };
 
-export type ToolDefinition<N extends string, R, P> = {
-  name: N;
+export type ToolDefinition<
+  NAME extends string,
+  RESULT,
+  PARAMETERS,
+  REFINEMENTS extends Record<string, (value: any, ctx: z.RefinementCtx) => any> | undefined = undefined,
+> = {
+  name: NAME;
   verboseName: string;
   description: string;
   visibility: 'public' | 'private';
+  namedRefinements: REFINEMENTS;
   dynamicDescription?: (context: ToolRequestContext) => string;
-  parameters: P extends z.ZodTypeAny ? P : undefined;
-  execute: P extends z.ZodTypeAny
-    ? (params: InferParameters<P>, context: ToolRequestContext) => Promise<R>
-    : (context: ToolRequestContext) => Promise<R>;
+  parameters: PARAMETERS;
+  execute: PARAMETERS extends z.ZodTypeAny
+    ? (params: InferParameters<PARAMETERS>, context: ToolRequestContext) => Promise<RESULT>
+    : (context: ToolRequestContext) => Promise<RESULT>;
 };
 
 export type ToolInvocation<
   NAME extends string,
   TOOL,
-> = TOOL extends ToolDefinition<NAME, infer RESULT, infer ARGS>
+> = TOOL extends ToolDefinition<NAME, infer RESULT, infer PARAMETERS, infer NAMED_REFINEMENTS>
   ?
       | ({
           state: 'partial-call' | 'call';
-        } & ToolCall<NAME, InferParameters<ARGS>>)
+        } & ToolCall<NAME, InferParameters<PARAMETERS>>)
       | ({
           state: 'result';
-        } & ToolResult<NAME, InferParameters<ARGS>, RESULT>)
+        } & ToolResult<NAME, InferParameters<PARAMETERS>, RESULT>)
   :
       | ({
           state: 'call' | 'partial-call';

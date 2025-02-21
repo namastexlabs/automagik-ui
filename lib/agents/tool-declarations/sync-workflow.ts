@@ -10,6 +10,7 @@ export const syncWorkflowTool = createToolDefinition({
   verboseName: 'Sync workflow',
   description: 'Sync workflow from a remote source to automagik',
   visibility: 'private',
+  namedRefinements: undefined,
   parameters: z.object({
     remoteWorkflowId: z.string(),
     inputComponentId: z.string(),

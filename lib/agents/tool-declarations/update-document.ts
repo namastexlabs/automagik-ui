@@ -16,18 +16,27 @@ import { accessModel } from '@/lib/ai/models';
 import { getImageModel, getModel } from '@/lib/ai/models.server';
 import { updateDocumentPrompt } from '@/lib/ai/prompts';
 import { getMessageFile, saveMessageFile } from '@/lib/services/minio';
+import { validateUUID } from '@/lib/utils';
 
+const namedRefinements = {
+  validateUUID: (id: string, ctx: z.RefinementCtx) => {
+    if (!validateUUID(id)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid UUID',
+      });
+    }
+  },
+};
 
 export const updateDocumentTool = createToolDefinition({
   name: InternalToolName.updateDocument,
   verboseName: 'Update Document',
   description: 'Update a document with the given description',
   visibility: 'public',
+  namedRefinements,
   parameters: z.object({
-    id: z
-      .string()
-      .uuid()
-      .describe('The ID of the document to update'),
+    id: z.string().describe('The ID of the document to update'),
     description: z
       .string()
       .describe('The description of changes that need to be made'),
