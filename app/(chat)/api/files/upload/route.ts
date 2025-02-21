@@ -1,15 +1,44 @@
-import { put } from '@vercel/blob';
 import { NextResponse } from 'next/server';
 import { z } from 'zod';
 
 import { auth } from '@/app/(auth)/auth';
+import * as Minio from 'minio';
+import { getMessageFile, saveMessageFile } from '@/lib/services/minio';
+
+let minioClient: Minio.Client | null = null;
+
+const getMinioClient = () => {
+  const S3_CUSTOM_ENDPOINT = process.env.S3_CUSTOM_ENDPOINT;
+  const S3_ACCESS_KEY_ID = process.env.S3_ACCESS_KEY_ID;
+  const S3_SECRET_ACCESS_KEY = process.env.S3_SECRET_ACCESS_KEY;
+
+  if (
+    !S3_CUSTOM_ENDPOINT ||
+    !S3_ACCESS_KEY_ID ||
+    !S3_SECRET_ACCESS_KEY ||
+    !process.env.S3_STORAGE_BUCKET_NAME
+  ) {
+    throw new Error('Missing S3 environment variables');
+  }
+
+  if (!minioClient) {
+    minioClient = new Minio.Client({
+      endPoint: S3_CUSTOM_ENDPOINT,
+      useSSL: true,
+      accessKey: S3_ACCESS_KEY_ID,
+      secretKey: S3_SECRET_ACCESS_KEY,
+    });
+  }
+
+  return minioClient;
+};
 
 // Use Blob instead of File since File is not available in Node.js environment
 const FileSchema = z.object({
   file: z
     .instanceof(Blob)
-    .refine((file) => file.size <= 5 * 1024 * 1024, {
-      message: 'File size should be less than 5MB',
+    .refine((file) => file.size <= 20 * 1024 * 1024, {
+      message: 'File size should be less than 20MB',
     })
     // Update the file type based on the kind of files you want to accept
     .refine((file) => ['image/jpeg', 'image/png'].includes(file.type), {
@@ -30,6 +59,7 @@ export async function POST(request: Request) {
 
   try {
     const formData = await request.formData();
+    const chatId = (formData.get('chatId') as string | null) || undefined;
     const file = formData.get('file') as Blob;
 
     if (!file) {
@@ -46,20 +76,22 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: errorMessage }, { status: 400 });
     }
 
-    // Get filename from formData since Blob doesn't have name property
-    const filename = (formData.get('file') as File).name;
-    const fileBuffer = await file.arrayBuffer();
-
     try {
-      const data = await put(`${filename}`, fileBuffer, {
-        access: 'public',
-      });
+      const file = formData.get('file') as File;
+      const name = await saveMessageFile(file.name, Buffer.from(await file.arrayBuffer()), chatId);
+      const url = await getMessageFile(name, chatId);
 
-      return NextResponse.json(data);
+      return NextResponse.json({
+        url,
+        name,
+        contentType: file.type,
+      });
     } catch (error) {
+      console.log(error);
       return NextResponse.json({ error: 'Upload failed' }, { status: 500 });
     }
   } catch (error) {
+    console.log(error);
     return NextResponse.json(
       { error: 'Failed to process request' },
       { status: 500 },

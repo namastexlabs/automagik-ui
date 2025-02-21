@@ -67,7 +67,9 @@ function PureBlock({
   votes,
   isReadonly,
   hasError,
+  isImageAllowed,
 }: {
+  isImageAllowed: boolean;
   chatId?: string;
   input: string;
   setInput: (input: string) => void;
@@ -332,6 +334,8 @@ function PureBlock({
 
                 <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
                   <MultimodalInput
+                    chatId={chatId}
+                    isImageAllowed={isImageAllowed}
                     input={input}
                     setInput={setInput}
                     handleSubmit={handleSubmit}
@@ -515,6 +519,8 @@ export const Block = memo(PureBlock, (prevProps, nextProps) => {
   if (prevProps.input !== nextProps.input) return false;
   if (!equal(prevProps.messages, nextProps.messages.length)) return false;
   if (prevProps.handleSubmit !== nextProps.handleSubmit) return false;
+  if (prevProps.chatId !== nextProps.chatId) return false;
+  if (prevProps.isImageAllowed !== nextProps.isImageAllowed) return false;
 
   return true;
 });

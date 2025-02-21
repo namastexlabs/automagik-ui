@@ -1,4 +1,5 @@
 import type {
+  Attachment,
   CoreAssistantMessage,
   CoreMessage,
   CoreToolMessage,
@@ -97,6 +98,7 @@ export function convertToUIMessages(
       let textContent = '';
       let reasoning: string | undefined = undefined;
       const toolInvocations: Array<ToolInvocation> = [];
+      const attachments: Attachment[] = [];
 
       if (
         typeof message.content === 'string' ||
@@ -116,6 +118,12 @@ export function convertToUIMessages(
             });
           } else if (content.type === 'reasoning') {
             reasoning = content.reasoning;
+          } else if (content.type === 'image') {
+            attachments.push({
+              name: content.name,
+              url: content.image,
+              contentType: content.mimeType,
+            });
           }
         }
       }
@@ -126,6 +134,8 @@ export function convertToUIMessages(
         content: textContent,
         reasoning,
         toolInvocations,
+        experimental_attachments:
+          attachments.length > 0 ? attachments : undefined,
       });
 
       return chatMessages;

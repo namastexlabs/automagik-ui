@@ -14,6 +14,7 @@ import {
   memo,
 } from 'react';
 import { toast } from 'sonner';
+import equal from 'fast-deep-equal';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 
 import { sanitizeUIMessages } from '@/lib/utils';
@@ -22,7 +23,7 @@ import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import equal from 'fast-deep-equal';
+import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 
 function PureMultimodalInput({
   input,
@@ -32,8 +33,10 @@ function PureMultimodalInput({
   attachments,
   setAttachments,
   setMessages,
+  isImageAllowed,
   handleSubmit,
   className,
+  chatId,
 }: {
   input: string;
   setInput: (value: string) => void;
@@ -44,6 +47,8 @@ function PureMultimodalInput({
   setMessages: Dispatch<SetStateAction<Array<Message>>>;
   handleSubmit: () => void;
   className?: string;
+  chatId?: string;
+  isImageAllowed: boolean;
 }) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
@@ -111,9 +116,10 @@ function PureMultimodalInput({
     }
   }, [handleSubmit, setLocalStorageInput, width, input]);
 
-  const uploadFile = async (file: File) => {
+  const uploadFile = async (file: File, chatId?: string) => {
     const formData = new FormData();
     formData.append('file', file);
+    formData.set('chatId', chatId || '');
 
     try {
       const response = await fetch('/api/files/upload', {
@@ -123,13 +129,7 @@ function PureMultimodalInput({
 
       if (response.ok) {
         const data = await response.json();
-        const { url, pathname, contentType } = data;
-
-        return {
-          url,
-          name: pathname,
-          contentType: contentType,
-        };
+        return data;
       }
       const { error } = await response.json();
       toast.error(error);
@@ -145,7 +145,7 @@ function PureMultimodalInput({
       setUploadQueue(files.map((file) => file.name));
 
       try {
-        const uploadPromises = files.map((file) => uploadFile(file));
+        const uploadPromises = files.map((file) => uploadFile(file, chatId));
         const uploadedAttachments = await Promise.all(uploadPromises);
         const successfullyUploadedAttachments = uploadedAttachments.filter(
           (attachment) => attachment !== undefined,
@@ -161,7 +161,7 @@ function PureMultimodalInput({
         setUploadQueue([]);
       }
     },
-    [setAttachments],
+    [setAttachments, chatId],
   );
 
   return (
@@ -171,6 +171,7 @@ function PureMultimodalInput({
         className="fixed -top-4 -left-4 size-0.5 opacity-0 pointer-events-none"
         ref={fileInputRef}
         multiple
+        accept=".jpeg, .png"
         onChange={handleFileChange}
         tabIndex={-1}
       />
@@ -219,9 +220,21 @@ function PureMultimodalInput({
         }}
       />
 
-      <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
-        <AttachmentsButton fileInputRef={fileInputRef} isLoading={isLoading} />
-      </div>
+      <Tooltip>
+        <TooltipTrigger asChild>
+          <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
+            <AttachmentsButton
+              fileInputRef={fileInputRef}
+              disabled={isLoading || !isImageAllowed}
+            />
+          </div>
+        </TooltipTrigger>
+        <TooltipContent>
+          {isImageAllowed
+            ? 'Attach an image'
+            : 'Images are not allowed for this model'}
+        </TooltipContent>
+      </Tooltip>
 
       <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
         {isLoading ? (
@@ -245,26 +258,28 @@ export const MultimodalInput = memo(
     if (prevProps.input !== nextProps.input) return false;
     if (prevProps.isLoading !== nextProps.isLoading) return false;
     if (!equal(prevProps.attachments, nextProps.attachments)) return false;
+    if (prevProps.chatId !== nextProps.chatId) return false;
+    if (prevProps.isImageAllowed !== nextProps.isImageAllowed) return false;
 
     return true;
   },
 );
 
 function PureAttachmentsButton({
+  disabled,
   fileInputRef,
-  isLoading,
 }: {
+  disabled?: boolean;
   fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
-  isLoading: boolean;
 }) {
   return (
     <Button
+      disabled={disabled}
       className="rounded-md rounded-bl-lg p-[7px] h-fit dark:border-zinc-700 hover:dark:bg-zinc-900 hover:bg-zinc-200"
       onClick={(event) => {
         event.preventDefault();
         fileInputRef.current?.click();
       }}
-      disabled={isLoading}
       variant="ghost"
     >
       <PaperclipIcon size={14} />

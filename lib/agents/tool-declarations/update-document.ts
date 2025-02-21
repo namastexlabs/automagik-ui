@@ -15,6 +15,8 @@ import { InternalToolName } from './client';
 import { accessModel } from '@/lib/ai/models';
 import { getImageModel, getModel } from '@/lib/ai/models.server';
 import { updateDocumentPrompt } from '@/lib/ai/prompts';
+import { getMessageFile, saveMessageFile } from '@/lib/services/minio';
+
 
 export const updateDocumentTool = createToolDefinition({
   name: InternalToolName.updateDocument,
@@ -74,7 +76,7 @@ export const updateDocumentTool = createToolDefinition({
             thread_id: chat.id,
             agent_id: agent.id,
           },
-        }
+        },
       });
 
       for await (const delta of fullStream) {
@@ -109,7 +111,7 @@ export const updateDocumentTool = createToolDefinition({
             thread_id: chat.id,
             agent_id: agent.id,
           },
-        }
+        },
       });
 
       for await (const delta of fullStream) {
@@ -138,11 +140,15 @@ export const updateDocumentTool = createToolDefinition({
         n: 1,
       });
 
-      draftText = image.base64;
-
+      const name = await saveMessageFile(
+        document.title,
+        Buffer.from(image.uint8Array),
+        chat.id,
+      );
+      draftText = await getMessageFile(name, chat.id);
       dataStream.writeData({
         type: 'image-delta',
-        content: image.base64,
+        content: draftText,
       });
 
       dataStream.writeData({ type: 'finish', content: '' });
@@ -163,7 +169,7 @@ export const updateDocumentTool = createToolDefinition({
             thread_id: chat.id,
             agent_id: agent.id,
           },
-        }
+        },
       });
 
       for await (const delta of fullStream) {
