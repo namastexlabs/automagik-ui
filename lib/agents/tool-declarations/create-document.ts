@@ -23,6 +23,7 @@ export const createDocumentTool = createToolDefinition({
   verboseName: 'Create Document',
   description: 'Create a document for a writing activity.',
   visibility: 'public',
+  namedRefinements: undefined,
   parameters: z.object({
     title: z.string(),
     kind: z.enum(['text', 'code', 'image', 'sheet']),
@@ -67,7 +68,7 @@ export const createDocumentTool = createToolDefinition({
             thread_id: chat.id,
             agent_id: agent.id,
           },
-        }
+        },
       });
 
       for await (const delta of fullStream) {
@@ -102,7 +103,7 @@ export const createDocumentTool = createToolDefinition({
             thread_id: chat.id,
             agent_id: agent.id,
           },
-        }
+        },
       });
 
       for await (const delta of fullStream) {
@@ -131,11 +132,16 @@ export const createDocumentTool = createToolDefinition({
         n: 1,
       });
 
-      draftText = image.base64;
-
+      const name = await saveMessageFile(
+        title,
+        Buffer.from(image.uint8Array),
+        chat.id,
+        'document'
+      );
+      draftText = await getMessageFile(name, chat.id);
       dataStream.writeData({
         type: 'image-delta',
-        content: image.base64,
+        content: draftText,
       });
 
       dataStream.writeData({ type: 'finish', content: '' });
@@ -156,7 +162,7 @@ export const createDocumentTool = createToolDefinition({
             thread_id: chat.id,
             agent_id: agent.id,
           },
-        }
+        },
       });
 
       for await (const delta of fullStream) {
@@ -197,6 +203,7 @@ export const createDocumentTool = createToolDefinition({
       id,
       title,
       kind,
+      error: null,
       content: 'A document was created and is now visible to the user.',
     };
   },

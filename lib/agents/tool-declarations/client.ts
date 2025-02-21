@@ -19,11 +19,18 @@ export enum InternalToolName {
   updateDocument = 'updateDocument',
   requestSuggestions = 'requestSuggestions',
   saveMemories = 'saveMemories',
-  syncFlow = 'syncFlow',
-  listFlows = 'listFlows',
-  listLangflowFlows = 'listLangflowFlows',
-  scheduleFlow = 'scheduleFlow',
+  syncWorkflow = 'syncWorkflow',
+  listWorkflows = 'listWorkflows',
+  scheduleWorkflow = 'scheduleWorkflow',
   listTasks = 'listTasks',
+  listRemoteWorkflows = 'listRemoteWorkflows',
+  createRemoteSource = 'createRemoteSource',
+  listSchedules = 'listSchedules',
+  listRemoteSources = 'listRemoteSources',
+  deleteRemoteSource = 'deleteRemoteSource',
+  deleteSchedule = 'deleteSchedule',
+  runWorkflow = 'runWorkflow',
+  enableDisableSchedule = 'enableDisableSchedule',
 }
 
 export const castToolType = <T extends Source, TOOL extends Tool | ClientTool>(

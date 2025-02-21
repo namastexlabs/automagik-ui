@@ -8,7 +8,8 @@ export const listTasksTool = createToolDefinition({
   name: InternalToolName.listTasks,
   verboseName: 'List Tasks',
   description: 'List tasks from Automagik',
-  visibility: 'private',
+  visibility: 'public',
+  namedRefinements: undefined,
   parameters: undefined,
   execute: async () => {
     try {

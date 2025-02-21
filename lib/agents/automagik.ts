@@ -1,21 +1,10 @@
 import 'server-only';
 import { z } from 'zod';
 import { createToolDefinition } from './tool-declaration';
-import type { ExecutionResult, FlowData, LangFlowResponse, Schedule, Task } from './types';
+import type { ExecutionResult, FlowData, Schedule, Task } from './types';
 
 const AUTOMAGIK_URL = process.env.AUTOMAGIK_URL || '';
 const AUTOMAGIK_API_KEY = process.env.AUTOMAGIK_API_KEY || '';
-
-const LANGFLOW_URL = process.env.LANGFLOW_URL || '';
-const LANGFLOW_API_KEY = process.env.LANGFLOW_API_KEY || '';
-
-const checkLangflowCredentials = () => {
-  if (!LANGFLOW_URL || !LANGFLOW_API_KEY) {
-    console.error('Missing credentials for Langflow');
-    return false;
-  }
-  return true;
-};
 
 const checkAutomagikCredentials = () => {
   if (!AUTOMAGIK_URL || !AUTOMAGIK_API_KEY) {
@@ -25,66 +14,50 @@ const checkAutomagikCredentials = () => {
   return true;
 };
 
-const LANGFLOW_HEADERS = {
-  'x-api-key': LANGFLOW_API_KEY,
-  accept: 'application/json',
-  'Content-Type': 'application/json',
-};
-
 const AUTOMAGIK_HEADERS = {
   'x-api-key': AUTOMAGIK_API_KEY,
   'Content-Type': 'application/json',
   accept: 'application/json',
 };
 
-export async function getFlowsFromLangFlow() {
-  if (!checkLangflowCredentials()) {
-    return [];
-  }
-
-  const response = await fetch(`${LANGFLOW_URL}/api/v1/flows/`, {
-    method: 'GET',
-    headers: LANGFLOW_HEADERS,
-  });
-
-  const data: LangFlowResponse[] = await response.json();
-  return data;
-}
-
-export async function getFlowsFromLangFlowById(id: string) {
-  if (!checkLangflowCredentials()) {
+export async function createRemoteSource(params: {
+  url: string;
+  api_key: string;
+  source_type: string;
+  status: string;
+}) {
+  if (!checkAutomagikCredentials()) {
     return null;
   }
 
-  const response = await fetch(`${LANGFLOW_URL}/api/v1/flows/${id}`, {
-    method: 'GET',
-    headers: LANGFLOW_HEADERS,
+  const response = await fetch(`${AUTOMAGIK_URL}/api/v1/sources/`, {
+    method: 'POST',
+    headers: AUTOMAGIK_HEADERS,
+    body: JSON.stringify(params),
   });
 
-  const data: LangFlowResponse = await response.json();
-  return data;
+  return await response.json();
 }
 
-export async function getFolderById(id: string) {
-  if (!checkLangflowCredentials()) {
+export async function deleteRemoteSource(sourceId: string) {
+  if (!checkAutomagikCredentials()) {
     return null;
   }
 
-  const response = await fetch(`${LANGFLOW_URL}/api/v1/folders/${id}`, {
-    method: 'GET',
-    headers: LANGFLOW_HEADERS,
+  const response = await fetch(`${AUTOMAGIK_URL}/api/v1/sources/${sourceId}/`, {
+    method: 'DELETE',
+    headers: AUTOMAGIK_HEADERS,
   });
 
-  const data: { name: string; id: string } = await response.json();
-  return data;
+  return await response.json();
 }
 
-export async function getFlows() {
+export async function getRemoteSources() {
   if (!checkAutomagikCredentials()) {
     return [];
   }
 
-  const response = await fetch(`${AUTOMAGIK_URL}/api/v1/flows/`, {
+  const response = await fetch(`${AUTOMAGIK_URL}/api/v1/sources/`, {
     method: 'GET',
     headers: AUTOMAGIK_HEADERS,
   });
@@ -93,26 +66,86 @@ export async function getFlows() {
   return data;
 }
 
-export async function syncFlow(
-  params: Omit<FlowData, 'id' | 'created_at' | 'updated_at'>,
+export async function getRemoteWorkflows() {
+  if (!checkAutomagikCredentials()) {
+    return [];
+  }
+
+  const response = await fetch(
+    `${AUTOMAGIK_URL}/api/v1/workflows/remote?simplified=true`,
+    {
+      method: 'GET',
+      headers: AUTOMAGIK_HEADERS,
+    },
+  );
+
+  const data: FlowData[] = await response.json();
+  return data;
+}
+
+export async function getWorkflows() {
+  if (!checkAutomagikCredentials()) {
+    return [];
+  }
+
+  const response = await fetch(`${AUTOMAGIK_URL}/api/v1/workflows/`, {
+    method: 'GET',
+    headers: AUTOMAGIK_HEADERS,
+  });
+
+  const data: FlowData[] = await response.json();
+  return data;
+}
+
+export async function syncWorkflow(
+  remoteFlowId: string,
+  params: {
+    input_component: string;
+    output_component: string;
+  },
 ) {
   if (!checkAutomagikCredentials()) {
     return null;
   }
 
-  const response = await fetch(`${AUTOMAGIK_URL}/api/v1/flows/`, {
-    method: 'POST',
-    headers: AUTOMAGIK_HEADERS,
-    body: JSON.stringify(params),
-  });
+  const searchParams = new URLSearchParams();
+
+  searchParams.append('input_component', params.input_component);
+  searchParams.append('output_component', params.output_component);
+
+  const response = await fetch(
+    `${AUTOMAGIK_URL}/api/v1/workflows/sync/${remoteFlowId}?${searchParams.toString()}`,
+    {
+      method: 'POST',
+      headers: AUTOMAGIK_HEADERS,
+    },
+  );
 
   const data: FlowData = await response.json();
   return data;
 }
 
+export async function runWorkflow(workflowId: string, inputValue: string) {
+  if (!checkAutomagikCredentials()) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${AUTOMAGIK_URL}/api/v1/workflows/${workflowId}/run/`,
+    {
+      method: 'POST',
+      headers: AUTOMAGIK_HEADERS,
+      body: JSON.stringify(inputValue),
+    },
+  );
+
+  const data = await response.json();
+  return data;
+}
+
 export async function createSchedule(params: {
-  next_run_at: string;
-  flow_id: string;
+  workflow_id: string;
+  input_value: string;
   schedule_type: 'interval' | 'cron';
   schedule_expr: string;
 }) {
@@ -128,6 +161,70 @@ export async function createSchedule(params: {
   });
 
   const data: Schedule = await response.json();
+  return data;
+}
+
+export async function enableSchedule(scheduleId: string) {
+  if (!checkAutomagikCredentials()) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${AUTOMAGIK_URL}/api/v1/schedules/${scheduleId}/enable/`,
+    {
+      method: 'POST',
+      headers: AUTOMAGIK_HEADERS,
+    },
+  );
+
+  const data: Schedule = await response.json();
+  return data;
+}
+
+export async function disableSchedule(scheduleId: string) {
+  if (!checkAutomagikCredentials()) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${AUTOMAGIK_URL}/api/v1/schedules/${scheduleId}/disable/`,
+    {
+      method: 'POST',
+      headers: AUTOMAGIK_HEADERS,
+    },
+  );
+
+  const data: Schedule = await response.json();
+  return data;
+}
+
+export async function deleteSchedule(scheduleId: string) {
+  if (!checkAutomagikCredentials()) {
+    return null;
+  }
+
+  const response = await fetch(
+    `${AUTOMAGIK_URL}/api/v1/schedules/${scheduleId}`,
+    {
+      method: 'DELETE',
+      headers: AUTOMAGIK_HEADERS,
+    },
+  );
+
+  return await response.json();
+}
+
+export async function getSchedules() {
+  if (!checkAutomagikCredentials()) {
+    return [];
+  }
+
+  const response = await fetch(`${AUTOMAGIK_URL}/api/v1/schedules/`, {
+    method: 'GET',
+    headers: AUTOMAGIK_HEADERS,
+  });
+
+  const data: Schedule[] = await response.json();
   return data;
 }
 
@@ -164,16 +261,24 @@ export function createChatFlowTool(
     verboseName,
     description,
     visibility,
+    namedRefinements: undefined,
     parameters: z.object({
       inputValue: z.string(),
     }),
     execute: async ({ inputValue }): Promise<ExecutionResult> => {
-      // TODO: AUTOMAGIK SCHEDULE/RUN TASK
+      try {
+        const result = await runWorkflow(flowId, inputValue);
 
-      return {
-        result: '',
-        content: 'Flow executed successfully',
-      };
+        return {
+          result: result,
+          content: 'Flow executed successfully',
+        };
+      } catch (error) {
+        return {
+          result: null,
+          content: 'Failed to execute flow',
+        };
+      }
     },
   });
 }

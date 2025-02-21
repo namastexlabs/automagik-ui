@@ -8,25 +8,37 @@ import {
 } from 'ai';
 
 import { getDocumentById, saveDocument } from '@/lib/db/queries';
-
-import type { DocumentExecuteReturn } from '../types';
-import { createToolDefinition } from '../tool-declaration';
-import { InternalToolName } from './client';
 import { accessModel } from '@/lib/ai/models';
 import { getImageModel, getModel } from '@/lib/ai/models.server';
 import { updateDocumentPrompt } from '@/lib/ai/prompts';
 import { getMessageFile, saveMessageFile } from '@/lib/services/minio';
+import { validateUUID } from '@/lib/utils';
 
+import type { DocumentExecuteReturn } from '../types';
+import { createToolDefinition } from '../tool-declaration';
+import { InternalToolName } from './client';
+
+const namedRefinements = {
+  validateUUID: (id: string, ctx: z.RefinementCtx) => {
+    if (!validateUUID(id)) {
+      ctx.addIssue({
+        code: z.ZodIssueCode.custom,
+        message: 'Invalid UUID',
+      });
+    }
+  },
+};
 
 export const updateDocumentTool = createToolDefinition({
   name: InternalToolName.updateDocument,
   verboseName: 'Update Document',
   description: 'Update a document with the given description',
   visibility: 'public',
+  namedRefinements,
   parameters: z.object({
     id: z
       .string()
-      .uuid()
+      .superRefine(namedRefinements.validateUUID)
       .describe('The ID of the document to update'),
     description: z
       .string()
@@ -144,6 +156,7 @@ export const updateDocumentTool = createToolDefinition({
         document.title,
         Buffer.from(image.uint8Array),
         chat.id,
+        'document',
       );
       draftText = await getMessageFile(name, chat.id);
       dataStream.writeData({
@@ -205,6 +218,7 @@ export const updateDocumentTool = createToolDefinition({
       id,
       title: document.title,
       kind: document.kind,
+      error: null,
       content: 'The document has been updated successfully.',
     };
   },

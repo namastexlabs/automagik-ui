@@ -1,5 +1,5 @@
 import { auth } from '@/app/(auth)/auth';
-import { getFlows } from '@/lib/agents/automagik';
+import { getWorkflows } from '@/lib/agents/automagik';
 
 export async function GET(request: Request) {
   const session = await auth();
@@ -8,7 +8,7 @@ export async function GET(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const flows = await getFlows();
+  const workflows = await getWorkflows();
 
-  return Response.json(flows, { status: 200 });
+  return Response.json(workflows, { status: 200 });
 }

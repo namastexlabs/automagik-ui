@@ -17,7 +17,7 @@ import type { ToolData } from '../agents/types';
 
 const pgTable = pgTableCreator((name) => `automagikui_${name}`);
 
-export const user = pgTable('User', {
+export const user = pgTable('user', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   email: varchar('email', { length: 64 }).notNull(),
   password: varchar('password', { length: 64 }),
@@ -26,7 +26,7 @@ export const user = pgTable('User', {
 export type User = InferSelectModel<typeof user>;
 
 export const dynamicBlock = pgTable(
-  'DynamicBlock',
+  'dynamic_block',
   {
     id: uuid('id').primaryKey().notNull().defaultRandom(),
     name: text('name').notNull(),
@@ -34,7 +34,7 @@ export const dynamicBlock = pgTable(
     visibility: varchar('visibility', { enum: ['public', 'private'] })
       .notNull()
       .default('private'),
-    userId: uuid('userId')
+    userId: uuid('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
   },
@@ -51,12 +51,12 @@ export const dynamicBlock = pgTable(
 export type DynamicBlock = InferSelectModel<typeof dynamicBlock>;
 
 export const tool = pgTable(
-  'Tool',
+  'tool',
   {
     id: uuid('id').primaryKey().notNull().defaultRandom(),
-    userId: uuid('userId').references(() => user.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
     name: text('name').notNull(),
-    verboseName: text('verboseName').notNull(),
+    verboseName: text('verbose_name').notNull(),
     description: text('description').notNull(),
     visibility: varchar('visibility', { enum: ['public', 'private'] })
       .notNull()
@@ -79,16 +79,16 @@ export const tool = pgTable(
 export type Tool = InferSelectModel<typeof tool>;
 
 export const agent = pgTable(
-  'Agent',
+  'agent',
   {
     id: uuid().primaryKey().notNull().defaultRandom(),
     name: text().notNull(),
-    systemPrompt: text().notNull(),
-    createdAt: timestamp().notNull().defaultNow(),
+    systemPrompt: text('system_prompt').notNull(),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
     visibility: varchar('visibility', { enum: ['public', 'private'] })
       .notNull()
       .default('private'),
-    userId: uuid().references(() => user.id, { onDelete: 'cascade' }),
+    userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
   },
   (table) => ({
     uniqueUserName: unique().on(table.name, table.userId),
@@ -104,12 +104,12 @@ export const agent = pgTable(
 export type Agent = InferSelectModel<typeof agent>;
 
 export const agentsToTools = pgTable(
-  'AgentToTool',
+  'agent_to_tool',
   {
-    agentId: uuid('agentId')
+    agentId: uuid('agent_id')
       .notNull()
       .references(() => agent.id, { onDelete: 'cascade' }),
-    toolId: uuid('toolId')
+    toolId: uuid('tool_id')
       .notNull()
       .references(() => tool.id, { onDelete: 'cascade' }),
   },
@@ -121,12 +121,12 @@ export const agentsToTools = pgTable(
 export type AgentsToTools = InferSelectModel<typeof agentsToTools>;
 
 export const agentsToDynamicBlocks = pgTable(
-  'AgentToDynamicBlock',
+  'agent_to_dynamic_block',
   {
-    agentId: uuid('agentId')
+    agentId: uuid('agent_id')
       .notNull()
       .references(() => agent.id, { onDelete: 'cascade' }),
-    dynamicBlockId: uuid('dynamicBlockId')
+    dynamicBlockId: uuid('dynamic_block_id')
       .notNull()
       .references(() => dynamicBlock.id, { onDelete: 'cascade' }),
   },
@@ -167,14 +167,14 @@ export const agentToToolsRelations = relations(agentsToTools, ({ one }) => ({
   }),
 }));
 
-export const chat = pgTable('Chat', {
+export const chat = pgTable('chat', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
-  createdAt: timestamp('createdAt').notNull(),
+  createdAt: timestamp('created_at').notNull(),
   title: text('title').notNull(),
-  agentId: uuid('agentId')
+  agentId: uuid('agent_id')
     .notNull()
     .references(() => agent.id, { onDelete: 'cascade' }),
-  userId: uuid('userId')
+  userId: uuid('user_id')
     .notNull()
     .references(() => user.id, { onDelete: 'cascade' }),
   visibility: varchar('visibility', { enum: ['public', 'private'] })
@@ -184,14 +184,14 @@ export const chat = pgTable('Chat', {
 
 export type Chat = InferSelectModel<typeof chat>;
 
-export const message = pgTable('Message', {
+export const message = pgTable('message', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
-  chatId: uuid('chatId')
+  chatId: uuid('chat_id')
     .notNull()
     .references(() => chat.id, { onDelete: 'cascade' }),
   role: varchar('role').notNull(),
   content: json('content').notNull(),
-  createdAt: timestamp('createdAt').notNull(),
+  createdAt: timestamp('created_at').notNull(),
 });
 
 export type Message = InferSelectModel<typeof message>;
@@ -204,15 +204,15 @@ export const messageRelations = relations(message, ({ one }) => ({
 }));
 
 export const vote = pgTable(
-  'Vote',
+  'vote',
   {
-    chatId: uuid('chatId')
+    chatId: uuid('chat_id')
       .notNull()
       .references(() => chat.id, { onDelete: 'cascade' }),
-    messageId: uuid('messageId')
+    messageId: uuid('message_id')
       .notNull()
       .references(() => message.id, { onDelete: 'cascade' }),
-    isUpvoted: boolean('isUpvoted').notNull(),
+    isUpvoted: boolean('is_upvoted').notNull(),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.chatId, table.messageId] }),
@@ -222,16 +222,16 @@ export const vote = pgTable(
 export type Vote = InferSelectModel<typeof vote>;
 
 export const document = pgTable(
-  'Document',
+  'document',
   {
     id: uuid('id').notNull().defaultRandom(),
-    createdAt: timestamp('createdAt').notNull(),
+    createdAt: timestamp('created_at').notNull(),
     title: text('title').notNull(),
     content: text('content'),
     kind: varchar('text', { enum: ['text', 'code', 'image', 'sheet'] })
       .notNull()
       .default('text'),
-    userId: uuid('userId')
+    userId: uuid('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
   },
@@ -243,19 +243,19 @@ export const document = pgTable(
 export type Document = InferSelectModel<typeof document>;
 
 export const suggestion = pgTable(
-  'Suggestion',
+  'suggestion',
   {
     id: uuid('id').notNull().defaultRandom(),
-    documentId: uuid('documentId').notNull(),
-    documentCreatedAt: timestamp('documentCreatedAt').notNull(),
-    originalText: text('originalText').notNull(),
-    suggestedText: text('suggestedText').notNull(),
+    documentId: uuid('document_id').notNull(),
+    documentCreatedAt: timestamp('document_created_at').notNull(),
+    originalText: text('original_text').notNull(),
+    suggestedText: text('suggested_text').notNull(),
     description: text('description'),
-    isResolved: boolean('isResolved').notNull().default(false),
-    userId: uuid('userId')
+    isResolved: boolean('is_resolved').notNull().default(false),
+    userId: uuid('user_id')
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
-    createdAt: timestamp('createdAt').notNull(),
+    createdAt: timestamp('created_at').notNull(),
   },
   (table) => ({
     pk: primaryKey({ columns: [table.id] }),

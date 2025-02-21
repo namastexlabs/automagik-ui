@@ -39,13 +39,16 @@ import {
 export function FlowFormDialog({
   tool,
   onCreate,
+  open,
+  setOpen,
 }: {
   tool?: Omit<ClientTool, 'data'> & { data: ToolData<'automagik'> };
   onCreate: (tool: ClientTool) => void;
+  open: boolean;
+  setOpen: (isOpen: boolean) => void;
 }) {
   const formId = useId();
   const [errors, setErrors] = useState<{ [key: string]: string }>({});
-  const [open, setOpen] = useState(false);
   const [isCloseAttempt, setCloseAttempt] = useState(false);
   const [visibility, setVisibility] = useState(tool?.visibility ?? 'public');
   const [selectedFlow, setSelectedFlow] = useState(tool?.data.flowId || null);
@@ -170,6 +173,11 @@ export function FlowFormDialog({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
+                {!!errors.verboseName && (
+                  <span className="text-sm text-destructive">
+                    {errors.verboseName}
+                  </span>
+                )}
               </div>
               <div className="flex flex-col gap-2">
                 <Label
@@ -179,12 +187,16 @@ export function FlowFormDialog({
                   Description
                 </Label>
                 <Textarea
-                  id={`${formId}-description`}
                   name="description"
-                  className="bg-muted text-md md:text-sm md:h-[140px]"
+                  rows={10}
+                  className="bg-muted text-md md:text-sm resize-none"
                   placeholder="Use this tool when..."
                   required
-                  defaultValue={tool?.description}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter" && !e.shiftKey) {
+                      e.stopPropagation();
+                    }
+                  }}
                 />
               </div>
               <div className="flex flex-col gap-2">
@@ -192,7 +204,7 @@ export function FlowFormDialog({
                   htmlFor={`${formId}-flow-id`}
                   className="text-zinc-600 font-normal dark:text-zinc-400"
                 >
-                  Flow
+                  Workflow
                 </Label>
                 <FlowsCombobox
                   formId={formId}

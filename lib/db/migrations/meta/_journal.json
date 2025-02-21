@@ -127,6 +127,20 @@
       "when": 1739209489983,
       "tag": "0017_stale_sentry",
       "breakpoints": true
+    },
+    {
+      "idx": 18,
+      "version": "7",
+      "when": 1739826842957,
+      "tag": "0018_tiny_zaladane",
+      "breakpoints": true
+    },
+    {
+      "idx": 19,
+      "version": "7",
+      "when": 1740023615155,
+      "tag": "0019_nasty_hellion",
+      "breakpoints": true
     }
   ]
 }

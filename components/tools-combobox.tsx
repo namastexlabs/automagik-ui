@@ -29,6 +29,7 @@ export function ToolsCombobox({
   selected: string[];
   onChange: (id: string) => void;
 }) {
+  const [openToolForm, setOpenToolForm] = useState(false);
   const [open, setOpen] = useState(false);
   const { data: tools = [], isLoading } = useSWR<ClientTool[]>(
     '/api/tools',
@@ -51,9 +52,7 @@ export function ToolsCombobox({
       onSelect={() => onChange(tool.id)}
     >
       <Checkbox checked={selected.includes(tool.id)} />
-      <span className="w-96 truncate cursor-pointer">
-        {tool.verboseName}
-      </span>
+      <span className="w-96 truncate cursor-pointer">{tool.verboseName}</span>
       <input
         key={tool.id}
         readOnly
@@ -69,7 +68,7 @@ export function ToolsCombobox({
   ));
 
   return (
-    <Popover modal={open} open={open} onOpenChange={setOpen}>
+    <Popover modal={open} open={open && !openToolForm} onOpenChange={setOpen}>
       <PopoverTrigger asChild>
         <Button
           variant="outline"
@@ -103,7 +102,11 @@ export function ToolsCombobox({
             <CommandEmpty>No tools found</CommandEmpty>
             <CommandList className="flex-1">{toolCommands}</CommandList>
             <div className="flex bg-background border-t-2 p-1 w-full">
-              <FlowFormDialog onCreate={handleCreate} />
+              <FlowFormDialog
+                onCreate={handleCreate}
+                open={openToolForm}
+                setOpen={setOpenToolForm}
+              />
             </div>
           </Command>
         )}

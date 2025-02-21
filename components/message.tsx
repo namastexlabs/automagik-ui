@@ -123,7 +123,7 @@ function PurePreviewMessage({
 
           <div className="flex flex-col gap-4 w-full min-w-0">
             {message.experimental_attachments && (
-              <div className="flex flex-row justify-end gap-2">
+              <div className="flex flex-row flex-wrap justify-end gap-2">
                 {message.experimental_attachments.map((attachment) => (
                   <PreviewAttachment
                     key={attachment.url}
