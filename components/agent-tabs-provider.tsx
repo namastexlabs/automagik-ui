@@ -73,10 +73,10 @@ export function AgentTabsProvider({
   );
 
   return (
-    <AgentTabsContext.Provider value={tabsContext}>
-      <CurrentAgentTabContext.Provider value={currentTabcontext}>
+    <AgentTabsContext value={tabsContext}>
+      <CurrentAgentTabContext value={currentTabcontext}>
         {children}
-      </CurrentAgentTabContext.Provider>
-    </AgentTabsContext.Provider>
+      </CurrentAgentTabContext>
+    </AgentTabsContext>
   );
 }

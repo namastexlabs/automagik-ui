@@ -4,7 +4,6 @@ import type {
   CoreMessage,
   CoreToolMessage,
   Message,
-  ToolInvocation,
 } from 'ai';
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
@@ -60,28 +59,27 @@ function addToolMessageToChat({
   messages: Array<Message>;
 }): Array<Message> {
   return messages.map((message) => {
-    if (message.toolInvocations) {
-      return {
-        ...message,
-        toolInvocations: message.toolInvocations.map((toolInvocation) => {
+    return {
+      ...message,
+      parts: message.parts?.map((part) => {
+        if (part.type === 'tool-invocation') {
           const toolResult = toolMessage.content.find(
-            (tool) => tool.toolCallId === toolInvocation.toolCallId,
+            (tool) => tool.toolCallId === part.toolInvocation.toolCallId,
           );
-
           if (toolResult) {
             return {
-              ...toolInvocation,
-              state: 'result',
-              result: toolResult.result,
+              ...part,
+              toolInvocation: {
+                ...part.toolInvocation,
+                state: 'result',
+                result: toolResult.result,
+              },
             };
           }
-
-          return toolInvocation;
-        }),
-      };
-    }
-
-    return message;
+        }
+        return part;
+      }),
+    };
   });
 }
 
@@ -95,29 +93,40 @@ export function convertToUIMessages(
         return chatMessages;
       }
 
-      let textContent = '';
-      let reasoning: string | undefined = undefined;
-      const toolInvocations: Array<ToolInvocation> = [];
+      const parts: Message['parts'] = [];
       const attachments: Attachment[] = [];
 
       if (
         typeof message.content === 'string' ||
         typeof message.content === 'number'
       ) {
-        textContent = String(message.content);
+        parts.push({
+          type: 'text',
+          text: String(message.content),
+        });
       } else if (Array.isArray(message.content)) {
         for (const content of message.content) {
           if (content.type === 'text') {
-            textContent += content.text;
+            parts.push({
+              type: 'text',
+              text: content.text,
+            });
           } else if (content.type === 'tool-call') {
-            toolInvocations.push({
-              state: 'call',
-              toolCallId: content.toolCallId,
-              toolName: content.toolName,
-              args: content.args,
+            parts.push({
+              type: 'tool-invocation',
+              toolInvocation: {
+                state: content.state,
+                toolCallId: content.toolCallId,
+                toolName: content.toolName,
+                args: content.args,
+              },
             });
           } else if (content.type === 'reasoning') {
-            reasoning = content.reasoning;
+            parts.push({
+              type: 'reasoning',
+              reasoning: content.reasoning,
+              details: content.details,
+            });
           } else if (content.type === 'image') {
             attachments.push({
               name: content.name,
@@ -129,11 +138,13 @@ export function convertToUIMessages(
       }
 
       chatMessages.push({
+        parts,
         id: message.id,
         role: message.role as Message['role'],
-        content: textContent,
-        reasoning,
-        toolInvocations,
+        content:
+          typeof message.content === 'string'
+            ? message.content
+            : parts.find((part) => part.type === 'text')?.text || '',
         experimental_attachments:
           attachments.length > 0 ? attachments : undefined,
       });
@@ -206,32 +217,35 @@ export function sanitizeUIMessages(messages: Array<Message>): Array<Message> {
   const messagesBySanitizedToolInvocations = messages.map((message) => {
     if (message.role !== 'assistant') return message;
 
-    if (!message.toolInvocations) return message;
+    if (!message.parts) return message;
 
     const toolResultIds: Array<string> = [];
 
-    for (const toolInvocation of message.toolInvocations) {
-      if (toolInvocation.state === 'result') {
-        toolResultIds.push(toolInvocation.toolCallId);
+    for (const part of message.parts) {
+      if (
+        part.type === 'tool-invocation' &&
+        part.toolInvocation.state === 'result'
+      ) {
+        toolResultIds.push(part.toolInvocation.toolCallId);
       }
     }
 
-    const sanitizedToolInvocations = message.toolInvocations.filter(
-      (toolInvocation) =>
-        toolInvocation.state === 'result' ||
-        toolResultIds.includes(toolInvocation.toolCallId),
+    const sanitizedToolInvocations = message.parts?.filter(
+      (part) =>
+        part.type !== 'tool-invocation' ||
+        part.toolInvocation.state === 'result' ||
+        toolResultIds.includes(part.toolInvocation.toolCallId),
     );
 
     return {
       ...message,
-      toolInvocations: sanitizedToolInvocations,
+      parts: sanitizedToolInvocations,
     };
   });
 
   return messagesBySanitizedToolInvocations.filter(
     (message) =>
-      message.content.length > 0 ||
-      (message.toolInvocations && message.toolInvocations.length > 0),
+      message.content.length > 0 || (message.parts && message.parts.length > 0),
   );
 }
 

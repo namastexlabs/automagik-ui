@@ -3,7 +3,7 @@ import { useEffect, useRef, type RefObject } from 'react';
 
 export function useScrollToBottom<T extends HTMLElement>(
   messages: Message[],
-): RefObject<T> {
+): RefObject<T | null> {
   const endRef = useRef<T>(null);
 
   useEffect(() => {

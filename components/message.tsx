@@ -133,24 +133,27 @@ function PurePreviewMessage({
               </div>
             )}
 
-            {message.reasoning && (
-              <MessageReasoning
-                isLoading={isLoading}
-                reasoning={message.reasoning}
-              />
-            )}
-
-            {(message.content || message.reasoning) && mode === 'view' && (
-              <div className={cn('flex flex-col gap-2 items-start', {
+            {message.parts?.map((part) => {
+              switch (part.type) {
+                case 'text':
+                  return (
+                    <div
+                      key={part.text}
+                      className={cn('flex flex-col gap-2 items-start', {
                 'items-end': message.role === 'user',
-              })}>
+                        hidden: mode === 'edit',
+                      })}
+                    >
                 <div
-                  className={cn('flex flex-col max-w-full gap-4 break-words', {
+                        className={cn(
+                          'flex flex-col max-w-full gap-4 break-words',
+                          {
                     'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
                       message.role === 'user',
-                  })}
+                          },
+                        )}
                 >
-                  <Markdown>{message.content as string}</Markdown>
+                        <Markdown>{part.text}</Markdown>
                 </div>
                 {message.role === 'user' && !isReadonly && (
                   <Tooltip>
@@ -169,25 +172,30 @@ function PurePreviewMessage({
                   </Tooltip>
                 )}
               </div>
-            )}
+                  );
+                case 'reasoning':
+                  return (
+                    <MessageReasoning
+                      key={part.reasoning}
+                      isLoading={isLoading}
+                      reasoning={part.reasoning}
+                    />
+                  );
+                case 'tool-invocation':
+                  return renderToolInvocation(part.toolInvocation);
+                default:
+                  return null;
+              }
+            })}
 
             {message.content && mode === 'edit' && (
               <div className="flex flex-row gap-2 items-start">
                 <div className="size-8" />
-
                 <MessageEditor
                   key={message.id}
                   message={message}
                   setMode={setMode}
-                  setMessages={setMessages}
-                  reload={reload}
                 />
-              </div>
-            )}
-
-            {message.toolInvocations && message.toolInvocations.length > 0 && (
-              <div className="flex flex-col gap-4">
-                {message.toolInvocations.map(renderToolInvocation)}
               </div>
             )}
 

@@ -30,10 +30,13 @@ export function PureMessageActions({
   const { mutate } = useSWRConfig();
   const [_, copyToClipboard] = useCopyToClipboard();
 
-  if (isLoading) return null;
-  if (message.role === 'user') return null;
-  if (message.toolInvocations && message.toolInvocations.length > 0)
+  if (
+    isLoading ||
+    message.role === 'user' ||
+    (message.parts && message.parts.length > 0)
+  ) {
     return null;
+  }
 
   return (
     <TooltipProvider delayDuration={0}>
