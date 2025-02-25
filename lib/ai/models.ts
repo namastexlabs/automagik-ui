@@ -52,6 +52,11 @@ export const chatModels = {
       ModelSupport.TOOLS,
       ModelSupport.REASONING,
     ]),
+    'claude-3-7-sonnet-20250219': createModelData('Claude 3.7 Sonnet', [
+      ModelSupport.IMAGE,
+      ModelSupport.TOOLS,
+      ModelSupport.REASONING,
+    ]),
   },
   google: {
     'gemini-2.0-flash': createModelData('Gemini 2.0 Flash', [
