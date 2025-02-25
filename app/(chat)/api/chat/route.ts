@@ -129,6 +129,14 @@ export async function POST(request: Request) {
         messages: [...coreMessages.slice(0, -1), userMessageWithAttachments],
         maxSteps: 5,
         tools,
+        providerOptions:
+          modelId === 'claude-3-7-sonnet-20250219'
+            ? {
+                anthropic: {
+                  thinking: { type: 'enabled', budgetTokens: 8192 },
+                },
+              }
+            : undefined,
         experimental_transform: smoothStream({ chunking: 'word' }),
         onFinish: async ({ response, reasoning, finishReason }) => {
           if (session.user?.id && finishReason !== 'error') {
