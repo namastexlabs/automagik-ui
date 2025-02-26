@@ -2,6 +2,7 @@ export enum ModelSupport {
   IMAGE = 'image',
   TOOLS = 'tools',
   REASONING = 'reasoning',
+  EXTENDED_THINKING = 'extended_thinking',
 }
 
 export type ModelData = {
@@ -56,6 +57,7 @@ export const chatModels = {
       ModelSupport.IMAGE,
       ModelSupport.TOOLS,
       ModelSupport.REASONING,
+      ModelSupport.EXTENDED_THINKING
     ]),
   },
   google: {
@@ -162,6 +164,9 @@ export const DEFAULT_CHAT_MODEL: keyof ChatModel[typeof DEFAULT_PROVIDER] =
 
 export const isModelValid = (provider: string, modelId: string) =>
   provider in chatModels && modelId in chatModels[provider as keyof ChatModel];
+
+export const isExtendedThinkingAllowed = (model: ModelData) =>
+  model.supports.includes(ModelSupport.EXTENDED_THINKING);
 
 export const isImagesAllowed = (model: ModelData) =>
   model.supports.includes(ModelSupport.IMAGE);

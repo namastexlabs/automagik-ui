@@ -11,6 +11,7 @@ export type ChatContextValue = {
   isLoading: boolean;
   isReadOnly: boolean;
   isImageAllowed: boolean;
+  isExtendedThinking: boolean;
   error: string | null;
 }
 
@@ -26,6 +27,7 @@ export type ChatMessagesContextValue = {
 export type ChatHandlersContextValue = {
   setModelId: (modelId: string) => void;
   setProvider: (provider: string) => void;
+  toggleExtendedThinking: () => void;
   setInput: (input: string) => void;
   setAttachments: (attachments: Attachment[]) => void;
   setMessages: (messages: Message[]) => void;

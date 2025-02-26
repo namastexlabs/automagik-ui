@@ -119,12 +119,13 @@ export function PreviewMessage({
               </div>
             )}
 
-            {message.parts?.map((part) => {
+            {message.parts?.map((part, index) => {
               switch (part.type) {
                 case 'text':
                   return (
                     <div
-                      key={part.text}
+                      // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                      key={index}
                       className={cn('flex flex-col gap-2 items-start', {
                         'items-end': message.role === 'user',
                         hidden: mode === 'edit',
@@ -162,7 +163,8 @@ export function PreviewMessage({
                 case 'reasoning':
                   return (
                     <MessageReasoning
-                      key={part.reasoning}
+                    // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                    key={index}
                       isLoading={isLoading}
                       reasoning={part.reasoning}
                     />

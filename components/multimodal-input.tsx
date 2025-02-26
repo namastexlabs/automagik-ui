@@ -16,9 +16,13 @@ import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 import { ImageIcon } from 'lucide-react';
 
 import { sanitizeUIMessages } from '@/lib/utils';
-import { useChat, useChatHandlers, useChatInput, useChatMessages } from '@/contexts/chat';
+import {
+  useChat,
+  useChatHandlers,
+  useChatInput,
+  useChatMessages,
+} from '@/contexts/chat';
 import type { ClientAgent } from '@/lib/data';
-
 
 import { ArrowUpIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
@@ -26,6 +30,8 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
+import { getModelData, isExtendedThinkingAllowed } from '@/lib/ai/models';
+import { Toggle } from './ui/toggle';
 
 export function MultimodalInput({
   className,
@@ -35,10 +41,23 @@ export function MultimodalInput({
   className?: string;
 }) {
   const { width } = useWindowSize();
-  const { chat, isLoading, isImageAllowed } = useChat();
+  const {
+    chat,
+    isLoading,
+    isImageAllowed,
+    modelId,
+    provider,
+    isExtendedThinking,
+  } = useChat();
   const { input, attachments } = useChatInput();
-  const { setMessages, handleSubmit, setInput, setAttachments, stop } =
-    useChatHandlers();
+  const {
+    setMessages,
+    handleSubmit,
+    setInput,
+    setAttachments,
+    stop,
+    toggleExtendedThinking,
+  } = useChatHandlers();
   const { tabs } = useAgentTabs();
   const { currentTab } = useCurrentAgentTab();
 
@@ -106,7 +125,16 @@ export function MultimodalInput({
     if (width && width > 768) {
       textareaRef.current?.focus();
     }
-  }, [input, handleSubmit, attachments, currentTab, agents, tabs, setLocalStorageInput, width]);
+  }, [
+    input,
+    handleSubmit,
+    attachments,
+    currentTab,
+    agents,
+    tabs,
+    setLocalStorageInput,
+    width,
+  ]);
 
   const uploadFile = async (file: File, chatId?: string) => {
     const formData = new FormData();
@@ -209,21 +237,31 @@ export function MultimodalInput({
         }}
       />
 
-      <Tooltip>
-        <TooltipTrigger asChild>
-          <div className="absolute bottom-0 p-2 w-fit flex flex-row justify-start">
+      <div className="absolute bottom-0 p-2 gap-2 w-fit flex flex-row justify-start items-center">
+        <Tooltip>
+          <TooltipTrigger asChild>
             <AttachmentsButton
               fileInputRef={fileInputRef}
               disabled={isLoading || !isImageAllowed}
             />
-          </div>
-        </TooltipTrigger>
-        <TooltipContent>
-          {isImageAllowed
-            ? 'Attach an image'
-            : 'Images are not allowed for this model'}
-        </TooltipContent>
-      </Tooltip>
+          </TooltipTrigger>
+          <TooltipContent>
+            {isImageAllowed
+              ? 'Attach an image'
+              : 'Images are not allowed for this model'}
+          </TooltipContent>
+        </Tooltip>
+        {isExtendedThinkingAllowed(getModelData(provider, modelId)) && (
+          <Toggle
+            className="data-[state=on]:bg-black"
+            variant="outline"
+            pressed={isExtendedThinking}
+            onPressedChange={toggleExtendedThinking}
+          >
+            Reasoning
+          </Toggle>
+        )}
+      </div>
 
       <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
         {isLoading ? (

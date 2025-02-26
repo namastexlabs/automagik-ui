@@ -41,11 +41,13 @@ export async function POST(request: Request) {
     messages,
     provider,
     modelId,
+    isExtendedThinking,
   }: {
     id: string;
     messages: Array<Message>;
     provider: string;
     modelId: string;
+    isExtendedThinking: boolean;
   } = await request.json();
 
   if (!isModelValid(provider, modelId)) {
@@ -130,7 +132,7 @@ export async function POST(request: Request) {
         maxSteps: 5,
         tools,
         providerOptions:
-          modelId === 'claude-3-7-sonnet-20250219'
+          isExtendedThinking && modelId === 'claude-3-7-sonnet-20250219'
             ? {
                 anthropic: {
                   thinking: { type: 'enabled', budgetTokens: 8192 },

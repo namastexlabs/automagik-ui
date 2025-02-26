@@ -49,6 +49,12 @@ export function ChatProvider({
     isSubmitting: boolean;
   }) => void;
 }>) {
+  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  const [selectedProvider, setProvider] = useState(provider);
+  const [selectedModelId, setModelId] = useState(modelId);
+  const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const [isExtendedThinking, setIsExtendedThinking] = useState(false);
+
   const {
     messages,
     setMessages,
@@ -65,14 +71,12 @@ export function ChatProvider({
     initialMessages,
     sendExtraMessageFields: true,
     experimental_throttle: 50,
+    body: {
+      isExtendedThinking,
+    },
   });
   const { mutate } = useSWRConfig();
   const router = useRouter();
-
-  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
-  const [selectedProvider, setProvider] = useState(provider);
-  const [selectedModelId, setModelId] = useState(modelId);
-  const [isCreatingChat, setIsCreatingChat] = useState(false);
 
   useEffect(() => {
     setAttachments([]);
@@ -86,6 +90,10 @@ export function ChatProvider({
       setAttachments([]);
     }
   }, [isImageAllowed]);
+
+  useEffect(() => {
+    setIsExtendedThinking(false);
+  }, [modelId]);
 
   const getOrCreateChat = useCallback(
     async (messages: Message[], tab: string) => {
@@ -214,6 +222,7 @@ export function ChatProvider({
       chat,
       isReadOnly,
       isImageAllowed,
+      isExtendedThinking,
       modelId: selectedModelId,
       provider: selectedProvider,
       isLoading: isCreatingChat || isLoading,
@@ -222,6 +231,7 @@ export function ChatProvider({
   }, [
     chat,
     isReadOnly,
+    isExtendedThinking,
     selectedModelId,
     selectedProvider,
     isCreatingChat,
@@ -250,9 +260,10 @@ export function ChatProvider({
       setInput,
       setAttachments,
       setMessages,
-      reload: reloadMessage,
       stop,
       append,
+      toggleExtendedThinking: () => setIsExtendedThinking((state) => !state),
+      reload: reloadMessage,
       handleSubmit: onSubmit,
     };
   }, [
