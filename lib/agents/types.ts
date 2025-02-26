@@ -172,10 +172,6 @@ export type FlowData = {
   is_component: boolean;
   input_component: string;
   output_component: string;
-  data: {
-    nodes: FlowNode[];
-    edges: FlowEdge[];
-  };
   id: string;
   created_at: string;
   updated_at: string;

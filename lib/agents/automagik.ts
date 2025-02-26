@@ -62,7 +62,7 @@ export async function getRemoteSources() {
     headers: AUTOMAGIK_HEADERS,
   });
 
-  const data: FlowData[] = await response.json();
+  const data = await response.json();
   return data;
 }
 

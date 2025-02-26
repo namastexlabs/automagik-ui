@@ -127,7 +127,7 @@ export const createDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     } else if (kind === 'image') {
       const { image } = await experimental_generateImage({
-        model: getImageModel('openai', 'dall-e-3'),
+        model: getImageModel('togetherai', 'stabilityai/stable-diffusion-xl-base-1.0'),
         prompt: title,
         n: 1,
       });
