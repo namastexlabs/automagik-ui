@@ -13,7 +13,8 @@ import { deleteTrailingMessages } from '@/app/(chat)/actions';
 
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
-import { useChatHandlers, useChatMessages } from '@/contexts/chat';
+import { useChat, useChatHandlers, useChatMessages } from '@/contexts/chat';
+import { toast } from 'sonner';
 
 export type MessageEditorProps = {
   message: Message;
@@ -24,8 +25,9 @@ export function MessageEditor({
   message,
   setMode,
 }: MessageEditorProps) {
+  const { isLoading } = useChat();
   const { messages } = useChatMessages();
-  const { setMessages, reload } = useChatHandlers();
+  const { setMessages, reload, stop } = useChatHandlers();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [draftContent, setDraftContent] = useState<string>(message.content);
@@ -73,6 +75,11 @@ export function MessageEditor({
           className="h-fit py-2 px-3"
           disabled={isSubmitting}
           onClick={async () => {
+            if (isLoading) {
+              toast.error('Please wait for the model to finish its response!');
+              return;
+            }
+
             setIsSubmitting(true);
 
             await deleteTrailingMessages({

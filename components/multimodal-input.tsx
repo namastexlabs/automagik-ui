@@ -13,7 +13,7 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
-import { ImageIcon } from 'lucide-react';
+import { ImageIcon, Lightbulb } from 'lucide-react';
 
 import { sanitizeUIMessages } from '@/lib/utils';
 import {
@@ -255,10 +255,11 @@ export function MultimodalInput({
           <Toggle
             className="data-[state=on]:bg-black"
             variant="outline"
+            size="sm"
             pressed={isExtendedThinking}
             onPressedChange={toggleExtendedThinking}
           >
-            Reasoning
+            <Lightbulb /> Reasoning
           </Toggle>
         )}
       </div>

@@ -26,6 +26,34 @@ import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
 import { MessageReasoning } from './message-reasoning';
 
+function sortByPriority<ARR, PRIORITY>(
+  arr: ARR[],
+  priority: PRIORITY[],
+  getPriority: (item: ARR) => PRIORITY,
+) {
+  const prioritySet = new Set(priority);
+  const priorityMap = new Map(priority.map((item, index) => [item, index]));
+
+  const priorityItems = [];
+  const nonPriorityItems = [];
+
+  for (const item of arr) {
+    if (prioritySet.has(getPriority(item))) {
+      priorityItems.push(item);
+    } else {
+      nonPriorityItems.push(item);
+    }
+  }
+
+  priorityItems.sort(
+    (a, b) =>
+      priorityMap.get(getPriority(a)) ||
+      0 - (priorityMap.get(getPriority(b)) || 0),
+  );
+
+  return [...priorityItems, ...nonPriorityItems];
+}
+
 export function PreviewMessage({
   chatId,
   message,
@@ -83,6 +111,12 @@ export function PreviewMessage({
     }
   };
 
+  const sortedParts = sortByPriority(
+    message.parts || [],
+    ['reasoning', 'text', 'tool-invocation'],
+    (part) => part.type,
+  );
+
   return (
     <AnimatePresence>
       <motion.div
@@ -119,7 +153,7 @@ export function PreviewMessage({
               </div>
             )}
 
-            {message.parts?.map((part, index) => {
+            {sortedParts.map((part, index) => {
               switch (part.type) {
                 case 'text':
                   return (
@@ -162,12 +196,14 @@ export function PreviewMessage({
                   );
                 case 'reasoning':
                   return (
-                    <MessageReasoning
-                    // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
-                    key={index}
-                      isLoading={isLoading}
-                      reasoning={part.reasoning}
-                    />
+                    part.reasoning && (
+                      <MessageReasoning
+                        // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                        key={index}
+                        isLoading={isLoading}
+                        reasoning={part.reasoning}
+                      />
+                    )
                   );
                 case 'tool-invocation':
                   return renderToolInvocation(part.toolInvocation);
@@ -193,7 +229,6 @@ export function PreviewMessage({
                 chatId={chatId}
                 message={message}
                 vote={vote}
-                isLoading={isLoading}
               />
             )}
           </div>
