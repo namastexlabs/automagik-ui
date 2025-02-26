@@ -1,8 +1,9 @@
 'use client';
 
 import {
-  memo,
+  type KeyboardEvent,
   type MouseEvent,
+  memo,
   useCallback,
   useEffect,
   useMemo,
@@ -143,12 +144,12 @@ const PureHitboxLayer = ({
   result,
   setBlock,
 }: {
-  hitboxRef: React.RefObject<HTMLDivElement>;
+  hitboxRef: React.RefObject<HTMLDivElement | null>;
   result: any;
   setBlock: (updaterFn: UIBlock | ((currentBlock: UIBlock) => UIBlock)) => void;
 }) => {
   const handleClick = useCallback(
-    (event: MouseEvent<HTMLElement>) => {
+    (event: MouseEvent<HTMLElement> | KeyboardEvent<HTMLElement>) => {
       const boundingBox = event.currentTarget.getBoundingClientRect();
 
       setBlock((block) =>
@@ -173,11 +174,11 @@ const PureHitboxLayer = ({
   );
 
   return (
-    // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
     <div
       className="size-full absolute top-0 left-0 rounded-xl z-10"
       ref={hitboxRef}
       onClick={handleClick}
+      onKeyDown={handleClick}
       role="presentation"
       aria-hidden="true"
     >

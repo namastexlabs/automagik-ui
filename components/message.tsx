@@ -1,15 +1,10 @@
 'use client';
 
-import type {
-  ChatRequestOptions,
-  Message,
-  ToolInvocation as AIToolInvocation,
-} from 'ai';
+import type { Message, ToolInvocation as AIToolInvocation } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import equal from 'fast-deep-equal';
 import useSWR from 'swr';
-import { memo, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
   castToolType,
@@ -31,29 +26,20 @@ import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
 import { MessageReasoning } from './message-reasoning';
 
-function PurePreviewMessage({
+export function PreviewMessage({
   chatId,
   message,
   vote,
   isLoading,
-  setMessages,
-  reload,
   isReadonly,
 }: {
   chatId?: string;
   message: Message;
   vote: Vote | undefined;
   isLoading: boolean;
-  setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
-  ) => void;
-  reload: (
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
   isReadonly: boolean;
 }) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
-
   const { data: agents = [], isLoading: isAgentsLoading } = useSWR<
     ClientAgent[]
   >('/api/agents', fetcher, { revalidateOnMount: false });
@@ -133,61 +119,71 @@ function PurePreviewMessage({
               </div>
             )}
 
-            {message.reasoning && (
-              <MessageReasoning
-                isLoading={isLoading}
-                reasoning={message.reasoning}
-              />
-            )}
-
-            {(message.content || message.reasoning) && mode === 'view' && (
-              <div className={cn('flex flex-col gap-2 items-start', {
-                'items-end': message.role === 'user',
-              })}>
-                <div
-                  className={cn('flex flex-col max-w-full gap-4 break-words', {
-                    'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
-                      message.role === 'user',
-                  })}
-                >
-                  <Markdown>{message.content as string}</Markdown>
-                </div>
-                {message.role === 'user' && !isReadonly && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
-                        onClick={() => {
-                          setMode('edit');
-                        }}
+            {message.parts?.map((part, index) => {
+              switch (part.type) {
+                case 'text':
+                  return (
+                    <div
+                      // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                      key={index}
+                      className={cn('flex flex-col gap-2 items-start', {
+                        'items-end': message.role === 'user',
+                        hidden: mode === 'edit',
+                      })}
+                    >
+                      <div
+                        className={cn(
+                          'flex flex-col max-w-full gap-4 break-words',
+                          {
+                            'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
+                              message.role === 'user',
+                          },
+                        )}
                       >
-                        <PencilEditIcon />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Edit message</TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
-            )}
+                        <Markdown>{part.text}</Markdown>
+                      </div>
+                      {message.role === 'user' && !isReadonly && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                              onClick={() => {
+                                setMode('edit');
+                              }}
+                            >
+                              <PencilEditIcon />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit message</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
+                  );
+                case 'reasoning':
+                  return (
+                    <MessageReasoning
+                    // biome-ignore lint/suspicious/noArrayIndexKey: <explanation>
+                    key={index}
+                      isLoading={isLoading}
+                      reasoning={part.reasoning}
+                    />
+                  );
+                case 'tool-invocation':
+                  return renderToolInvocation(part.toolInvocation);
+                default:
+                  return null;
+              }
+            })}
 
             {message.content && mode === 'edit' && (
               <div className="flex flex-row gap-2 items-start">
                 <div className="size-8" />
-
                 <MessageEditor
                   key={message.id}
                   message={message}
                   setMode={setMode}
-                  setMessages={setMessages}
-                  reload={reload}
                 />
-              </div>
-            )}
-
-            {message.toolInvocations && message.toolInvocations.length > 0 && (
-              <div className="flex flex-col gap-4">
-                {message.toolInvocations.map(renderToolInvocation)}
               </div>
             )}
 
@@ -206,27 +202,6 @@ function PurePreviewMessage({
     </AnimatePresence>
   );
 }
-
-export const PreviewMessage = memo(
-  PurePreviewMessage,
-  (prevProps, nextProps) => {
-    if (prevProps.reload !== nextProps.reload) return false;
-    if (prevProps.isLoading !== nextProps.isLoading) return false;
-    if (prevProps.message.reasoning !== nextProps.message.reasoning)
-      return false;
-    if (prevProps.message.content !== nextProps.message.content) return false;
-    if (
-      !equal(
-        prevProps.message.toolInvocations,
-        nextProps.message.toolInvocations,
-      )
-    )
-      return false;
-    if (!equal(prevProps.vote, nextProps.vote)) return false;
-
-    return true;
-  },
-);
 
 export const ThinkingMessage = () => {
   const role = 'assistant';

@@ -9,7 +9,7 @@ export function UserProvider({
   children,
 }: PropsWithChildren<UserContextValue>) {
   return (
-    <UserContext.Provider
+    <UserContext
       value={{
         user: {
           id: user.id,
@@ -18,6 +18,6 @@ export function UserProvider({
       }}
     >
       {children}
-    </UserContext.Provider>
+    </UserContext>
   );
 }

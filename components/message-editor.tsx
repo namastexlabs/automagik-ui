@@ -1,30 +1,31 @@
 'use client';
 
-import type{ ChatRequestOptions, Message } from 'ai';
-import { type Dispatch, type SetStateAction, useEffect, useRef, useState } from 'react';
+import type { Message } from 'ai';
+import {
+  type Dispatch,
+  type SetStateAction,
+  useEffect,
+  useRef,
+  useState,
+} from 'react';
 
 import { deleteTrailingMessages } from '@/app/(chat)/actions';
 
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
+import { useChatHandlers, useChatMessages } from '@/contexts/chat';
 
 export type MessageEditorProps = {
   message: Message;
   setMode: Dispatch<SetStateAction<'view' | 'edit'>>;
-  setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
-  ) => void;
-  reload: (
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
 };
 
 export function MessageEditor({
   message,
   setMode,
-  setMessages,
-  reload,
 }: MessageEditorProps) {
+  const { messages } = useChatMessages();
+  const { setMessages, reload } = useChatHandlers();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
   const [draftContent, setDraftContent] = useState<string>(message.content);
@@ -78,20 +79,16 @@ export function MessageEditor({
               id: message.id,
             });
 
-            setMessages((messages) => {
-              const index = messages.findIndex((m) => m.id === message.id);
+            const index = messages.findIndex((m) => m.id === message.id);
 
-              if (index !== -1) {
-                const updatedMessage = {
-                  ...message,
-                  content: draftContent,
-                };
+            if (index !== -1) {
+              const updatedMessage = {
+                ...message,
+                content: draftContent,
+              };
 
-                return [...messages.slice(0, index), updatedMessage];
-              }
-
-              return messages;
-            });
+              setMessages([...messages.slice(0, index), updatedMessage]);
+            }
 
             setMode('view');
             reload();

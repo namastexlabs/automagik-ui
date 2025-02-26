@@ -1,16 +1,12 @@
-import type {
-  Attachment,
-  ChatRequestOptions,
-  Message,
-} from 'ai';
+'use client';
+
 import equal from 'fast-deep-equal';
 import { formatDistance } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
-  type Dispatch,
   memo,
-  type SetStateAction,
   useCallback,
+  useDeferredValue,
   useEffect,
   useState,
 } from 'react';
@@ -53,47 +49,15 @@ export interface UIBlock {
 }
 
 function PureBlock({
-  chatId,
-  input,
-  setInput,
-  handleSubmit,
-  isLoading,
-  stop,
-  attachments,
-  setAttachments,
-  messages,
-  setMessages,
-  reload,
   votes,
-  isReadonly,
-  hasError,
-  isImageAllowed,
+  agents,
 }: {
-  isImageAllowed: boolean;
-  chatId?: string;
-  input: string;
-  setInput: (input: string) => void;
-  isLoading: boolean;
-  stop: () => void;
-  attachments: Array<Attachment>;
-  setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
-  messages: Array<Message>;
-  setMessages: Dispatch<SetStateAction<Array<Message>>>;
   votes: Array<Vote> | undefined;
-  handleSubmit: (
-    content?: string,
-    attachments?: Attachment[],
-    agentId?: string,
-    agents?: ClientAgent[],
-    tabs?: string[],
-  ) => void;
-  reload: (
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
-  isReadonly: boolean;
-  hasError: boolean;
+  agents: Array<ClientAgent>;
 }) {
   const { block, setBlock, metadata, setMetadata } = useBlock();
+
+  const defferedBlock = useDeferredValue(block);
 
   const {
     data: documents,
@@ -129,7 +93,7 @@ function PureBlock({
 
   useEffect(() => {
     mutateDocuments();
-  }, [block.status, mutateDocuments]);
+  }, [defferedBlock.status, mutateDocuments]);
 
   const { mutate } = useSWRConfig();
   const [isContentDirty, setIsContentDirty] = useState(false);
@@ -264,117 +228,90 @@ function PureBlock({
 
   return (
     <AnimatePresence>
-      {block.isVisible && (
-        <motion.div
-          className="flex flex-row h-dvh w-dvw fixed top-0 left-0 z-50 bg-transparent"
-          initial={{ opacity: 1 }}
-          animate={{ opacity: 1 }}
-          exit={{ opacity: 0, transition: { delay: 0.4 } }}
-        >
-          {!isMobile && (
-            <motion.div
-              className="fixed bg-background h-dvh"
-              initial={{
-                width: isSidebarOpen ? windowWidth - 256 : windowWidth,
-                right: 0,
-              }}
-              animate={{ width: windowWidth, right: 0 }}
-              exit={{
-                width: isSidebarOpen ? windowWidth - 256 : windowWidth,
-                right: 0,
-              }}
-            />
-          )}
-
-          {!isMobile && (
-            <motion.div
-              className="relative w-[400px] bg-muted dark:bg-background h-dvh shrink-0"
-              initial={{ opacity: 0, x: 10, scale: 1 }}
-              animate={{
-                opacity: 1,
-                x: 0,
-                scale: 1,
-                transition: {
-                  delay: 0.2,
-                  type: 'spring',
-                  stiffness: 200,
-                  damping: 30,
-                },
-              }}
-              exit={{
-                opacity: 0,
-                x: 0,
-                scale: 1,
-                transition: { duration: 0 },
-              }}
-            >
-              <AnimatePresence>
-                {!isCurrentVersion && (
-                  <motion.div
-                    className="left-0 absolute h-dvh w-[400px] top-0 bg-zinc-900/50 z-50"
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    exit={{ opacity: 0 }}
-                  />
-                )}
-              </AnimatePresence>
-
-              <div className="flex flex-col h-full justify-between items-center gap-4">
-                <BlockMessages
-                  chatId={chatId}
-                  isLoading={isLoading}
-                  votes={votes}
-                  messages={messages}
-                  setMessages={setMessages}
-                  reload={reload}
-                  isReadonly={isReadonly}
-                  blockStatus={block.status}
-                  hasError={hasError}
-                />
-
-                <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
-                  <MultimodalInput
-                    chatId={chatId}
-                    isImageAllowed={isImageAllowed}
-                    input={input}
-                    setInput={setInput}
-                    handleSubmit={handleSubmit}
-                    isLoading={isLoading}
-                    stop={stop}
-                    attachments={attachments}
-                    setAttachments={setAttachments}
-                    className="bg-background dark:bg-muted"
-                    setMessages={setMessages}
-                  />
-                </form>
-              </div>
-            </motion.div>
-          )}
-
+      <motion.div
+        className={`flex flex-row h-dvh w-dvw fixed top-0 left-0 z-50 bg-transparent ${block.isVisible ? '' : 'invisible'}`}
+        initial={{ opacity: 0 }}
+        animate={{ opacity: block.isVisible ? 1 : 0 }}
+        exit={{ opacity: 0, transition: { delay: 0.4 } }}
+      >
+        {!isMobile && (
           <motion.div
-            className="fixed dark:bg-muted bg-background h-dvh flex flex-col md:border-l dark:border-zinc-700 border-zinc-200"
-            initial={
-              isMobile
-                ? {
-                    opacity: 1,
+            className="fixed bg-background h-dvh"
+            initial={{
+              width: isSidebarOpen ? windowWidth - 256 : windowWidth,
+              right: 0,
+            }}
+            animate={{
+              width: block.isVisible ? windowWidth : undefined,
+              right: 0,
+            }}
+            exit={{
+              width: isSidebarOpen ? windowWidth - 256 : windowWidth,
+              right: 0,
+            }}
+          />
+        )}
+
+        {!isMobile && (
+          <motion.div
+            className="relative w-[400px] bg-muted dark:bg-background h-dvh shrink-0"
+            initial={{ opacity: 0, x: 10, scale: 1 }}
+            animate={{
+              opacity: block.isVisible ? 1 : 0,
+              x: 0,
+              scale: 1,
+              transition: {
+                delay: 0.2,
+                type: 'spring',
+                stiffness: 200,
+                damping: 30,
+              },
+            }}
+            exit={{
+              opacity: 0,
+              x: 0,
+              scale: 1,
+              transition: { duration: 0 },
+            }}
+          >
+            <AnimatePresence>
+              {!isCurrentVersion && (
+                <motion.div
+                  className="left-0 absolute h-dvh w-[400px] top-0 bg-zinc-900/50 z-50"
+                  initial={{ opacity: 0 }}
+                  animate={{ opacity: block.isVisible ? 1 : 0 }}
+                  exit={{ opacity: 0 }}
+                />
+              )}
+            </AnimatePresence>
+
+            <div className="flex flex-col h-full justify-between items-center gap-4">
+              <BlockMessages votes={votes} />
+
+              <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
+                <MultimodalInput
+                  agents={agents}
+                  className="bg-background dark:bg-muted"
+                />
+              </form>
+            </div>
+          </motion.div>
+        )}
+
+        <motion.div
+          className="fixed dark:bg-muted bg-background h-dvh flex flex-col md:border-l dark:border-zinc-700 border-zinc-200"
+          variants={
+            isMobile
+              ? {
+                  hidden: {
+                    opacity: 0,
                     x: block.boundingBox.left,
                     y: block.boundingBox.top,
                     height: block.boundingBox.height,
                     width: block.boundingBox.width,
                     borderRadius: 50,
-                  }
-                : {
-                    opacity: 1,
-                    x: block.boundingBox.left,
-                    y: block.boundingBox.top,
-                    height: block.boundingBox.height,
-                    width: block.boundingBox.width,
-                    borderRadius: 50,
-                  }
-            }
-            animate={
-              isMobile
-                ? {
+                  },
+                  visible: {
                     opacity: 1,
                     x: 0,
                     y: 0,
@@ -388,15 +325,23 @@ function PureBlock({
                       damping: 30,
                       duration: 5000,
                     },
-                  }
-                : {
+                  },
+                }
+              : {
+                  hidden: {
+                    opacity: 0,
+                    x: block.boundingBox.left,
+                    y: block.boundingBox.top,
+                    height: block.boundingBox.height,
+                    width: block.boundingBox.width,
+                    borderRadius: 50,
+                  },
+                  visible: {
                     opacity: 1,
                     x: 400,
                     y: 0,
                     height: windowHeight,
-                    width: windowWidth
-                      ? windowWidth - 400
-                      : 'calc(100dvw-400px)',
+                    width: windowWidth ? windowWidth - 400 : 'calc(100dvw - 400px)',
                     borderRadius: 0,
                     transition: {
                       delay: 0,
@@ -405,122 +350,119 @@ function PureBlock({
                       damping: 30,
                       duration: 5000,
                     },
-                  }
-            }
-            exit={{
-              opacity: 0,
-              scale: 0.5,
-              transition: {
-                delay: 0.1,
-                type: 'spring',
-                stiffness: 600,
-                damping: 30,
-              },
-            }}
-          >
-            <div className="p-2 flex flex-row justify-between items-start">
-              <div className="flex flex-row gap-4 items-start">
-                <BlockCloseButton />
-
-                <div className="flex flex-col">
-                  <div className="font-medium">{block.title}</div>
-
-                  {isContentDirty ? (
-                    <div className="text-sm text-muted-foreground">
-                      Saving changes...
-                    </div>
-                  ) : document ? (
-                    <div className="text-sm text-muted-foreground">
-                      {`Updated ${formatDistance(
-                        new Date(document.createdAt),
-                        new Date(),
-                        {
-                          addSuffix: true,
-                        },
-                      )}`}
-                    </div>
-                  ) : (
-                    <div className="w-32 h-3 mt-2 bg-muted-foreground/20 rounded-md animate-pulse" />
-                  )}
-                </div>
-              </div>
-
-              <BlockActions
-                block={block}
-                currentVersionIndex={currentVersionIndex}
-                handleVersionChange={handleVersionChange}
-                isCurrentVersion={isCurrentVersion}
-                mode={mode}
-                metadata={metadata}
-                setMetadata={setMetadata}
-              />
-            </div>
-
-            <div className={cn(
-                'dark:bg-muted bg-background h-full overflow-y-scroll !max-w-full items-center',
-                {
-                  'py-2 px-2': block.kind === 'code',
-                  'py-8 md:p-20 px-4': block.kind === 'text',
-                })}>
-              <blockDefinition.content
-                title={block.title}
-                content={
-                  isCurrentVersion
-                    ? block.content
-                    : getDocumentContentById(currentVersionIndex)
+                  },
                 }
-                mode={mode}
-                status={block.status}
-                currentVersionIndex={currentVersionIndex}
-                suggestions={[]}
-                onSaveContent={saveContent}
-                isInline={false}
-                isCurrentVersion={isCurrentVersion}
-                getDocumentContentById={getDocumentContentById}
-                isLoading={isDocumentsFetching && !block.content}
-                metadata={metadata}
-                setMetadata={setMetadata}
-              />
+          }
+          initial="hidden"
+          animate={block.isVisible ? 'visible' : 'hidden'}
+          exit={{
+            opacity: 0,
+            scale: 0.5,
+            transition: {
+              delay: 0.1,
+              type: 'spring',
+              stiffness: 600,
+              damping: 30,
+            },
+          }}
+        >
+          <div className="p-2 flex flex-row justify-between items-start">
+            <div className="flex flex-row gap-4 items-start">
+              <BlockCloseButton />
 
-              <AnimatePresence>
-                {isCurrentVersion && (
-                  <Toolbar
-                    isToolbarVisible={isToolbarVisible}
-                    setIsToolbarVisible={setIsToolbarVisible}
-                    handleSubmit={handleSubmit}
-                    isLoading={isLoading}
-                    stop={stop}
-                    setMessages={setMessages}
-                    blockKind={block.kind}
-                  />
+              <div className="flex flex-col">
+                <div className="font-medium">{block.title}</div>
+
+                {isContentDirty ? (
+                  <div className="text-sm text-muted-foreground">
+                    Saving changes...
+                  </div>
+                ) : document ? (
+                  <div className="text-sm text-muted-foreground">
+                    {`Updated ${formatDistance(
+                      new Date(document.createdAt),
+                      new Date(),
+                      {
+                        addSuffix: true,
+                      },
+                    )}`}
+                  </div>
+                ) : (
+                  <div className="w-32 h-3 mt-2 bg-muted-foreground/20 rounded-md animate-pulse" />
                 )}
-              </AnimatePresence>
+              </div>
             </div>
+
+            <BlockActions
+              block={defferedBlock}
+              currentVersionIndex={currentVersionIndex}
+              handleVersionChange={handleVersionChange}
+              isCurrentVersion={isCurrentVersion}
+              mode={mode}
+              metadata={metadata}
+              setMetadata={setMetadata}
+            />
+          </div>
+
+          <div
+            className={cn(
+              'dark:bg-muted bg-background h-full overflow-y-scroll !max-w-full items-center',
+              {
+                'py-2 px-2': block.kind === 'code',
+                'py-8 md:p-20 px-4': block.kind === 'text',
+              },
+            )}
+          >
+            <blockDefinition.content
+              title={block.title}
+              content={
+                isCurrentVersion
+                  ? defferedBlock.content
+                  : getDocumentContentById(currentVersionIndex)
+              }
+              mode={mode}
+              status={block.status}
+              currentVersionIndex={currentVersionIndex}
+              suggestions={[]}
+              onSaveContent={saveContent}
+              isInline={false}
+              isCurrentVersion={isCurrentVersion}
+              getDocumentContentById={getDocumentContentById}
+              isLoading={isDocumentsFetching && !block.content}
+              metadata={metadata}
+              setMetadata={setMetadata}
+            />
 
             <AnimatePresence>
-              {!isCurrentVersion && (
-                <VersionFooter
-                  currentVersionIndex={currentVersionIndex}
-                  documents={documents}
-                  handleVersionChange={handleVersionChange}
+              {isCurrentVersion && (
+                <Toolbar
+                  agents={agents}
+                  isToolbarVisible={isToolbarVisible}
+                  setIsToolbarVisible={setIsToolbarVisible}
+                  blockKind={block.kind}
                 />
               )}
             </AnimatePresence>
-          </motion.div>
+          </div>
+
+          <AnimatePresence>
+            {!isCurrentVersion && (
+              <VersionFooter
+                currentVersionIndex={currentVersionIndex}
+                documents={documents}
+                handleVersionChange={handleVersionChange}
+              />
+            )}
+          </AnimatePresence>
         </motion.div>
-      )}
+      </motion.div>
     </AnimatePresence>
   );
 }
 
 export const Block = memo(PureBlock, (prevProps, nextProps) => {
-  if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (!equal(prevProps.votes, nextProps.votes)) return false;
-  if (prevProps.input !== nextProps.input) return false;
-  if (!equal(prevProps.messages, nextProps.messages.length)) return false;
-  if (prevProps.handleSubmit !== nextProps.handleSubmit) return false;
-  if (prevProps.chatId !== nextProps.chatId) return false;
-  if (prevProps.isImageAllowed !== nextProps.isImageAllowed) return false;
+  if (!equal(prevProps.agents, nextProps.agents)) return false;
 
   return true;
 });

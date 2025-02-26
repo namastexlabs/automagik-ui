@@ -19,7 +19,6 @@ import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AgentTabsProvider } from '@/components/agent-tabs-provider';
 import { mapAgent } from '@/lib/data';
-import { DataStreamHandler } from '@/components/data-stream-handler';
 import { UserProvider } from '@/components/user-provider';
 import { MODEL_COOKIE_KEY, PROVIDER_COOKIE_KEY } from '@/lib/ai/cookies';
 import { convertAttachmentUrls } from '@/lib/utils.server';
@@ -103,7 +102,6 @@ export default async function Page({
               selectedVisibilityType={chat.visibility}
               isReadonly={session?.user?.id !== chat.userId}
             />
-            <DataStreamHandler id={id} />
           </SidebarInset>
         </SidebarProvider>
       </AgentTabsProvider>
