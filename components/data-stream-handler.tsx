@@ -1,10 +1,12 @@
 'use client';
 
-import { useChat } from 'ai/react';
 import { useEffect, useRef } from 'react';
-import { blockDefinitions, type BlockKind } from './block';
+import type { JSONValue } from 'ai';
+
 import type { Suggestion } from '@/lib/db/schema';
 import { initialBlockData, useBlock } from '@/hooks/use-block';
+
+import { blockDefinitions, type BlockKind } from './block';
 
 export type DataStreamDelta = {
   type:
@@ -21,8 +23,7 @@ export type DataStreamDelta = {
   content: string | Suggestion;
 };
 
-export function DataStreamHandler({ id }: { id: string }) {
-  const { data: dataStream } = useChat({ id });
+export function DataStreamHandler({ dataStream }: { dataStream?: JSONValue[] }) {
   const { block, setBlock, setMetadata } = useBlock();
   const lastProcessedIndex = useRef(-1);
 

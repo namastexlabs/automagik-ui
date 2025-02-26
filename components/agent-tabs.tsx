@@ -20,6 +20,7 @@ import { AgentFormDialog } from '@/components/agent-form-dialog';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { setTabCookie } from '@/lib/agents/cookies';
 import type { ClientAgent } from '@/lib/data';
+import { useChatInput } from '@/contexts/chat';
 
 export function AgentTabs({
   agents,
@@ -43,11 +44,11 @@ export function AgentTabs({
     isSubmitting: boolean;
   };
   onSubmit: (
-    content?: string,
-    attachments?: Attachment[],
-    agentId?: string,
-    agents?: ClientAgent[],
-    tabs?: string[],
+    content: string,
+    attachments: Attachment[],
+    agentId: string,
+    agents: ClientAgent[],
+    tabs: string[],
   ) => void;
 }) {
   const router = useRouter();
@@ -55,6 +56,7 @@ export function AgentTabs({
   const { width: windowWidth } = useWindowSize();
   const { tabs, addTab, removeTab } = useAgentTabs();
   const { currentTab, setTab } = useCurrentAgentTab();
+  const { input, attachments } = useChatInput();
 
   const openAgents = agents.filter((agent) => tabs.includes(agent.id));
 
@@ -67,7 +69,7 @@ export function AgentTabs({
   const onSaveAgent = useCallback(
     (agent: ClientAgent) => {
       if (agentDialog.isSubmitting) {
-        onSubmit(undefined, undefined, agent.id, [agent], [agent.id]);
+        onSubmit(input, attachments, agent.id, [agent], [agent.id]);
       }
 
       if (agents.length === 0) {
@@ -75,7 +77,15 @@ export function AgentTabs({
       }
       addTab(agent.id);
     },
-    [agentDialog.isSubmitting, addTab, agents.length, setTab, onSubmit],
+    [
+      agentDialog.isSubmitting,
+      agents.length,
+      addTab,
+      onSubmit,
+      input,
+      attachments,
+      setTab,
+    ],
   );
 
   const onChangeAgent = (id: string) => {

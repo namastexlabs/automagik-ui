@@ -67,9 +67,9 @@ export const updateDocumentTool = createToolDefinition({
 
     if (document.kind === 'text') {
       const { fullStream } = streamText({
-        model: getModel(...accessModel('openai', 'gpt-4o-mini')),
+        model: getModel(...accessModel('google', 'gemini-2.0-flash')),
         system: updateDocumentPrompt(currentContent, 'text'),
-        experimental_transform: smoothStream({ chunking: 'word' }),
+        experimental_transform: smoothStream({ chunking: 'line' }),
         prompt: description,
         experimental_providerMetadata: {
           openai: {

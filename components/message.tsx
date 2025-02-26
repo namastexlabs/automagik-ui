@@ -1,15 +1,10 @@
 'use client';
 
-import type {
-  ChatRequestOptions,
-  Message,
-  ToolInvocation as AIToolInvocation,
-} from 'ai';
+import type { Message, ToolInvocation as AIToolInvocation } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import equal from 'fast-deep-equal';
 import useSWR from 'swr';
-import { memo, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 
 import {
   castToolType,
@@ -31,29 +26,20 @@ import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
 import { MessageReasoning } from './message-reasoning';
 
-function PurePreviewMessage({
+export function PreviewMessage({
   chatId,
   message,
   vote,
   isLoading,
-  setMessages,
-  reload,
   isReadonly,
 }: {
   chatId?: string;
   message: Message;
   vote: Vote | undefined;
   isLoading: boolean;
-  setMessages: (
-    messages: Message[] | ((messages: Message[]) => Message[]),
-  ) => void;
-  reload: (
-    chatRequestOptions?: ChatRequestOptions,
-  ) => Promise<string | null | undefined>;
   isReadonly: boolean;
 }) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
-
   const { data: agents = [], isLoading: isAgentsLoading } = useSWR<
     ClientAgent[]
   >('/api/agents', fetcher, { revalidateOnMount: false });
@@ -140,38 +126,38 @@ function PurePreviewMessage({
                     <div
                       key={part.text}
                       className={cn('flex flex-col gap-2 items-start', {
-                'items-end': message.role === 'user',
+                        'items-end': message.role === 'user',
                         hidden: mode === 'edit',
                       })}
                     >
-                <div
+                      <div
                         className={cn(
                           'flex flex-col max-w-full gap-4 break-words',
                           {
-                    'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
-                      message.role === 'user',
+                            'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
+                              message.role === 'user',
                           },
                         )}
-                >
-                        <Markdown>{part.text}</Markdown>
-                </div>
-                {message.role === 'user' && !isReadonly && (
-                  <Tooltip>
-                    <TooltipTrigger asChild>
-                      <Button
-                        variant="ghost"
-                        className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
-                        onClick={() => {
-                          setMode('edit');
-                        }}
                       >
-                        <PencilEditIcon />
-                      </Button>
-                    </TooltipTrigger>
-                    <TooltipContent>Edit message</TooltipContent>
-                  </Tooltip>
-                )}
-              </div>
+                        <Markdown>{part.text}</Markdown>
+                      </div>
+                      {message.role === 'user' && !isReadonly && (
+                        <Tooltip>
+                          <TooltipTrigger asChild>
+                            <Button
+                              variant="ghost"
+                              className="px-2 h-fit rounded-full text-muted-foreground opacity-0 group-hover/message:opacity-100"
+                              onClick={() => {
+                                setMode('edit');
+                              }}
+                            >
+                              <PencilEditIcon />
+                            </Button>
+                          </TooltipTrigger>
+                          <TooltipContent>Edit message</TooltipContent>
+                        </Tooltip>
+                      )}
+                    </div>
                   );
                 case 'reasoning':
                   return (
@@ -214,27 +200,6 @@ function PurePreviewMessage({
     </AnimatePresence>
   );
 }
-
-export const PreviewMessage = memo(
-  PurePreviewMessage,
-  (prevProps, nextProps) => {
-    if (prevProps.reload !== nextProps.reload) return false;
-    if (prevProps.isLoading !== nextProps.isLoading) return false;
-    if (prevProps.message.reasoning !== nextProps.message.reasoning)
-      return false;
-    if (prevProps.message.content !== nextProps.message.content) return false;
-    if (
-      !equal(
-        prevProps.message.toolInvocations,
-        nextProps.message.toolInvocations,
-      )
-    )
-      return false;
-    if (!equal(prevProps.vote, nextProps.vote)) return false;
-
-    return true;
-  },
-);
 
 export const ThinkingMessage = () => {
   const role = 'assistant';

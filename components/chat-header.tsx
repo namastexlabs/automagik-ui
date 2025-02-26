@@ -1,7 +1,5 @@
 'use client';
 
-import type { Attachment } from 'ai';
-
 import { ModelSelector } from '@/components/model-selector';
 import { SidebarToggle } from '@/components/sidebar-toggle';
 import { AgentTabs } from '@/components/agent-tabs';
@@ -11,68 +9,51 @@ import {
 } from '@/components/visibility-selector';
 import type { ClientAgent } from '@/lib/data';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
+import { useChat, useChatHandlers } from '@/contexts/chat';
 
 export function ChatHeader({
   agents,
-  chatId,
-  modelId,
-  provider,
-  onChangeProvider,
-  onChangeModelId,
   selectedVisibilityType,
-  isReadonly,
   agentDialog,
   changeAgentDialog,
   openAgentListDialog,
   changeAgentListDialog,
-  onSubmit,
 }: {
   agents: ClientAgent[];
-  chatId?: string;
-  modelId: string;
-  provider: string;
   selectedVisibilityType: VisibilityType;
-  isReadonly: boolean;
   openAgentListDialog: boolean;
   agentDialog: {
     agentId: string | null;
     isOpen: boolean;
     isSubmitting: boolean;
   };
-  onChangeProvider: (provider: string) => void;
-  onChangeModelId: (modelId: string) => void;
   changeAgentDialog: (
     isOpen: boolean,
     agentId?: string,
     isSubmitting?: boolean,
   ) => void;
   changeAgentListDialog: (isOpen: boolean) => void;
-  onSubmit: (
-    content?: string,
-    attachments?: Attachment[],
-    agentId?: string,
-    agents?: ClientAgent[],
-    tabs?: string[],
-  ) => void;
 }) {
+  const { chat, isReadOnly, modelId, provider } = useChat();
+  const { setModelId, setProvider, handleSubmit } = useChatHandlers();
   const { visibilityType, setVisibilityType } = useChatVisibility({
-    chatId,
+    chatId: chat?.id,
     initialVisibility: selectedVisibilityType,
   });
 
   return (
     <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
       <SidebarToggle />
-      {!isReadonly && (
+      {!isReadOnly && (
         <ModelSelector
           selectedModelId={modelId}
           selectedProvider={provider}
-          onChangeModelId={onChangeModelId}
-          onChangeProvider={onChangeProvider}
+          onChangeModelId={setModelId}
+          onChangeProvider={setProvider}
           className="order-1 md:order-2"
         />
       )}
-      {!isReadonly && !!chatId && (
+      {!isReadOnly && !!chat?.id && (
         <VisibilitySelector
           selectedVisibilityType={visibilityType}
           onChange={setVisibilityType}
@@ -83,7 +64,7 @@ export function ChatHeader({
         agents={agents}
         agentDialog={agentDialog}
         changeAgentDialog={changeAgentDialog}
-        onSubmit={onSubmit}
+        onSubmit={handleSubmit}
         openAgentListDialog={openAgentListDialog}
         changeAgentListDialog={changeAgentListDialog}
       />

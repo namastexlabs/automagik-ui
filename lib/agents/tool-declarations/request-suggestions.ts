@@ -40,11 +40,13 @@ export const requestSuggestionsTool = createToolDefinition({
     const { dataStream, userId } = context;
     const document = await getDocumentById({ id: documentId });
 
-    if (!document || !document.content) {
+    if (!document) {
       return {
         error: 'Document not found',
       };
     }
+    // biome-ignore lint/style/noNonNullAssertion: <explanation>
+    const content = document.content!;
 
     const suggestions: Array<
       Omit<Suggestion, 'userId' | 'createdAt' | 'documentCreatedAt'>
@@ -53,7 +55,7 @@ export const requestSuggestionsTool = createToolDefinition({
     const { elementStream } = streamObject({
       model: getModel(...accessModel('openai', 'gpt-4o-mini')),
       system: suggestionPrompt,
-      prompt: document.content,
+      prompt: content,
       output: 'array',
       schema: z.object({
         originalSentence: z.string().describe('The original sentence'),

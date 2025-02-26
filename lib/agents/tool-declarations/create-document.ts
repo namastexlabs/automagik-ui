@@ -55,9 +55,9 @@ export const createDocumentTool = createToolDefinition({
 
     if (kind === 'text') {
       const { fullStream } = streamText({
-        model: getModel(...accessModel('openai', 'gpt-4o-mini')),
+        model: getModel(...accessModel('google', 'gemini-2.0-flash')),
         system: textPrompt,
-        experimental_transform: smoothStream({ chunking: 'word' }),
+        experimental_transform: smoothStream({ chunking: 'line' }),
         prompt: title,
         experimental_telemetry: {
           isEnabled: true,

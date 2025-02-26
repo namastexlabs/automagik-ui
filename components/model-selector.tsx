@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef, useState } from 'react';
+import { memo, useEffect, useRef, useState } from 'react';
 
 import { Button } from '@/components/ui/button';
 import { chatModels, getModelData } from '@/lib/ai/models';
@@ -22,7 +22,7 @@ import {
 import { CheckCircleFillIcon, ChevronDownIcon } from './icons';
 import { setModelCookie } from '@/lib/ai/cookies';
 
-export function ModelSelector({
+function PureModelSelector({
   selectedModelId,
   selectedProvider,
   onChangeModelId,
@@ -105,3 +105,5 @@ export function ModelSelector({
     </Popover>
   );
 }
+
+export const ModelSelector = memo(PureModelSelector);

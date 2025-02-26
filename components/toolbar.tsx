@@ -2,7 +2,6 @@
 
 import type {
   Attachment,
-  Message,
 } from 'ai';
 import cx from 'classnames';
 import {
@@ -14,6 +13,7 @@ import {
 import {
   type Dispatch,
   type ReactNode,
+  type RefObject,
   type SetStateAction,
   memo,
   useEffect,
@@ -30,6 +30,8 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { sanitizeUIMessages } from '@/lib/utils';
+import { useChat, useChatHandlers, useChatMessages } from '@/contexts/chat';
+import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import type { ClientAgent } from '@/lib/data';
 
 import { ArrowUpIcon, StopIcon, SummarizeIcon } from './icons';
@@ -44,21 +46,9 @@ type ToolProps = {
   isToolbarVisible?: boolean;
   setIsToolbarVisible?: Dispatch<SetStateAction<boolean>>;
   isAnimating: boolean;
-  handleSubmit: (
-    content?: string,
-    attachments?: Attachment[],
-    agentId?: string,
-    agents?: ClientAgent[],
-    tabs?: string[],
-  ) => void;
+  handleSubmit: (content: string, attachments?: Attachment[]) => void;
   onClick: (context: {
-    handleSubmit: (
-      content?: string,
-      attachments?: Attachment[],
-      agentId?: string,
-      agents?: ClientAgent[],
-      tabs?: string[],
-    ) => void;
+    handleSubmit: (content: string, attachments?: Attachment[]) => void;
   }) => void;
 };
 
@@ -70,8 +60,8 @@ const Tool = ({
   isToolbarVisible,
   setIsToolbarVisible,
   isAnimating,
-  handleSubmit,
   onClick,
+  handleSubmit,
 }: ToolProps) => {
   const [isHovered, setIsHovered] = useState(false);
 
@@ -156,11 +146,8 @@ const ReadingLevelSelector = ({
   setSelectedTool: Dispatch<SetStateAction<string | null>>;
   isAnimating: boolean;
   handleSubmit: (
-    content?: string,
+    content: string,
     attachments?: Attachment[],
-    agentId?: string,
-    agents?: ClientAgent[],
-    tabs?: string[],
   ) => void;
 }) => {
   const LEVELS = [
@@ -262,24 +249,18 @@ export const Tools = ({
   isToolbarVisible,
   selectedTool,
   setSelectedTool,
-  handleSubmit,
   isAnimating,
   setIsToolbarVisible,
   tools,
+  handleSubmit,
 }: {
   isToolbarVisible: boolean;
   selectedTool: string | null;
   setSelectedTool: Dispatch<SetStateAction<string | null>>;
-  handleSubmit: (
-    content?: string,
-    attachments?: Attachment[],
-    agentId?: string,
-    agents?: ClientAgent[],
-    tabs?: string[],
-  ) => void;
   isAnimating: boolean;
   setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
   tools: Array<BlockToolbarItem>;
+  handleSubmit: (content: string, attachments?: Attachment[]) => void;
 }) => {
   const [primaryTool, ...secondaryTools] = tools;
 
@@ -299,9 +280,9 @@ export const Tools = ({
               icon={secondaryTool.icon}
               selectedTool={selectedTool}
               setSelectedTool={setSelectedTool}
-              handleSubmit={handleSubmit}
               isAnimating={isAnimating}
               onClick={secondaryTool.onClick}
+              handleSubmit={handleSubmit}
             />
           ))}
       </AnimatePresence>
@@ -313,9 +294,9 @@ export const Tools = ({
         setSelectedTool={setSelectedTool}
         isToolbarVisible={isToolbarVisible}
         setIsToolbarVisible={setIsToolbarVisible}
-        handleSubmit={handleSubmit}
         isAnimating={isAnimating}
         onClick={primaryTool.onClick}
+        handleSubmit={handleSubmit}
       />
     </motion.div>
   );
@@ -324,33 +305,31 @@ export const Tools = ({
 const PureToolbar = ({
   isToolbarVisible,
   setIsToolbarVisible,
-  handleSubmit,
-  isLoading,
-  stop,
-  setMessages,
   blockKind,
+  agents,
 }: {
   isToolbarVisible: boolean;
   setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
-  isLoading: boolean;
-  handleSubmit: (
-    content?: string,
-    attachments?: Attachment[],
-    agentId?: string,
-    agents?: ClientAgent[],
-    tabs?: string[],
-  ) => void;
-  stop: () => void;
-  setMessages: Dispatch<SetStateAction<Message[]>>;
   blockKind: BlockKind;
+  agents: ClientAgent[];
 }) => {
+  const { isLoading } = useChat();
+  const { messages } = useChatMessages();
+  const { stop, handleSubmit, setMessages } = useChatHandlers();
   const toolbarRef = useRef<HTMLDivElement>(null);
-  const timeoutRef = useRef<ReturnType<typeof setTimeout>>();
+  const timeoutRef = useRef<ReturnType<typeof setTimeout>>(undefined);
 
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
+  const { tabs } = useAgentTabs();
+  const { currentTab } = useCurrentAgentTab();
 
-  useOnClickOutside(toolbarRef, () => {
+  const onSubmit = (content: string, attachments?: Attachment[]) => {
+    // biome-ignore lint/style/noNonNullAssertion: <explanation>
+    handleSubmit(content, attachments || [], currentTab!, agents, tabs);
+  }
+
+  useOnClickOutside(toolbarRef as RefObject<HTMLDivElement>, () => {
     setIsToolbarVisible(false);
     setSelectedTool(null);
   });
@@ -454,7 +433,7 @@ const PureToolbar = ({
             className="p-3"
             onClick={() => {
               stop();
-              setMessages((messages) => sanitizeUIMessages(messages));
+              setMessages(sanitizeUIMessages(messages));
             }}
           >
             <StopIcon />
@@ -462,14 +441,14 @@ const PureToolbar = ({
         ) : selectedTool === 'adjust-reading-level' ? (
           <ReadingLevelSelector
             key="reading-level-selector"
-            handleSubmit={handleSubmit}
+            handleSubmit={onSubmit}
             setSelectedTool={setSelectedTool}
             isAnimating={isAnimating}
           />
         ) : (
           <Tools
             key="tools"
-            handleSubmit={handleSubmit}
+            handleSubmit={onSubmit}
             isAnimating={isAnimating}
             isToolbarVisible={isToolbarVisible}
             selectedTool={selectedTool}
@@ -484,10 +463,8 @@ const PureToolbar = ({
 };
 
 export const Toolbar = memo(PureToolbar, (prevProps, nextProps) => {
-  if (prevProps.isLoading !== nextProps.isLoading) return false;
   if (prevProps.isToolbarVisible !== nextProps.isToolbarVisible) return false;
   if (prevProps.blockKind !== nextProps.blockKind) return false;
-  if (prevProps.handleSubmit !== nextProps.handleSubmit) return false;
 
   return true;
 });

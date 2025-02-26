@@ -1,6 +1,6 @@
 'use client';
 
-import type { Attachment, Message } from 'ai';
+import type { Message } from 'ai';
 import cx from 'classnames';
 import type React from 'react';
 import {
@@ -8,51 +8,41 @@ import {
   useEffect,
   useState,
   useCallback,
-  type Dispatch,
-  type SetStateAction,
   type ChangeEvent,
   memo,
 } from 'react';
 import { toast } from 'sonner';
-import equal from 'fast-deep-equal';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
+import { ImageIcon } from 'lucide-react';
 
 import { sanitizeUIMessages } from '@/lib/utils';
+import { useChat, useChatHandlers, useChatInput, useChatMessages } from '@/contexts/chat';
+import type { ClientAgent } from '@/lib/data';
+
 
 import { ArrowUpIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { ImageIcon } from 'lucide-react';
+import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 
-function PureMultimodalInput({
-  input,
-  setInput,
-  isLoading,
-  stop,
-  attachments,
-  setAttachments,
-  setMessages,
-  isImageAllowed,
-  handleSubmit,
+export function MultimodalInput({
   className,
-  chatId,
+  agents,
 }: {
-  input: string;
-  setInput: (value: string) => void;
-  isLoading: boolean;
-  stop: () => void;
-  attachments: Array<Attachment>;
-  setAttachments: Dispatch<SetStateAction<Array<Attachment>>>;
-  setMessages: Dispatch<SetStateAction<Array<Message>>>;
-  handleSubmit: () => void;
+  agents: ClientAgent[];
   className?: string;
-  chatId?: string;
-  isImageAllowed: boolean;
 }) {
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const { width } = useWindowSize();
+  const { chat, isLoading, isImageAllowed } = useChat();
+  const { input, attachments } = useChatInput();
+  const { setMessages, handleSubmit, setInput, setAttachments, stop } =
+    useChatHandlers();
+  const { tabs } = useAgentTabs();
+  const { currentTab } = useCurrentAgentTab();
+
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
     if (textareaRef.current) {
@@ -108,14 +98,15 @@ function PureMultimodalInput({
       return;
     }
 
-    handleSubmit();
+    // biome-ignore lint/style/noNonNullAssertion: <explanation>
+    handleSubmit(input, attachments, currentTab!, agents, tabs);
     setLocalStorageInput('');
     resetHeight();
 
     if (width && width > 768) {
       textareaRef.current?.focus();
     }
-  }, [handleSubmit, setLocalStorageInput, width, input]);
+  }, [input, handleSubmit, attachments, currentTab, agents, tabs, setLocalStorageInput, width]);
 
   const uploadFile = async (file: File, chatId?: string) => {
     const formData = new FormData();
@@ -146,23 +137,20 @@ function PureMultimodalInput({
       setUploadQueue(files.map((file) => file.name));
 
       try {
-        const uploadPromises = files.map((file) => uploadFile(file, chatId));
+        const uploadPromises = files.map((file) => uploadFile(file, chat?.id));
         const uploadedAttachments = await Promise.all(uploadPromises);
         const successfullyUploadedAttachments = uploadedAttachments.filter(
           (attachment) => attachment !== undefined,
         );
 
-        setAttachments((currentAttachments) => [
-          ...currentAttachments,
-          ...successfullyUploadedAttachments,
-        ]);
+        setAttachments([...attachments, ...successfullyUploadedAttachments]);
       } catch (error) {
         console.error('Error uploading files!', error);
       } finally {
         setUploadQueue([]);
       }
     },
-    [setAttachments, chatId],
+    [setAttachments, attachments, chat?.id],
   );
 
   return (
@@ -252,20 +240,6 @@ function PureMultimodalInput({
   );
 }
 
-export const MultimodalInput = memo(
-  PureMultimodalInput,
-  (prevProps, nextProps) => {
-    if (prevProps.handleSubmit !== nextProps.handleSubmit) return false;
-    if (prevProps.input !== nextProps.input) return false;
-    if (prevProps.isLoading !== nextProps.isLoading) return false;
-    if (!equal(prevProps.attachments, nextProps.attachments)) return false;
-    if (prevProps.chatId !== nextProps.chatId) return false;
-    if (prevProps.isImageAllowed !== nextProps.isImageAllowed) return false;
-
-    return true;
-  },
-);
-
 function PureAttachmentsButton({
   disabled,
   fileInputRef,
@@ -295,15 +269,17 @@ function PureStopButton({
   setMessages,
 }: {
   stop: () => void;
-  setMessages: Dispatch<SetStateAction<Array<Message>>>;
+  setMessages: (messages: Message[]) => void;
 }) {
+  const { messages } = useChatMessages();
+
   return (
     <Button
       className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
       onClick={(event) => {
         event.preventDefault();
         stop();
-        setMessages((messages) => sanitizeUIMessages(messages));
+        setMessages(sanitizeUIMessages(messages));
       }}
     >
       <StopIcon size={14} />

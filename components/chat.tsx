@@ -1,17 +1,14 @@
 'use client';
 
-import type { Attachment, Message } from 'ai';
-import { useChat } from 'ai/react';
+import type { Message } from 'ai';
 import { useCallback, useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
-import { toast } from 'sonner';
 import { useParams, useRouter } from 'next/navigation';
 
 import type { ClientAgent } from '@/lib/data';
 import type { Chat as ChatType, Vote } from '@/lib/db/schema';
 import { ChatHeader } from '@/components/chat-header';
-import { fetcher, generateUUID } from '@/lib/utils';
-import { createChat } from '@/app/(chat)/actions';
+import { fetcher } from '@/lib/utils';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { useBlockSelector } from '@/hooks/use-block';
 
@@ -19,7 +16,7 @@ import type { VisibilityType } from './visibility-selector';
 import { Block } from './block';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
-import { getModelData, isImagesAllowed } from '@/lib/ai/models';
+import { ChatProvider } from './chat-provider';
 
 export function Chat({
   chat,
@@ -48,28 +45,11 @@ export function Chat({
   const { data: votes } = useSWR<Array<Vote>>(
     chat?.id ? `/api/vote?chatId=${chat.id}` : null,
     fetcher,
+    {
+      revalidateOnFocus: false,
+      revalidateIfStale: false,
+    },
   );
-
-  const {
-    messages,
-    setMessages,
-    input,
-    setInput,
-    append,
-    isLoading,
-    stop,
-    reload,
-    error,
-  } = useChat({
-    id: chat?.id,
-    initialMessages,
-    experimental_throttle: 50,
-    sendExtraMessageFields: true,
-  });
-
-  const [isCreatingChat, setIsCreatingChat] = useState(false);
-  const [selectedProvider, setProvider] = useState(provider);
-  const [selectedModelId, setModelId] = useState(modelId);
   const { data: agents = [] } = useSWR<ClientAgent[]>('/api/agents', fetcher, {
     revalidateOnMount: false,
   });
@@ -81,7 +61,6 @@ export function Chat({
     isOpen: boolean;
     isSubmitting: boolean;
   }>({ isOpen: false, agentId: null, isSubmitting: false });
-  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
 
   const changeAgentDialog = useCallback(
     (isOpen: boolean, agentId: string | null = null, isSubmitting = false) => {
@@ -93,142 +72,6 @@ export function Chat({
     },
     [],
   );
-
-  const getOrCreateChat = useCallback(
-    async (messages: Message[], tab: string) => {
-      if (!chat) {
-        setIsCreatingChat(true);
-        const { status, data } = await createChat({
-          agentId: tab,
-          messages,
-        });
-
-        if (status === 'failed' || !data) {
-          return null;
-        }
-
-        mutate(`/api/history?agentId=${tab}`, data, {
-          revalidate: false,
-          populateCache: (data, history = []) => {
-            return [data, ...history];
-          },
-        });
-        setIsCreatingChat(false);
-
-        return data;
-      }
-
-      return chat;
-    },
-    [chat, mutate],
-  );
-
-  const reloadMessage = useCallback(() => {
-    return reload({
-      body: {
-        id: chat?.id,
-        modelId: selectedModelId,
-        provider: selectedProvider,
-      },
-    });
-  }, [reload, chat?.id, selectedModelId, selectedProvider]);
-
-  // Really weird error when a stream overflows or something like that
-  const isStreamInputError =
-    !!error &&
-    error?.message.toLocaleLowerCase().includes('error in input stream');
-
-  const hasError = !!error && !isStreamInputError
-  const shouldRemoveLastMessage =
-  hasError && messages.at(-1)?.role === 'assistant';
-
-  const onSubmit = useCallback(
-    async (
-      content = input,
-      newAttachments: Array<Attachment> = attachments,
-      currentAgent: string | null = currentTab,
-      currentAgents = agents,
-      currentTabs = tabs,
-    ) => {
-      if (currentAgents.length === 0) {
-        setAgentDialogState({
-          agentId: null,
-          isOpen: true,
-          isSubmitting: true,
-        });
-        return;
-      }
-
-      if (currentTabs.length === 0 || !currentAgent) {
-        setOpenAgentListDialog(true);
-        return;
-      }
-
-      const message: Message = {
-        id: generateUUID(),
-        createdAt: new Date(),
-        role: 'user',
-        content,
-        experimental_attachments: newAttachments,
-      };
-
-      const data = await getOrCreateChat([...messages, message], currentAgent);
-      if (!data) {
-        toast.error('Something went wrong, please try again!');
-        return;
-      }
-
-      setInput('');
-      setAttachments([]);
-
-      if (shouldRemoveLastMessage) {
-        setMessages(messages.slice(0, -1));
-      }
-
-      await append(message, {
-        body: {
-          id: data.id,
-          modelId: selectedModelId,
-          provider: selectedProvider,
-        },
-        experimental_attachments: newAttachments,
-      });
-
-      if (!chat) {
-        router.push(`/chat/${data.id}`);
-      }
-    },
-    [
-      currentTab,
-      agents,
-      tabs,
-      input,
-      shouldRemoveLastMessage,
-      attachments,
-      getOrCreateChat,
-      messages,
-      setInput,
-      append,
-      selectedModelId,
-      selectedProvider,
-      chat,
-      setMessages,
-      router,
-    ],
-  );
-
-  useEffect(() => {
-    setAttachments([]);
-  }, [chat]);
-
-  const isImageAllowed = isImagesAllowed(
-    getModelData(selectedProvider, selectedModelId),
-  );
-  useEffect(() => {
-    if (!isImageAllowed) {
-      setAttachments([]);
-    }
-  }, [isImageAllowed]);
 
   useEffect(() => {
     if (initialAgents.length > 0) {
@@ -262,78 +105,31 @@ export function Chat({
     }
   }, [tabs, router, currentTab, setTab, addTab, chat, id, agents]);
 
-  const isAssistantFirstMessageMissing =
-    !!chat &&
-    !isLoading &&
-    messages.length === 1 &&
-    messages[0]?.role === 'user';
-  const currentMessages = shouldRemoveLastMessage
-    ? messages.slice(0, -1)
-    : messages;
-
   return (
-    <>
+    <ChatProvider
+      initialMessages={initialMessages}
+      chat={chat}
+      modelId={modelId}
+      provider={provider}
+      isReadOnly={isReadonly}
+      setOpenAgentListDialog={setOpenAgentListDialog}
+      setAgentDialogState={setAgentDialogState}
+    >
       <div className="flex flex-col min-w-0 h-dvh bg-background">
         <ChatHeader
           agents={agents}
-          chatId={chat?.id}
-          modelId={selectedModelId}
-          provider={selectedProvider}
-          onChangeProvider={setProvider}
-          onChangeModelId={setModelId}
           selectedVisibilityType={selectedVisibilityType}
-          isReadonly={isReadonly}
           openAgentListDialog={openAgentListDialog}
           agentDialog={agentDialogState}
           changeAgentDialog={changeAgentDialog}
           changeAgentListDialog={setOpenAgentListDialog}
-          onSubmit={onSubmit}
         />
-        <Messages
-          isBlockVisible={isBlockVisible}
-          chatId={chat?.id}
-          isLoading={isLoading}
-          votes={votes}
-          messages={currentMessages}
-          setMessages={setMessages}
-          reload={reloadMessage}
-          isReadonly={isReadonly}
-          hasError={hasError || isAssistantFirstMessageMissing}
-        />
+        <Messages isBlockVisible={isBlockVisible} votes={votes} />
         <form className="flex mx-auto px-4 bg-background pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-          {!isReadonly && (
-            <MultimodalInput
-              isImageAllowed={isImageAllowed}
-              input={input}
-              chatId={chat?.id}
-              setInput={setInput}
-              handleSubmit={onSubmit}
-              isLoading={isLoading || isCreatingChat}
-              stop={stop}
-              attachments={attachments}
-              setAttachments={setAttachments}
-              setMessages={setMessages}
-            />
-          )}
+          {!isReadonly && <MultimodalInput agents={agents} />}
         </form>
       </div>
-      <Block
-        isImageAllowed={isImageAllowed}
-        chatId={chat?.id}
-        input={input}
-        setInput={setInput}
-        handleSubmit={onSubmit}
-        isLoading={isLoading}
-        stop={stop}
-        attachments={attachments}
-        setAttachments={setAttachments}
-        messages={currentMessages}
-        setMessages={setMessages}
-        reload={reloadMessage}
-        votes={votes}
-        isReadonly={isReadonly}
-        hasError={hasError || isAssistantFirstMessageMissing}
-      />
-    </>
+      <Block agents={agents} votes={votes} />
+    </ChatProvider>
   );
 }
