@@ -21,16 +21,15 @@ export type MessageEditorProps = {
   setMode: Dispatch<SetStateAction<'view' | 'edit'>>;
 };
 
-export function MessageEditor({
-  message,
-  setMode,
-}: MessageEditorProps) {
+export function MessageEditor({ message, setMode }: MessageEditorProps) {
   const { isLoading } = useChat();
   const { messages } = useChatMessages();
-  const { setMessages, reload, stop } = useChatHandlers();
+  const { setMessages, reload } = useChatHandlers();
   const [isSubmitting, setIsSubmitting] = useState<boolean>(false);
 
-  const [draftContent, setDraftContent] = useState<string>(message.content);
+  const [draftContent, setDraftContent] = useState<string>(
+    message.parts?.find((part) => part.type === 'text')?.text || '',
+  );
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
   useEffect(() => {
@@ -89,10 +88,16 @@ export function MessageEditor({
             const index = messages.findIndex((m) => m.id === message.id);
 
             if (index !== -1) {
-              const updatedMessage = {
-                ...message,
-                content: draftContent,
-              };
+              const parts = message.parts?.map((part) => {
+                if (part.type === 'text') {
+                  return {
+                    type: 'text',
+                    text: draftContent,
+                  } as const;
+                }
+                return part;
+              });
+              const updatedMessage = { ...message, content: draftContent, parts };
 
               setMessages([...messages.slice(0, index), updatedMessage]);
             }

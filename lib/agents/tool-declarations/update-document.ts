@@ -67,11 +67,11 @@ export const updateDocumentTool = createToolDefinition({
 
     if (document.kind === 'text') {
       const { fullStream } = streamText({
-        model: getModel(...accessModel('google', 'gemini-2.0-flash')),
+        model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: updateDocumentPrompt(currentContent, 'text'),
         experimental_transform: smoothStream({ chunking: 'line' }),
         prompt: description,
-        experimental_providerMetadata: {
+        providerOptions: {
           openai: {
             prediction: {
               type: 'content',
@@ -114,6 +114,14 @@ export const updateDocumentTool = createToolDefinition({
         schema: z.object({
           code: z.string(),
         }),
+        providerOptions: {
+          openai: {
+            prediction: {
+              type: 'content',
+              content: currentContent,
+            },
+          },
+        },
         experimental_telemetry: {
           isEnabled: true,
           functionId: 'update-document-code',

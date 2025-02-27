@@ -92,6 +92,11 @@ export function Chat({
 
       return;
     }
+
+    if (isReadonly) {
+      return;
+    }
+
     const hasAgentForChat =
       !!id && agents.some((agent) => agent.id === chat?.agentId);
     if (chat && hasAgentForChat) {
@@ -103,7 +108,7 @@ export function Chat({
       router.push('/');
       setTab(tabs[0] || null);
     }
-  }, [tabs, router, currentTab, setTab, addTab, chat, id, agents]);
+  }, [tabs, router, currentTab, setTab, addTab, chat, id, agents, isReadonly]);
 
   return (
     <ChatProvider

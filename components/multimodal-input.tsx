@@ -113,7 +113,7 @@ export function MultimodalInput({
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
   const submitForm = useCallback(() => {
-    if (input.length === 0) {
+    if (input.trim().length === 0) {
       return;
     }
 

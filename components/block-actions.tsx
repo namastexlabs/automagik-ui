@@ -90,6 +90,7 @@ function PureBlockActions({
 
 export const BlockActions = memo(PureBlockActions, (prevProps, nextProps) => {
   if (prevProps.block.status !== nextProps.block.status) return false;
+  if (prevProps.block.content !== nextProps.block.content) return false;
   if (prevProps.currentVersionIndex !== nextProps.currentVersionIndex)
     return false;
   if (prevProps.isCurrentVersion !== nextProps.isCurrentVersion) return false;

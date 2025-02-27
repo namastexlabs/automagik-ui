@@ -145,8 +145,8 @@ export const textBlock = new Block<'text', TextBlockMetadata>({
     {
       icon: <CopyIcon size={18} />,
       description: 'Copy to clipboard',
-      onClick: ({ content }) => {
-        navigator.clipboard.writeText(content);
+      onClick: async ({ content }) => {
+        await navigator.clipboard.writeText(content);
         toast.success('Copied to clipboard!');
       },
     },
