@@ -1,5 +1,6 @@
 import type { SzObject } from 'zodex';
 import { relations, sql, type InferSelectModel } from 'drizzle-orm';
+import type { Message as AIMessage } from 'ai';
 import {
   varchar,
   timestamp,
@@ -14,6 +15,8 @@ import {
   pgTableCreator,
 } from 'drizzle-orm/pg-core';
 import type { ToolData } from '../agents/types';
+
+export type MessageContent = Omit<AIMessage, 'id' | 'role' | 'createdAt'>;
 
 const pgTable = pgTableCreator((name) => `automagikui_${name}`);
 
@@ -38,14 +41,14 @@ export const dynamicBlock = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
   },
-  (table) => ({
-    uniquePrivateUser: uniqueIndex()
+  (table) => [
+    uniqueIndex('dynamic_block_unique_private_user')
       .on(table.userId, table.name)
       .where(sql`${table.visibility} = 'private'`),
-    uniquePublicUser: uniqueIndex()
+    uniqueIndex('dynamic_block_unique_public_user')
       .on(table.name)
       .where(sql`${table.visibility} = 'public'`),
-  }),
+  ],
 );
 
 export type DynamicBlock = InferSelectModel<typeof dynamicBlock>;
@@ -65,15 +68,15 @@ export const tool = pgTable(
     source: text('source', { enum: ['internal', 'automagik'] }).notNull(),
     data: json('data').$type<ToolData>().notNull().default({}),
   },
-  (table) => ({
-    uniqueUserName: unique().on(table.name, table.source),
-    uniquePrivateUser: uniqueIndex()
+  (table) => [
+    unique('tool_unique_user_name').on(table.name, table.source),
+    uniqueIndex('tool_unique_private_user')
       .on(table.userId, table.name)
       .where(sql`${table.visibility} = 'private'`),
-    uniquePublicUser: uniqueIndex()
+    uniqueIndex('tool_unique_public_user')
       .on(table.name)
       .where(sql`${table.visibility} = 'public'`),
-  }),
+  ],
 );
 
 export type Tool = InferSelectModel<typeof tool>;
@@ -90,15 +93,15 @@ export const agent = pgTable(
       .default('private'),
     userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
   },
-  (table) => ({
-    uniqueUserName: unique().on(table.name, table.userId),
-    uniquePrivateUser: uniqueIndex()
+  (table) => [
+    unique('agent_unique_user_name').on(table.name, table.userId),
+    uniqueIndex('agent_unique_private_user')
       .on(table.userId, table.name)
       .where(sql`${table.visibility} = 'private'`),
-    uniquePublicUser: uniqueIndex()
+    uniqueIndex('agent_unique_public_user')
       .on(table.name)
       .where(sql`${table.visibility} = 'public'`),
-  }),
+  ],
 );
 
 export type Agent = InferSelectModel<typeof agent>;
@@ -113,9 +116,12 @@ export const agentsToTools = pgTable(
       .notNull()
       .references(() => tool.id, { onDelete: 'cascade' }),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.agentId, table.toolId] }),
-  }),
+  (table) => [
+    primaryKey({
+      columns: [table.agentId, table.toolId],
+      name: 'pk__agent_to_tool',
+    }),
+  ],
 );
 
 export type AgentsToTools = InferSelectModel<typeof agentsToTools>;
@@ -130,12 +136,17 @@ export const agentsToDynamicBlocks = pgTable(
       .notNull()
       .references(() => dynamicBlock.id, { onDelete: 'cascade' }),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.agentId, table.dynamicBlockId] }),
-  }),
+  (table) => [
+    primaryKey({
+      columns: [table.agentId, table.dynamicBlockId],
+      name: 'pk__agent_to_dynamic_block',
+    }),
+  ],
 );
 
-export type AgentsToDynamicBlocks = InferSelectModel<typeof agentsToDynamicBlocks>;
+export type AgentsToDynamicBlocks = InferSelectModel<
+  typeof agentsToDynamicBlocks
+>;
 
 export const agentRelations = relations(agent, ({ many }) => ({
   tools: many(agentsToTools),
@@ -189,8 +200,10 @@ export const message = pgTable('message', {
   chatId: uuid('chat_id')
     .notNull()
     .references(() => chat.id, { onDelete: 'cascade' }),
-  role: varchar('role').notNull(),
-  content: json('content').notNull(),
+  role: varchar('role', {
+    enum: ['system', 'user', 'assistant', 'data'],
+  }).notNull(),
+  content: json('content').$type<MessageContent>().notNull(),
   createdAt: timestamp('created_at').notNull(),
 });
 
@@ -214,9 +227,12 @@ export const vote = pgTable(
       .references(() => message.id, { onDelete: 'cascade' }),
     isUpvoted: boolean('is_upvoted').notNull(),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.chatId, table.messageId] }),
-  }),
+  (table) => [
+    primaryKey({
+      columns: [table.chatId, table.messageId],
+      name: 'pk__vote',
+    }),
+  ],
 );
 
 export type Vote = InferSelectModel<typeof vote>;
@@ -235,9 +251,12 @@ export const document = pgTable(
       .notNull()
       .references(() => user.id, { onDelete: 'cascade' }),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.id, table.createdAt] }),
-  }),
+  (table) => [
+    primaryKey({
+      columns: [table.id, table.createdAt],
+      name: 'pk__document',
+    }),
+  ],
 );
 
 export type Document = InferSelectModel<typeof document>;
@@ -257,13 +276,14 @@ export const suggestion = pgTable(
       .references(() => user.id, { onDelete: 'cascade' }),
     createdAt: timestamp('created_at').notNull(),
   },
-  (table) => ({
-    pk: primaryKey({ columns: [table.id] }),
-    documentRef: foreignKey({
+  (table) => [
+    primaryKey({ columns: [table.id], name: 'pk__suggestion' }),
+    foreignKey({
       columns: [table.documentId, table.documentCreatedAt],
       foreignColumns: [document.id, document.createdAt],
+      name: 'fk__suggestion__document',
     }),
-  }),
+  ],
 );
 
 export type Suggestion = InferSelectModel<typeof suggestion>;

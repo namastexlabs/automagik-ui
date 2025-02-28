@@ -204,7 +204,9 @@ function PureBlock({
       ? currentVersionIndex === documents.length - 1
       : true;
 
-  const { width: windowWidth, height: windowHeight } = useWindowSize();
+  const { width: windowWidth, height: windowHeight } = useWindowSize({
+    initializeWithValue: false,
+  });
   const isMobile = windowWidth ? windowWidth < 768 : false;
 
   const blockDefinition = blockDefinitions.find(
@@ -238,7 +240,8 @@ function PureBlock({
           <motion.div
             className="fixed bg-background h-dvh"
             initial={{
-              width: isSidebarOpen ? windowWidth - 256 : windowWidth,
+              width:
+                isSidebarOpen && windowWidth ? windowWidth - 256 : windowWidth,
               right: 0,
             }}
             animate={{
@@ -246,7 +249,8 @@ function PureBlock({
               right: 0,
             }}
             exit={{
-              width: isSidebarOpen ? windowWidth - 256 : windowWidth,
+              width:
+                isSidebarOpen && windowWidth ? windowWidth - 256 : windowWidth,
               right: 0,
             }}
           />
@@ -341,7 +345,9 @@ function PureBlock({
                     x: 400,
                     y: 0,
                     height: windowHeight,
-                    width: windowWidth ? windowWidth - 400 : 'calc(100dvw - 400px)',
+                    width: windowWidth
+                      ? windowWidth - 400
+                      : 'calc(100dvw - 400px)',
                     borderRadius: 0,
                     transition: {
                       delay: 0,

@@ -72,10 +72,7 @@ export type DocumentExecuteReturn =
       kind: Document['kind'];
       content?: string;
       message?: string;
-      error: null;
-    }
-  | {
-      error: string;
+      error: string |null;
     }
 
 export type WeatherAtLocation = {

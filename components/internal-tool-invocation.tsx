@@ -53,7 +53,8 @@ export function ToolInvocation<T extends InternalToolName>({
           />
         );
       }
-      if (toolInvocation.result.error !== null) {
+
+      if (toolInvocation.result.error) {
         return (
           <div className="flex text-sm leading-relaxed">
             {toolInvocation.result.error}

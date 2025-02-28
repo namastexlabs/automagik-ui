@@ -5,6 +5,7 @@ import { and, asc, eq, gt, gte, inArray, isNull, notExists } from 'drizzle-orm';
 import { drizzle } from 'drizzle-orm/postgres-js';
 import postgres from 'postgres';
 import type { SzObject } from 'zodex';
+import type { Message } from 'ai';
 
 import type { BlockKind } from '@/components/block';
 import type { Source, ToolData } from '@/lib/agents/types';
@@ -134,6 +135,30 @@ export async function saveMessages({
   }
 }
 
+export async function updateMessage(
+  id: string,
+  content: Omit<Message, 'id' | 'role' | 'createdAt'>,
+) {
+  try {
+    return await db
+      .update(schema.message)
+      .set({ content })
+      .where(eq(schema.message.id, id));
+  } catch (error) {
+    console.error('Failed to update message in database', error);
+    throw error;
+  }
+}
+export async function getMessages() {
+  try {
+    return await db.query.message.findMany({
+      orderBy: (message, { desc }) => [desc(message.createdAt)],
+    });
+  } catch (error) {
+    console.error('Failed to get all messages from database', error);
+    throw error;
+  }
+}
 export async function getMessagesByChatId({ id }: { id: string }) {
   try {
     return await db
@@ -336,6 +361,14 @@ export async function getMessageById({ id }: { id: string }) {
   }
 }
 
+export async function deleteMessage({ id }: { id: string }) {
+  try {
+    return await db.delete(schema.message).where(eq(schema.message.id, id));
+  } catch (error) {
+    console.error('Failed to delete message by id from database');
+    throw error;
+  }
+}
 export async function deleteMessagesByChatIdAfterTimestamp({
   chatId,
   timestamp,

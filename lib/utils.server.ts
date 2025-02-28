@@ -66,5 +66,5 @@ export async function convertCoreMessageAttachments(
           }),
         ),
       }
-    : userMessage
+    : userMessage;
 }
