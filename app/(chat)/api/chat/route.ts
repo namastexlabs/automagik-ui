@@ -34,6 +34,22 @@ import { toCoreTools } from '@/lib/agents/tool';
 import { insertDynamicBlocksIntoPrompt } from '@/lib/agents/dynamic-blocks.server';
 import { convertCoreMessageAttachments } from '@/lib/utils.server';
 
+type ReasoningUIPart = {
+  type: 'reasoning';
+  reasoning: string;
+  details: Array<
+    | {
+        type: 'text';
+        text: string;
+        signature?: string;
+      }
+    | {
+        type: 'redacted';
+        data: string;
+      }
+  >;
+};
+
 export const maxDuration = 300;
 
 export async function POST(request: Request) {
@@ -148,18 +164,33 @@ export async function POST(request: Request) {
               }
             : undefined,
         experimental_transform: smoothStream({ chunking: 'word' }),
-        onFinish: async ({ response, finishReason }) => {
+        onFinish: async ({
+          response,
+          reasoning,
+          reasoningDetails,
+          finishReason,
+        }) => {
           if (session.user?.id && finishReason !== 'error') {
-            const updatedMessage = appendResponseMessages({
+            const updatedMessages = appendResponseMessages({
               messages,
               responseMessages: sanitizeResponseMessages({
                 messages: response.messages,
               }),
             }).slice(-1);
 
+            if (updatedMessages[0]?.parts && (reasoning || reasoningDetails)) {
+              const reasoningPart: ReasoningUIPart = {
+                type: 'reasoning',
+                reasoning: reasoning || '',
+                details: reasoningDetails || [],
+              };
+
+              updatedMessages[0].parts.unshift(reasoningPart);
+            }
+
             try {
               await saveMessages({
-                messages: updatedMessage.map(
+                messages: updatedMessages.map(
                   ({ id, createdAt, role, ...message }) => ({
                     content: message,
                     id,
