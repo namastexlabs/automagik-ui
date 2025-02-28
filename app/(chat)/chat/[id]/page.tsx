@@ -14,7 +14,6 @@ import {
   getChatById,
   getMessagesByChatId,
 } from '@/lib/db/queries';
-import { convertToUIMessages } from '@/lib/utils';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AgentTabsProvider } from '@/components/agent-tabs-provider';
@@ -22,6 +21,7 @@ import { mapAgent } from '@/lib/data';
 import { UserProvider } from '@/components/user-provider';
 import { MODEL_COOKIE_KEY, PROVIDER_COOKIE_KEY } from '@/lib/ai/cookies';
 import { convertAttachmentUrls } from '@/lib/utils.server';
+import { convertToUIMessages } from '@/lib/utils';
 
 export default async function Page({
   params,

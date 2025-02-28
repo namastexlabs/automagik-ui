@@ -15,7 +15,6 @@ import { toast } from 'sonner';
 import { useLocalStorage, useWindowSize } from 'usehooks-ts';
 import { ImageIcon, Lightbulb } from 'lucide-react';
 
-import { sanitizeUIMessages } from '@/lib/utils';
 import {
   useChat,
   useChatHandlers,
@@ -318,7 +317,7 @@ function PureStopButton({
       onClick={(event) => {
         event.preventDefault();
         stop();
-        setMessages(sanitizeUIMessages(messages));
+        setMessages(messages);
       }}
     >
       <StopIcon size={14} />

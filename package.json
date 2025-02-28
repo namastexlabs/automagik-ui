@@ -17,7 +17,8 @@
     "db:check": "drizzle-kit check",
     "db:up": "drizzle-kit up",
     "db:update-tools": "npx tsx --conditions=react-server lib/db/generate-internal-tools.ts",
-    "db:update-default-agents": "npx tsx --conditions=react-server lib/db/generate-default-agents.ts"
+    "db:update-default-agents": "npx tsx --conditions=react-server lib/db/generate-default-agents.ts",
+    "db:migrate-messages": "npx tsx --conditions=react-server lib/db/convert-core-messsage-to-ui.ts"
   },
   "dependencies": {
     "@ai-sdk/anthropic": "^1.1.10",

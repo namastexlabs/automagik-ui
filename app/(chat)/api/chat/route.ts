@@ -1,10 +1,11 @@
 import {
-  type Message,
   createDataStreamResponse,
   convertToCoreMessages,
   smoothStream,
   streamText,
   generateText,
+  appendResponseMessages,
+  type Message,
 } from 'ai';
 
 import { auth } from '@/app/(auth)/auth';
@@ -44,7 +45,7 @@ export async function POST(request: Request) {
     isExtendedThinking,
   }: {
     id: string;
-    messages: Array<Message>;
+    messages: Message[];
     provider: string;
     modelId: string;
     isExtendedThinking: boolean;
@@ -81,9 +82,10 @@ export async function POST(request: Request) {
   }
 
   const coreMessages = convertToCoreMessages(messages);
+  const lastMessage = messages.at(-1);
   const userMessage = getMostRecentUserMessage(coreMessages);
 
-  if (!userMessage) {
+  if (!userMessage || !lastMessage) {
     return new Response('No user message found', { status: 400 });
   }
 
@@ -95,11 +97,16 @@ export async function POST(request: Request) {
   await saveMessages({
     messages: [
       {
-        ...userMessageWithAttachments,
-        // biome-ignore lint/style/noNonNullAssertion: Checked userMessasge
-        id: messages.at(-1)!.id,
-        createdAt: new Date(),
+        id: lastMessage.id,
         chatId: chat.id,
+        content: {
+          content: lastMessage.content,
+          parts: lastMessage.parts,
+          annotations: lastMessage.annotations,
+          experimental_attachments: lastMessage.experimental_attachments,
+        },
+        role: 'user',
+        createdAt: new Date(),
       },
     ],
   });
@@ -128,6 +135,7 @@ export async function POST(request: Request) {
       const result = streamText({
         model,
         system,
+        experimental_generateMessageId: generateUUID,
         messages: [...coreMessages.slice(0, -1), userMessageWithAttachments],
         maxSteps: 5,
         tools,
@@ -140,38 +148,30 @@ export async function POST(request: Request) {
               }
             : undefined,
         experimental_transform: smoothStream({ chunking: 'word' }),
-        onFinish: async ({ response, reasoning, finishReason }) => {
+        onFinish: async ({ response, finishReason }) => {
           if (session.user?.id && finishReason !== 'error') {
+            const updatedMessage = appendResponseMessages({
+              messages,
+              responseMessages: sanitizeResponseMessages({
+                messages: response.messages,
+              }),
+            }).slice(-1);
+
             try {
-              const responseMessagesWithoutIncompleteToolCalls =
-                sanitizeResponseMessages({
-                  messages: response.messages,
-                  reasoning,
-                });
-
               await saveMessages({
-                messages: responseMessagesWithoutIncompleteToolCalls.map(
-                  (message) => {
-                    const messageId = generateUUID();
-
-                    if (message.role === 'assistant') {
-                      dataStream.writeMessageAnnotation({
-                        messageIdFromServer: messageId,
-                      });
-                    }
-
-                    return {
-                      id: messageId,
-                      chatId: chat.id,
-                      role: message.role,
-                      content: message.content,
-                      createdAt: new Date(),
-                    };
-                  },
+                messages: updatedMessage.map(
+                  ({ id, createdAt, role, ...message }) => ({
+                    content: message,
+                    id,
+                    createdAt: createdAt ?? new Date(),
+                    chatId: chat.id,
+                    role,
+                  }),
                 ),
               });
             } catch (error) {
-              console.error('Failed to save chat');
+              console.log(error);
+              throw new Error('Failed to save messages');
             }
           }
         },

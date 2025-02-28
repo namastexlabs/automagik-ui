@@ -111,12 +111,6 @@ export function PreviewMessage({
     }
   };
 
-  const sortedParts = sortByPriority(
-    message.parts || [],
-    ['reasoning', 'text', 'tool-invocation'],
-    (part) => part.type,
-  );
-
   return (
     <AnimatePresence>
       <motion.div
@@ -153,7 +147,7 @@ export function PreviewMessage({
               </div>
             )}
 
-            {sortedParts.map((part, index) => {
+            {message.parts?.map((part, index) => {
               switch (part.type) {
                 case 'text':
                   return (

@@ -29,7 +29,6 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { sanitizeUIMessages } from '@/lib/utils';
 import { useChat, useChatHandlers, useChatMessages } from '@/contexts/chat';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import type { ClientAgent } from '@/lib/data';
@@ -433,7 +432,7 @@ const PureToolbar = ({
             className="p-3"
             onClick={() => {
               stop();
-              setMessages(sanitizeUIMessages(messages));
+              setMessages(messages);
             }}
           >
             <StopIcon />
