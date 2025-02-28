@@ -1,3 +1,4 @@
+import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
@@ -27,20 +28,21 @@ export default async function Page({
   params,
 }: { params: Promise<{ id: string }> }) {
   const session = await auth();
-
-  if (!session || !session.user) {
-    return redirect('/login');
-  }
-
   const { id } = await params;
-  const chat = await getChatById({ id });
 
-  if (!chat) {
+  if (!z.string().uuid().safeParse(id).success) {
     notFound();
   }
 
   if (!session || !session.user) {
-    return redirect('/login');
+    return redirect(
+      `/login?redirect=${encodeURIComponent(`/chat/${id}`)}`,
+    );
+  }
+  const chat = await getChatById({ id });
+
+  if (!chat) {
+    notFound();
   }
 
   if (chat.visibility === 'private') {
