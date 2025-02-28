@@ -12,6 +12,7 @@ import type { Attachment } from 'ai';
 import { useSWRConfig } from 'swr';
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useProgress } from '@bprogress/next';
 
 import {
   ChatContext,
@@ -26,7 +27,6 @@ import { generateUUID } from '@/lib/utils';
 import { getModelData, isImagesAllowed } from '@/lib/ai/models';
 
 import { DataStreamHandler } from './data-stream-handler';
-
 export function ChatProvider({
   chat,
   initialMessages,
@@ -54,6 +54,7 @@ export function ChatProvider({
   const [selectedModelId, setModelId] = useState(modelId);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
   const [isExtendedThinking, setIsExtendedThinking] = useState(false);
+  const { set: setProgress, stop: stopProgress } = useProgress();
 
   const {
     messages,
@@ -81,6 +82,29 @@ export function ChatProvider({
   useEffect(() => {
     setAttachments([]);
   }, [chat]);
+
+  useEffect(() => {
+    switch (status) {
+      case 'submitted':
+        setProgress(0.1);
+        break;
+      case 'streaming':
+        setProgress(0.7);
+        break;
+      case 'ready':
+        setProgress(1);
+        stopProgress();
+        break;
+      default:
+        break;
+    }
+  }, [status, setProgress, stopProgress]);
+
+  useEffect(() => {
+    if (isCreatingChat) {
+      setProgress(0.1);
+    }
+  }, [isCreatingChat, setProgress]);
 
   const isImageAllowed = isImagesAllowed(
     getModelData(selectedProvider, selectedModelId),
@@ -216,7 +240,7 @@ export function ChatProvider({
     ],
   );
 
-  const isLoading = status === 'streaming';
+  const isLoading = status === 'submitted' || status === 'streaming';
   const chatContextValue = useMemo(() => {
     return {
       chat,
