@@ -64,7 +64,12 @@ export function DocumentPreview({
     if (result) {
       return (
         <DocumentToolResult
-          result={{ id: result.id, title: result.title, kind: result.kind }}
+          result={{
+            id: result.id,
+            title: result.title,
+            kind: result.kind,
+            error: null,
+          }}
           isReadonly={isReadonly}
           type={type}
         />
