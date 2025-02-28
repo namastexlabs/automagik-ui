@@ -11,6 +11,7 @@ import { type DocumentToolResultProps, DocumentToolResult } from './document';
 import { Bookmark } from 'lucide-react';
 import { Badge } from './ui/badge';
 import { DocumentPreview } from './document-preview';
+import type { BlockKind } from './block';
 
 type BlockToolName =
   | InternalToolName.createDocument
@@ -66,7 +67,12 @@ export function ToolInvocation<T extends InternalToolName>({
         <DocumentToolResult
           type={kind}
           isReadonly={isReadonly}
-          result={toolInvocation.result}
+          result={toolInvocation.result as {
+            id: string;
+            title: string;
+            kind: BlockKind;
+            error: null;
+          }}
         />
       );
     };
