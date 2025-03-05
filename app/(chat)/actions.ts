@@ -32,7 +32,6 @@ import isUniqueConstraintError, {
   getAgentByNameAndUserId,
 } from '@/lib/db/queries';
 import { getOrCreateAllDynamicBlocks } from '@/lib/agents/dynamic-blocks.server';
-import { auth } from '@/app/(auth)/auth';
 import type { VisibilityType } from '@/components/visibility-selector';
 import type { ActionStateData, ActionStateStatus } from '@/app/types';
 import type { Agent, Chat, Tool } from '@/lib/db/schema';
@@ -51,6 +50,7 @@ import {
 import { createChatFlowTool } from '@/lib/agents/automagik';
 import { accessModel } from '@/lib/ai/models';
 import { getModel } from '@/lib/ai/models.server';
+import { getUser } from '@/lib/auth';
 
 const agentFormSchema = z.object({
   name: z.string().trim(),
@@ -102,14 +102,14 @@ export async function generateTitleFromUserMessage({
 }
 
 export async function deleteTrailingMessages({ id }: { id: string }) {
-  const session = await auth();
+  const session = await getUser();
   const message = await getMessageById({ id });
 
   if (!message) {
     return notFound();
   }
 
-  if (!session?.user?.id || message.chat.userId !== session?.user?.id) {
+  if (!session?.user?.id || message.chat.userId !== session.user.id) {
     return notFound();
   }
 
@@ -126,7 +126,7 @@ export async function updateChatVisibility({
   chatId: string;
   visibility: VisibilityType;
 }) {
-  const session = await auth();
+  const session = await getUser();
 
   if (!session?.user?.id) {
     return notFound();
@@ -149,7 +149,7 @@ export async function createChat({
   messages: Message[];
 }): Promise<{ status: 'failed' | 'success'; data?: Chat }> {
   try {
-    const session = await auth();
+    const session = await getUser();
 
     if (!session?.user?.id) {
       return notFound();
@@ -192,7 +192,7 @@ export async function deleteChat({ id }: { id: string }): Promise<{
     'idle' | 'in_progress' | 'invalid_data'
   >;
 }> {
-  const session = await auth();
+  const session = await getUser();
   const chat = await getChatById({ id });
 
   if (!session?.user?.id || chat?.userId !== session.user.id) {
@@ -213,7 +213,7 @@ export async function saveAgent(
   formData: FormData,
 ): Promise<ActionStateData<ClientAgent, typeof agentFormSchema>> {
   try {
-    const session = await auth();
+    const session = await getUser();
 
     if (!session?.user?.id) {
       return { status: 'failed', data: null };
@@ -354,7 +354,7 @@ export async function saveAgent(
 }
 
 export async function duplicateAgent({ id }: { id: string }) {
-  const session = await auth();
+  const session = await getUser();
 
   if (!session?.user?.id) {
     return notFound();
@@ -422,7 +422,7 @@ export async function duplicateAgent({ id }: { id: string }) {
 }
 
 export async function deleteAgent({ id }: { id: string }) {
-  const session = await auth();
+  const session = await getUser();
   const agent = await getAgentById({ id });
 
   if (!agent || !session?.user?.id || session.user.id !== agent.userId) {
@@ -437,7 +437,7 @@ export async function saveFlowTool(
   formData: FormData,
 ): Promise<ActionStateData<ClientTool, typeof flowToolSchema>> {
   try {
-    const session = await auth();
+    const session = await getUser();
 
     if (!session?.user?.id) {
       return notFound();

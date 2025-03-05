@@ -21,9 +21,8 @@ export type MessageContent = Omit<AIMessage, 'id' | 'role' | 'createdAt'>;
 const pgTable = pgTableCreator((name) => `automagikui_${name}`);
 
 export const user = pgTable('user', {
-  id: uuid('id').primaryKey().notNull().defaultRandom(),
-  email: varchar('email', { length: 64 }).notNull(),
-  password: varchar('password', { length: 64 }),
+  id: uuid('id').primaryKey().notNull(),
+  email: varchar('email', { length: 64 }).unique().notNull(),
 });
 
 export type User = InferSelectModel<typeof user>;

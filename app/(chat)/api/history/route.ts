@@ -1,8 +1,8 @@
-import { auth } from '@/app/(auth)/auth';
+import { getUser } from '@/lib/auth';
 import { getAgentById, getChats } from '@/lib/db/queries';
 
 export async function GET(request: Request) {
-  const session = await auth();
+  const session = await getUser();
   const { searchParams } = new URL(request.url);
   const agentId = searchParams.get('agentId');
 

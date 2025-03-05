@@ -2,8 +2,9 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useActionState, useEffect, useState } from 'react';
+import { useActionState, useState } from 'react';
 import { toast } from 'sonner';
+import { useProgress } from '@bprogress/next';
 
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
@@ -12,32 +13,58 @@ import { register, type RegisterActionState } from '../actions';
 
 export default function Page() {
   const router = useRouter();
+  const { set, stop } = useProgress();
 
   const [email, setEmail] = useState('');
 
-  const [state, formAction] = useActionState<RegisterActionState, FormData>(
-    register,
+  const [, formAction] = useActionState<RegisterActionState, FormData>(
+    async (state, formData) => {
+      const newState = await register(state, formData);
+
+      if (newState.status !== 'success') {
+        stop();
+        router.refresh();
+      }
+      switch (newState.status) {
+        case 'user_exists':
+          toast.error('An account with this email already exists');
+          break;
+        case 'invalid_email':
+          toast.error('Please enter a valid email address');
+          break;
+        case 'weak_password':
+          toast.error(
+            'Password is too weak. It should be at least 6 characters long',
+          );
+          break;
+        case 'failed':
+          toast.error('Failed to create account. Please try again');
+          break;
+        case 'invalid_data':
+          toast.error('Please check your input and try again');
+          break;
+        case 'success':
+          toast.success('Check your email to confirm your account');
+          router.push('/login');
+          break;
+      }
+
+      return newState;
+    },
     {
       status: 'idle',
     },
   );
 
-  useEffect(() => {
-    if (state.status === 'user_exists') {
-      toast.error('Account already exists');
-    } else if (state.status === 'failed') {
-      toast.error('Failed to create account');
-    } else if (state.status === 'invalid_data') {
-      toast.error('Failed validating your submission!');
-    } else if (state.status === 'success') {
-      toast.success('Account created successfully');
-      router.refresh();
-    }
-  }, [state, router]);
-
   const handleSubmit = (formData: FormData) => {
-    setEmail(formData.get('email') as string);
-    formAction(formData);
+    try {
+      setEmail(formData.get('email') as string);
+      set(0.4);
+      formAction(formData);
+    } catch (error) {
+      stop();
+      console.error('Registration error:', error);
+    }
   };
 
   return (

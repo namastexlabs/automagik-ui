@@ -92,6 +92,7 @@ export function ChatProvider({
         setProgress(0.7);
         break;
       case 'ready':
+      case 'error':
         setProgress(1);
         stopProgress();
         break;
@@ -200,6 +201,7 @@ export function ChatProvider({
 
       const data = await getOrCreateChat([message], currentAgent);
       if (!data) {
+        stopProgress();
         toast.error('Something went wrong, please try again!');
         return;
       }
@@ -230,6 +232,7 @@ export function ChatProvider({
       setAttachments,
       shouldRemoveLastMessage,
       append,
+      stopProgress,
       selectedModelId,
       selectedProvider,
       chat,

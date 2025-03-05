@@ -2,7 +2,7 @@ import { z } from 'zod';
 import { cookies } from 'next/headers';
 import { notFound, redirect } from 'next/navigation';
 
-import { auth } from '@/app/(auth)/auth';
+import { getUser } from '@/lib/auth';
 import { Chat } from '@/components/chat';
 import {
   type ChatModel,
@@ -27,7 +27,7 @@ import { convertToUIMessages } from '@/lib/utils';
 export default async function Page({
   params,
 }: { params: Promise<{ id: string }> }) {
-  const session = await auth();
+  const session = await getUser();
   const { id } = await params;
 
   if (!z.string().uuid().safeParse(id).success) {
@@ -50,11 +50,9 @@ export default async function Page({
       return notFound();
     }
   }
-  // biome-ignore lint/style/noNonNullAssertion: <explanation>
-  const userId = session.user.id!;
 
-  const agentsFromDb = session?.user?.id
-    ? await getAvailableAgents({ userId: session?.user.id })
+  const agentsFromDb = session.user.id
+    ? await getAvailableAgents({ userId: session.user.id })
     : [];
 
   const messagesFromDb = await getMessagesByChatId({
@@ -84,9 +82,8 @@ export default async function Page({
   return (
     <UserProvider
       user={{
-        id: userId,
-        // biome-ignore lint/style/noNonNullAssertion: <explanation>
-        email: session!.user!.email!,
+        id: session.user.id,
+        email: session.user.email,
       }}
     >
       <AgentTabsProvider>
@@ -96,13 +93,13 @@ export default async function Page({
             <Chat
               chat={chat}
               initialAgents={agentsFromDb.map((agent) =>
-                mapAgent(userId, agent),
+                mapAgent(session.user.id, agent),
               )}
               initialMessages={initialMessages}
               provider={provider}
               modelId={modelId}
               selectedVisibilityType={chat.visibility}
-              isReadonly={session?.user?.id !== chat.userId}
+              isReadonly={session.user.id !== chat.userId}
             />
           </SidebarInset>
         </SidebarProvider>

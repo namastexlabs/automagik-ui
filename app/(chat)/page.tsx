@@ -1,7 +1,7 @@
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';
 
-import { auth } from '@/app/(auth)/auth';
+import { getUser } from '@/lib/auth';
 import { Chat } from '@/components/chat';
 import {
   type ChatModel,
@@ -19,16 +19,14 @@ import { UserProvider } from '@/components/user-provider';
 import { MODEL_COOKIE_KEY, PROVIDER_COOKIE_KEY } from '@/lib/ai/cookies';
 
 export default async function Page() {
-  const session = await auth();
+  const session = await getUser();
 
   if (!session || !session.user) {
     return redirect('/login');
   }
 
-  // biome-ignore lint/style/noNonNullAssertion: <explanation>
-  const userId = session.user.id!;
   const cookieStore = await cookies();
-  const agentsFromDb = await getAvailableAgents({ userId });
+  const agentsFromDb = await getAvailableAgents({ userId: session.user.id });
 
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
   const tabCookie = cookieStore.get(AGENT_COOKIE_KEY)?.value;
@@ -47,9 +45,8 @@ export default async function Page() {
   return (
     <UserProvider
       user={{
-        id: userId,
-        // biome-ignore lint/style/noNonNullAssertion: <explanation>
-        email: session.user.email!,
+        id: session.user.id,
+        email: session.user.email,
       }}
     >
       <AgentTabsProvider initialTab={tabCookie === '' ? undefined : tabCookie}>
@@ -59,7 +56,7 @@ export default async function Page() {
             <Chat
               initialMessages={[]}
               initialAgents={agentsFromDb.map((agent) =>
-                mapAgent(userId, agent),
+                mapAgent(session.user.id, agent),
               )}
               modelId={modelId}
               provider={provider}

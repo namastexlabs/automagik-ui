@@ -1,4 +1,4 @@
-import { auth } from '@/app/(auth)/auth';
+import { getUser } from '@/lib/auth';
 import { getSuggestionsByDocumentId } from '@/lib/db/queries';
 
 export async function GET(request: Request) {
@@ -9,9 +9,9 @@ export async function GET(request: Request) {
     return new Response('Not Found', { status: 404 });
   }
 
-  const session = await auth();
+  const session = await getUser();
 
-  if (!session || !session.user) {
+  if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 });
   }
 

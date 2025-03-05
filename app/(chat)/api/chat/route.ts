@@ -8,7 +8,7 @@ import {
   type Message,
 } from 'ai';
 
-import { auth } from '@/app/(auth)/auth';
+import { getUser } from '@/lib/auth';
 import {
   getModelData,
   isImagesAllowed,
@@ -78,9 +78,9 @@ export async function POST(request: Request) {
     });
   }
 
-  const session = await auth();
+  const session = await getUser();
 
-  if (!session || !session.user || !session.user.id) {
+  if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 });
   }
   const userId = session.user.id;
@@ -290,9 +290,9 @@ export async function DELETE(request: Request) {
     return new Response('Not Found', { status: 404 });
   }
 
-  const session = await auth();
+  const session = await getUser();
 
-  if (!session || !session.user) {
+  if (!session?.user?.id) {
     return new Response('Unauthorized', { status: 401 });
   }
 
