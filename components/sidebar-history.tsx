@@ -3,7 +3,6 @@
 import { isToday, isYesterday, subMonths, subWeeks } from 'date-fns';
 import Link from 'next/link';
 import { useParams, useRouter } from 'next/navigation';
-import type { User } from 'next-auth';
 import { memo, useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
@@ -50,6 +49,7 @@ import { fetcher } from '@/lib/utils';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { deleteChat } from '@/app/(chat)/actions';
+import { useUser } from '@/contexts/user';
 
 type GroupedChats = {
   today: Chat[];
@@ -150,10 +150,11 @@ export const ChatItem = memo(PureChatItem, (prevProps, nextProps) => {
   return true;
 });
 
-export function SidebarHistory({ user }: { user: User | undefined }) {
+export function SidebarHistory() {
   const { setOpenMobile } = useSidebar();
   const { id } = useParams();
   const { currentTab } = useCurrentAgentTab();
+  const { user } = useUser();
 
   const {
     data: history,
