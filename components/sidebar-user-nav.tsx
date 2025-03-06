@@ -3,8 +3,8 @@ import { ChevronUp } from 'lucide-react';
 import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
-import { createBrowserClient } from '@/lib/supabase/client';
 
+import { createBrowserClient } from '@/lib/supabase/client';
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -17,14 +17,16 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
+import { useUser } from '@/contexts/user';
 
 type User = {
   email: string | null;
 };
 
-export function SidebarUserNav({ user }: { user: User }) {
+export function SidebarUserNav() {
   const { setTheme, theme } = useTheme();
   const router = useRouter();
+  const { user } = useUser();
 
   const handleSignOut = async () => {
     try {
