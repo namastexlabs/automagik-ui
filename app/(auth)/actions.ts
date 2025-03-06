@@ -1,11 +1,9 @@
 'use server';
 
 import { z } from 'zod';
-
-import type { ActionStateStatus } from '@/app/types';
-import { createUser, getUser } from '@/lib/db/queries';
-
-import { signIn } from './auth';
+import { createServerClient } from '@/lib/supabase/server';
+import { AuthError } from '@supabase/supabase-js';
+import { createUser } from '@/lib/db/queries';
 
 const authFormSchema = z.object({
   email: z.string().email(),
@@ -26,24 +24,37 @@ export const login = async (
       password: formData.get('password'),
     });
 
-    await signIn('credentials', {
+    const supabase = await createServerClient();
+    
+    const { error } = await supabase.auth.signInWithPassword({
       email: validatedData.email,
       password: validatedData.password,
-      redirect: false,
     });
+
+    if (error) {
+      console.error('Login error:', error);
+      return { status: 'failed' };
+    }
 
     return { status: 'success' };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data' };
     }
-
     return { status: 'failed' };
   }
 };
 
 export type RegisterActionState = {
-  status: ActionStateStatus['status'] | 'user_exists';
+  status: 
+    | 'idle' 
+    | 'in_progress' 
+    | 'success' 
+    | 'failed' 
+    | 'invalid_data' 
+    | 'user_exists'
+    | 'invalid_email'
+    | 'weak_password';
 }
 
 export const register = async (
@@ -56,24 +67,51 @@ export const register = async (
       password: formData.get('password'),
     });
 
-    const [user] = await getUser(validatedData.email);
+    const supabase = await createServerClient();
 
-    if (user) {
-      return { status: 'user_exists' } as RegisterActionState;
-    }
-    await createUser(validatedData.email, validatedData.password);
-    await signIn('credentials', {
+    const { error: signUpError, data: { user: supabaseUser } } = await supabase.auth.signUp({
       email: validatedData.email,
       password: validatedData.password,
-      redirect: false,
+      options: {
+        emailRedirectTo: `${process.env.NEXT_PUBLIC_APP_URL}/auth/callback`,
+      },
     });
+
+    if (signUpError) {
+      if (signUpError instanceof AuthError) {
+        switch (signUpError.status) {
+          case 400:
+            if (signUpError.code === 'user_already_exists') {
+              return { status: 'user_exists' };
+            }
+            if (signUpError.code === 'email_address_invalid') {
+              return { status: 'invalid_email' };
+            }
+            if (signUpError.code === 'weak_password') {
+              return { status: 'weak_password' };
+            }
+            break;
+          default:
+            console.error('Signup error:', signUpError);
+        }
+      }
+      return { status: 'failed' };
+    }
+
+    if (!supabaseUser?.id) {
+      console.error('No user ID returned from Supabase');
+      return { status: 'failed' };
+    }
+
+    // Create user in our application database
+    await createUser(supabaseUser.id, validatedData.email);
 
     return { status: 'success' };
   } catch (error) {
     if (error instanceof z.ZodError) {
       return { status: 'invalid_data' };
     }
-
+    console.error('Registration error:', error);
     return { status: 'failed' };
   }
 };

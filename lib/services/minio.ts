@@ -5,8 +5,7 @@ import { generateUUID } from '../utils';
 type ImageSource = 'document' | 'input';
 
 let minioClient: Minio.Client | null = null;
-// biome-ignore lint/style/noNonNullAssertion: <explanation>
-const S3_STORAGE_BUCKET_NAME = process.env.S3_STORAGE_BUCKET_NAME!;
+const S3_STORAGE_BUCKET_NAME = process.env.S3_STORAGE_BUCKET_NAME as string;
 
 const getMinioClient = () => {
   const S3_CUSTOM_ENDPOINT = process.env.S3_CUSTOM_ENDPOINT;
