@@ -55,6 +55,14 @@ export default function Page() {
         </div>
         <AuthForm action={handleSubmit} defaultEmail={email}>
           <SubmitButton>Sign in</SubmitButton>
+          <p className="text-center text-sm text-gray-600 mt-2 dark:text-zinc-400">
+            <Link
+              href="/reset-password"
+              className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
+            >
+              Forgot your password?
+            </Link>
+          </p>
           <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
             {"Don't have an account? "}
             <Link
