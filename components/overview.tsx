@@ -1,15 +1,15 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useTheme } from 'next-themes';
 import Image from 'next/image';
 
+import { useResolvedTheme } from '@/hooks/use-resolved-theme';
+
 export const Overview = () => {
-  const theme = useTheme();
+  const colorMode = useResolvedTheme();
 
   return (
     <motion.div
-      key="overview"
       className="max-w-3xl mx-auto md:mt-20"
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
@@ -20,7 +20,7 @@ export const Overview = () => {
         <p className="flex flex-row justify-center gap-4 items-center">
           <Image
             src={
-              theme.resolvedTheme === 'dark'
+              colorMode === 'dark'
                 ? '/images/automagik-logo-white.svg'
                 : '/images/automagik-logo.svg'
             }

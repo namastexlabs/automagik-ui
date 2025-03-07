@@ -18,13 +18,11 @@ import {
   SidebarMenuItem,
 } from '@/components/ui/sidebar';
 import { useUser } from '@/contexts/user';
-
-type User = {
-  email: string | null;
-};
+import { useResolvedTheme } from '@/hooks/use-resolved-theme';
 
 export function SidebarUserNav() {
-  const { setTheme, theme } = useTheme();
+  const { setTheme } = useTheme();
+  const colorMode = useResolvedTheme();
   const router = useRouter();
   const { user } = useUser();
 
@@ -66,9 +64,9 @@ export function SidebarUserNav() {
           >
             <DropdownMenuItem
               className="cursor-pointer"
-              onSelect={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+              onSelect={() => setTheme(colorMode === 'dark' ? 'light' : 'dark')}
             >
-              {`Toggle ${theme === 'light' ? 'dark' : 'light'} mode`}
+              {`Toggle ${colorMode === 'light' ? 'dark' : 'light'} mode`}
             </DropdownMenuItem>
             <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
