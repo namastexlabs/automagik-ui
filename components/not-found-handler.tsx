@@ -1,16 +1,17 @@
 'use client';
 
 import { motion } from 'framer-motion';
-import { useTheme } from 'next-themes';
 import Image from 'next/image';
 import Link from 'next/link';
+
+import { useResolvedTheme } from '@/hooks/use-resolved-theme';
 
 export function NotFoundHandler({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  const theme = useTheme();
+  const colorMode = useResolvedTheme();
 
   return (
     <div className="w-full h-[90vh] flex justify-center items-center">
@@ -26,7 +27,7 @@ export function NotFoundHandler({
           <p className="flex flex-row justify-center gap-4 items-center">
             <Image
               src={
-                theme.resolvedTheme === 'dark'
+                colorMode === 'dark'
                   ? '/images/automagik-logo-white.svg'
                   : '/images/automagik-logo.svg'
               }

@@ -3,7 +3,6 @@
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
-import { useTheme } from 'next-themes';
 
 import { PlusIcon } from '@/components/icons';
 import { SidebarHistory } from '@/components/sidebar-history';
@@ -17,10 +16,11 @@ import {
   SidebarMenu,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import { useResolvedTheme } from '@/hooks/use-resolved-theme';
 
 export function AppSidebar() {
-  const theme = useTheme();
+  const colorMode = useResolvedTheme();
   const router = useRouter();
   const { setOpenMobile } = useSidebar();
 
@@ -39,7 +39,7 @@ export function AppSidebar() {
               <span className="font-semibold cursor-pointer">
                 <Image
                   src={
-                    theme.resolvedTheme === 'dark'
+                    colorMode === 'dark'
                       ? '/images/automagik-logo-white.svg'
                       : '/images/automagik-logo.svg'
                   }
