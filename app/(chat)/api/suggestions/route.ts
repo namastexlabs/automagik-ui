@@ -1,5 +1,6 @@
 import { getUser } from '@/lib/auth';
-import { getSuggestionsByDocumentId } from '@/lib/db/queries';
+import { ApplicationError } from '@/lib/errors';
+import { getDocumentSuggestions } from '@/lib/repositories/suggestion';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -15,9 +16,8 @@ export async function GET(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const suggestions = await getSuggestionsByDocumentId({
-    documentId,
-  });
+  try {
+    const suggestions = await getDocumentSuggestions(documentId, session.user.id);
 
   const [suggestion] = suggestions;
 
@@ -29,5 +29,17 @@ export async function GET(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  return Response.json(suggestions, { status: 200 });
+    return Response.json(suggestions, { status: 200 });
+  } catch (error) {
+    if (error instanceof ApplicationError) {
+      return new Response(error.message, {
+        status: error.statusCode,
+      });
+    }
+
+    console.error('Failed to get document suggestions:', error);
+    return new Response('An unexpected error occurred', {
+      status: 500,
+    });
+  }
 }

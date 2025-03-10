@@ -7,12 +7,12 @@ import {
   streamText,
 } from 'ai';
 
-import { getDocumentById, saveDocument } from '@/lib/db/queries';
 import { accessModel } from '@/lib/ai/models';
 import { getImageModel, getModel } from '@/lib/ai/models.server';
 import { updateDocumentPrompt } from '@/lib/ai/prompts';
 import { getMessageFile, saveMessageFile } from '@/lib/services/minio';
 import { validateUUID } from '@/lib/utils';
+import { createDocument, getDocument } from '@/lib/repositories/document';
 
 import type { DocumentExecuteReturn } from '../types';
 import { createToolDefinition } from '../tool-declaration';
@@ -49,7 +49,7 @@ export const updateDocumentTool = createToolDefinition({
     context,
   ): Promise<DocumentExecuteReturn> => {
     const { dataStream, userId, agent, chat } = context;
-    const document = await getDocumentById({ id });
+    const document = await getDocument(id, userId);
 
     if (!document) {
       return {
@@ -214,7 +214,7 @@ export const updateDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     }
 
-    await saveDocument({
+    await createDocument({
       id,
       userId,
       title: document.title,

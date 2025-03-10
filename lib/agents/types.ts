@@ -1,8 +1,8 @@
 import type { ToolCall, ToolResult, DataStreamWriter } from 'ai';
 import type { z } from 'zod';
 
-import type { AgentData } from '@/lib/db/queries';
 import type { Document, Chat } from '@/lib/db/schema';
+import type { AgentData } from '../db/queries/agent';
 
 export type InferParameters<T> = T extends z.ZodTypeAny
   ? z.infer<T>

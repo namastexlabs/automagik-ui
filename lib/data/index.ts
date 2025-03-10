@@ -3,7 +3,7 @@
  */
 
 import 'server-only';
-import type { AgentData } from '@/lib/db/queries';
+import type { AgentData } from '@/lib/db/queries/agent';
 import type { Tool } from '../db/schema';
 
 export const mapTool = (

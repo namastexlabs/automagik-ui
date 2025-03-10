@@ -8,15 +8,15 @@ import {
 } from 'ai';
 
 import { generateUUID } from '@/lib/utils';
-import { saveDocument } from '@/lib/db/queries';
-
-import type { DocumentExecuteReturn } from '../types';
-import { createToolDefinition } from '../tool-declaration';
-import { InternalToolName } from './client';
 import { codePrompt, sheetPrompt, textPrompt } from '@/lib/ai/prompts';
 import { accessModel } from '@/lib/ai/models';
 import { getImageModel, getModel } from '@/lib/ai/models.server';
 import { getMessageFile, saveMessageFile } from '@/lib/services/minio';
+import { createDocument } from '@/lib/repositories/document';
+
+import type { DocumentExecuteReturn } from '../types';
+import { createToolDefinition } from '../tool-declaration';
+import { InternalToolName } from './client';
 
 export const createDocumentTool = createToolDefinition({
   name: InternalToolName.createDocument,
@@ -191,7 +191,7 @@ export const createDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     }
 
-    await saveDocument({
+    await createDocument({
       id,
       title,
       kind,

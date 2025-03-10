@@ -1,6 +1,6 @@
 import { getUser } from '@/lib/auth';
-import { getAgentById, getChats } from '@/lib/db/queries';
-
+import { getAgentChats } from '@/lib/repositories/chat';
+import { ApplicationError } from '@/lib/errors';
 export async function GET(request: Request) {
   const session = await getUser();
   const { searchParams } = new URL(request.url);
@@ -14,18 +14,16 @@ export async function GET(request: Request) {
     return Response.json('agentId is required!', { status: 400 });
   }
 
-  const agent = await getAgentById({
-    id: agentId,
-  });
+  try {
+    const chats = await getAgentChats(session.user.id, agentId);
 
-  if (!agent || (agent.userId !== session.user.id && agent.visibility !== 'public')) {
-    return Response.json('Agent not found', { status: 404 });
+    return Response.json(chats);
+  } catch (error) {
+    if (error instanceof ApplicationError) {
+      return Response.json(error.message, { status: error.statusCode });
+    }
+
+    console.error('Failed to get agent chats:', error);
+    return Response.json('An unexpected error occurred', { status: 500 });
   }
-
-  const chats = await getChats({
-    userId: session.user.id,
-    agentId,
-  });
-
-  return Response.json(chats);
 }

@@ -3,7 +3,6 @@ import { z } from 'zod';
 import { streamObject } from 'ai';
 
 import { generateUUID, validateUUID } from '@/lib/utils';
-import { getDocumentById, saveSuggestions } from '@/lib/db/queries';
 import type { Suggestion } from '@/lib/db/schema';
 
 import type { DocumentExecuteReturn } from '../types';
@@ -12,6 +11,8 @@ import { InternalToolName } from './client';
 import { accessModel } from '@/lib/ai/models';
 import { getModel } from '@/lib/ai/models.server';
 import { suggestionPrompt } from '@/lib/ai/prompts';
+import { getDocument } from '@/lib/repositories/document';
+import { createSuggestions } from '@/lib/repositories/suggestion';
 
 const namedRefinements = {
   validateUUID: (id: string, ctx: z.RefinementCtx) => {
@@ -38,15 +39,15 @@ export const requestSuggestionsTool = createToolDefinition({
   }),
   execute: async ({ documentId }, context): Promise<DocumentExecuteReturn> => {
     const { dataStream, userId } = context;
-    const document = await getDocumentById({ id: documentId });
+    const document = await getDocument(documentId, userId);
 
     if (!document) {
       return {
         error: 'Document not found',
       };
     }
-    // biome-ignore lint/style/noNonNullAssertion: <explanation>
-    const content = document.content!;
+
+    const content = document.content as string;
 
     const suggestions: Array<
       Omit<Suggestion, 'userId' | 'createdAt' | 'documentCreatedAt'>
@@ -82,14 +83,14 @@ export const requestSuggestionsTool = createToolDefinition({
       suggestions.push(suggestion);
     }
 
-    await saveSuggestions({
-      suggestions: suggestions.map((suggestion) => ({
+    await createSuggestions(
+      suggestions.map((suggestion) => ({
         ...suggestion,
         userId,
         createdAt: new Date(),
         documentCreatedAt: document.createdAt,
       })),
-    });
+    );
 
     return {
       id: documentId,

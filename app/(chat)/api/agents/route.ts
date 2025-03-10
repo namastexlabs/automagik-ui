@@ -1,6 +1,6 @@
 import { getUser } from '@/lib/auth';
 import { mapAgent } from '@/lib/data';
-import { getAvailableAgents } from '@/lib/db/queries';
+import { getUserAgents } from '@/lib/repositories/agent';
 
 export async function GET(request: Request) {
   const session = await getUser();
@@ -9,8 +9,8 @@ export async function GET(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const agents = (await getAvailableAgents({ userId: session.user.id })).map(
-    (agent) => mapAgent(session.user.id, agent),
+  const agents = (await getUserAgents(session.user.id)).map((agent) =>
+    mapAgent(session.user.id, agent),
   );
   return Response.json(agents, { status: 200 });
 }
