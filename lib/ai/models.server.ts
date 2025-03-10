@@ -28,7 +28,9 @@ export function getModel(provider: string, modelId: string) {
       model = openai(modelIdString);
       break;
     case 'anthropic':
-      model = anthropic(modelIdString);
+      model = anthropic(modelIdString, {
+        sendReasoning: false,
+      });
       break;
     case 'google':
       model = google(modelIdString);
