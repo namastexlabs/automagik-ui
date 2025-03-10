@@ -1,0 +1,209 @@
+import 'server-only';
+
+import type { Agent } from '@/lib/db/schema';
+import {
+  getDefaultAgents,
+  getAvailableAgents,
+  getAgentById,
+  getAgentByNameAndUserId,
+  deleteAgentById,
+  createAgentTransaction,
+  updateAgentTransaction,
+  type AgentData,
+} from '@/lib/db/queries/agent';
+import { getDiffRelation } from '@/lib/utils.server';
+import { ConflictError, NotFoundError, UnauthorizedError } from '@/lib/errors';
+import { isUniqueConstraintError } from '../db/queries';
+import { getToolsByIds } from './tool';
+import { getOrCreateDynamicBlocks } from './dynamic-block';
+
+export async function getSystemAgents(): Promise<AgentData[]> {
+  return await getDefaultAgents();
+}
+
+export async function getUserAgents(userId: string): Promise<AgentData[]> {
+  return await getAvailableAgents({ userId });
+}
+
+export async function getAgent(id: string, userId: string): Promise<AgentData> {
+  const agent = await getAgentById({ id });
+  if (!agent) {
+    throw new NotFoundError('Agent not found');
+  }
+
+  const isOwner = userId === agent.userId;
+  if (!isOwner && agent.visibility === 'private') {
+    throw new UnauthorizedError('Not authorized to access this agent');
+  }
+
+  return agent;
+}
+
+export async function findAgentByName(
+  name: string,
+  userId: string,
+  visibility: 'private' | 'public',
+): Promise<Agent | undefined> {
+  return await getAgentByNameAndUserId({ name, userId, visibility });
+}
+
+export async function createAgent({
+  name,
+  systemPrompt,
+  userId,
+  visibility = 'private',
+  tools = [],
+  dynamicBlocks = [],
+}: {
+  name: string;
+  systemPrompt: string;
+  userId: string;
+  visibility?: 'private' | 'public';
+  tools?: string[];
+  dynamicBlocks?: { name: string; visibility: 'private' | 'public' }[];
+}): Promise<AgentData> {
+  const agentTools = await getToolsByIds(tools, userId);
+  const agentDynamicBlocks = await getOrCreateDynamicBlocks(
+    userId,
+    dynamicBlocks,
+  );
+
+  try {
+    const agent = await createAgentTransaction({
+      name,
+      systemPrompt,
+      userId,
+      visibility,
+      tools: agentTools.map((tool) => tool.id),
+      dynamicBlocks: agentDynamicBlocks.map((block) => block.id),
+    });
+
+    return {
+      ...agent,
+      tools: agentTools.map((tool) => ({ tool })),
+      dynamicBlocks: agentDynamicBlocks.map((block) => ({
+        dynamicBlock: block,
+      })),
+    };
+  } catch (error) {
+    if (isUniqueConstraintError(error) && error.column_name === 'name') {
+      throw new ConflictError(
+        `A ${visibility} agent with this name already exists`,
+      );
+    }
+    throw error;
+  }
+}
+
+export async function updateAgent({
+  tools,
+  dynamicBlocks,
+  ...data
+}: {
+  id: string;
+  userId: string;
+  name: string;
+  systemPrompt: string;
+  visibility: 'private' | 'public';
+  tools?: string[];
+  dynamicBlocks?: { name: string; visibility: 'private' | 'public' }[];
+}): Promise<AgentData> {
+  const agent = await getAgentById({ id: data.id });
+  if (!agent) {
+    throw new NotFoundError('Agent not found');
+  }
+  if (agent.userId !== data.userId) {
+    throw new UnauthorizedError('Not authorized to update this agent');
+  }
+
+  const agentTools =
+    tools && tools.length > 0 ? await getToolsByIds(tools, data.userId) : [];
+  const agentDynamicBlocks =
+    dynamicBlocks && dynamicBlocks.length > 0
+      ? await getOrCreateDynamicBlocks(data.userId, dynamicBlocks)
+      : [];
+
+  const [newTools, removedTools] = tools
+    ? getDiffRelation(
+        agent.tools.map(({ tool }) => tool),
+        agentTools.map((tool) => tool.id),
+        (a, b) => a.id === b,
+      )
+    : [];
+  const [newDynamicBlocks, removedDynamicBlocks] = dynamicBlocks
+    ? getDiffRelation(
+        agent.dynamicBlocks.map(({ dynamicBlock }) => dynamicBlock),
+        agentDynamicBlocks.map((block) => block.id),
+        (a, b) => a.id === b,
+      )
+    : [];
+
+  try {
+    await updateAgentTransaction({
+      ...data,
+      newTools: newTools?.map((tool) => tool.id),
+      newDynamicBlocks: newDynamicBlocks?.map((block) => block.id),
+      removedTools: removedTools?.map((tool) => tool),
+      removedDynamicBlocks: removedDynamicBlocks?.map((block) => block),
+    });
+
+    return {
+      ...data,
+      createdAt: agent.createdAt,
+      tools: tools ? agent.tools : [],
+      dynamicBlocks: dynamicBlocks ? agent.dynamicBlocks : [],
+    };
+  } catch (error) {
+    if (isUniqueConstraintError(error) && error.column_name === 'name') {
+      throw new ConflictError(
+        `A ${data.visibility} agent with this name already exists`,
+      );
+    }
+    throw error;
+  }
+}
+
+export async function duplicateAgent(
+  id: string,
+  userId: string,
+): Promise<AgentData> {
+  const agent = await getAgent(id, userId);
+
+  const isOwner = userId === agent.userId;
+  if (!isOwner && agent.visibility === 'private') {
+    throw new UnauthorizedError('Not authorized to duplicate this agent');
+  }
+
+  const hasSameAgent = await findAgentByName(
+    agent.name,
+    userId,
+    agent.visibility,
+  );
+  if (hasSameAgent) {
+    throw new ConflictError('An agent with this name already exists');
+  }
+
+  return await createAgent({
+    name: agent.name,
+    systemPrompt: agent.systemPrompt,
+    userId,
+    visibility: 'private',
+    tools: agent.tools.map(({ tool }) => tool.id),
+    dynamicBlocks: agent.dynamicBlocks.map(({ dynamicBlock }) => ({
+      name: dynamicBlock.name,
+      visibility: dynamicBlock.visibility,
+    })),
+  });
+}
+
+export async function removeAgent(id: string, userId: string): Promise<void> {
+  const agent = await getAgentById({ id });
+  if (!agent) {
+    throw new NotFoundError('Agent not found');
+  }
+  if (agent.userId !== userId) {
+    throw new UnauthorizedError('Not authorized to update this agent');
+  }
+
+  await deleteAgentById({ id });
+}
