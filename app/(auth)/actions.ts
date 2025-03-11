@@ -3,7 +3,7 @@
 import { z } from 'zod';
 import { createServerClient } from '@/lib/supabase/server';
 import { AuthError } from '@supabase/supabase-js';
-import { createUser } from '@/lib/db/queries';
+import { createUser } from '@/lib/db/queries/user';
 
 const authFormSchema = z.object({
   email: z.string().email(),
@@ -103,7 +103,6 @@ export const register = async (
       return { status: 'failed' };
     }
 
-    // Create user in our application database
     await createUser(supabaseUser.id, validatedData.email);
 
     return { status: 'success' };

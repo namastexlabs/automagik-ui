@@ -116,24 +116,24 @@ export async function updateAgent({
     throw new UnauthorizedError('Not authorized to update this agent');
   }
 
-  const agentTools =
+  const formTools =
     tools && tools.length > 0 ? await getToolsByIds(tools, data.userId) : [];
-  const agentDynamicBlocks =
+  const formDynamicBlocks =
     dynamicBlocks && dynamicBlocks.length > 0
       ? await getOrCreateDynamicBlocks(data.userId, dynamicBlocks)
       : [];
 
-  const [newTools, removedTools] = tools
+  const [removedTools, newTools] = formTools
     ? getDiffRelation(
         agent.tools.map(({ tool }) => tool),
-        agentTools.map((tool) => tool.id),
+        formTools.map((tool) => tool.id),
         (a, b) => a.id === b,
       )
     : [];
-  const [newDynamicBlocks, removedDynamicBlocks] = dynamicBlocks
+  const [removedDynamicBlocks, newDynamicBlocks] = formDynamicBlocks
     ? getDiffRelation(
         agent.dynamicBlocks.map(({ dynamicBlock }) => dynamicBlock),
-        agentDynamicBlocks.map((block) => block.id),
+        formDynamicBlocks.map((block) => block.id),
         (a, b) => a.id === b,
       )
     : [];
@@ -141,17 +141,19 @@ export async function updateAgent({
   try {
     await updateAgentTransaction({
       ...data,
-      newTools: newTools?.map((tool) => tool.id),
-      newDynamicBlocks: newDynamicBlocks?.map((block) => block.id),
-      removedTools: removedTools?.map((tool) => tool),
-      removedDynamicBlocks: removedDynamicBlocks?.map((block) => block),
+      newTools: newTools?.map((tool) => tool),
+      newDynamicBlocks: newDynamicBlocks?.map((block) => block),
+      removedTools: removedTools?.map((tool) => tool.id),
+      removedDynamicBlocks: removedDynamicBlocks?.map((block) => block.id),
     });
 
     return {
       ...data,
       createdAt: agent.createdAt,
-      tools: tools ? agent.tools : [],
-      dynamicBlocks: dynamicBlocks ? agent.dynamicBlocks : [],
+      tools: tools ? formTools.map((tool) => ({ tool })) : [],
+      dynamicBlocks: dynamicBlocks
+        ? formDynamicBlocks.map((block) => ({ dynamicBlock: block }))
+        : [],
     };
   } catch (error) {
     if (isUniqueConstraintError(error) && error.column_name === 'name') {

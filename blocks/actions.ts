@@ -1,8 +1,13 @@
 'use server';
 
-import { getSuggestionsByDocumentId } from '@/lib/db/queries';
+import { getUser } from '@/lib/auth';
+import { getDocumentSuggestions } from '@/lib/repositories/suggestion';
 
 export async function getSuggestions({ documentId }: { documentId: string }) {
-  const suggestions = await getSuggestionsByDocumentId({ documentId });
+  const session = await getUser();
+  if (!session?.user?.id) {
+    return [];
+  }
+  const suggestions = await getDocumentSuggestions(documentId, session.user.id);
   return suggestions ?? [];
 }

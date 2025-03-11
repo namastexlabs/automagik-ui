@@ -1,61 +1,38 @@
 'use server';
 
-import {
-  convertToCoreMessages,
-  type CoreMessage,
-  generateText,
-  type Message,
-} from 'ai';
+import type { Message } from 'ai';
 import { z } from 'zod';
-import { zerialize } from 'zodex';
 
-import isUniqueConstraintError, {
-  createAllAgentToTools,
-  deleteAgentById,
-  deleteChatById,
-  deleteMessagesByChatIdAfterTimestamp,
-  getAgentById,
-  getAllToolsById,
-  getChatById,
-  getMessageById,
-  createAgent,
-  saveChat,
-  updateChatVisiblityById,
-  updateAgent,
-  deleteAllAgentToTools,
-  getToolById,
-  createTool,
-  updateTool,
-  createAllAgentToDynamicBlocks,
-  deleteAllAgentToDynamicBlocks,
-  deleteAllDynamicBlocksHanging,
-  getAgentByNameAndUserId,
-} from '@/lib/db/queries';
-import { getOrCreateAllDynamicBlocks } from '@/lib/agents/dynamic-blocks.server';
 import type { VisibilityType } from '@/components/visibility-selector';
 import type { ActionStateData, ActionStateStatus } from '@/app/types';
-import type { Agent, Chat, Tool } from '@/lib/db/schema';
+import type { Chat, Tool } from '@/lib/db/schema';
 import { notFound } from 'next/navigation';
-import {
-  generateUUID,
-  getDiffRelation,
-  getMostRecentUserMessage,
-} from '@/lib/utils';
 import {
   type ClientTool,
   type ClientAgent,
   mapAgent,
   mapTool,
 } from '@/lib/data';
-import { createChatFlowTool } from '@/lib/agents/automagik';
-import { accessModel } from '@/lib/ai/models';
-import { getModel } from '@/lib/ai/models.server';
 import { getUser } from '@/lib/auth';
+import {
+  createChat as createChatRepository,
+  removeChatById,
+  updateVisibility,
+} from '@/lib/repositories/chat';
+import {
+  createAgent,
+  updateAgent,
+  removeAgent,
+  duplicateAgent as duplicateAgentRepository,
+} from '@/lib/repositories/agent';
+import { createFlowTool, updateFlowTool } from '@/lib/repositories/tool';
+import { removeTrailingMessages } from '@/lib/repositories/message';
+import { ApplicationError, ConflictError } from '@/lib/errors';
 
 const agentFormSchema = z.object({
   name: z.string().trim(),
   systemPrompt: z.string(),
-  visibility: z.enum(['public', 'private']).optional(),
+  visibility: z.enum(['public', 'private']).default('private'),
   tools: z.array(z.string()).default([]),
   dynamicBlocks: z
     .array(
@@ -78,45 +55,18 @@ const flowToolSchema = z.object({
   verboseName: z.string().trim(),
   description: z.string(),
   flowId: z.string().trim(),
-  visibility: z.enum(['public', 'private']).optional(),
+  visibility: z.enum(['public', 'private']).default('private'),
 });
 
 export type FlowToolSchema = typeof flowToolSchema;
 
-export async function generateTitleFromUserMessage({
-  message,
-}: {
-  message: CoreMessage;
-}) {
-  const { text: title } = await generateText({
-    model: getModel(...accessModel('openai', 'gpt-4-turbo')),
-    system: `\n
-    - you will generate a short title based on the first message a user begins a conversation with
-    - ensure it is not more than 80 characters long
-    - the title should be a summary of the user's message
-    - do not use quotes or colons`,
-    prompt: JSON.stringify(message),
-  });
-
-  return title;
-}
-
 export async function deleteTrailingMessages({ id }: { id: string }) {
   const session = await getUser();
-  const message = await getMessageById({ id });
-
-  if (!message) {
+  if (!session?.user?.id) {
     return notFound();
   }
 
-  if (!session?.user?.id || message.chat.userId !== session.user.id) {
-    return notFound();
-  }
-
-  await deleteMessagesByChatIdAfterTimestamp({
-    chatId: message.chatId,
-    timestamp: message.createdAt,
-  });
+  await removeTrailingMessages(id, session.user.id);
 }
 
 export async function updateChatVisibility({
@@ -132,13 +82,7 @@ export async function updateChatVisibility({
     return notFound();
   }
 
-  const chat = await getChatById({ id: chatId });
-
-  if (chat?.userId !== session.user.id) {
-    return notFound();
-  }
-
-  await updateChatVisiblityById({ chatId, visibility });
+  await updateVisibility({ chatId, userId: session.user.id, visibility });
 }
 
 export async function createChat({
@@ -147,7 +91,7 @@ export async function createChat({
 }: {
   agentId: string;
   messages: Message[];
-}): Promise<{ status: 'failed' | 'success'; data?: Chat }> {
+}): Promise<{ status: 'failed' | 'success'; data?: Chat; error?: string }> {
   try {
     const session = await getUser();
 
@@ -155,32 +99,17 @@ export async function createChat({
       return notFound();
     }
 
-    const agent = await getAgentById({ id: agentId });
-
-    const hasPermission =
-      agent &&
-      (agent.visibility === 'public' || agent.userId === session.user.id);
-
-    if (!hasPermission) {
-      return notFound();
-    }
-
-    const coreMessages = convertToCoreMessages(messages);
-    const userMessage = getMostRecentUserMessage(coreMessages);
-
-    if (!userMessage) {
-      return { status: 'failed' };
-    }
-
-    const chat = await saveChat({
-      id: generateUUID(),
+    const chat = await createChatRepository({
+      agentId,
       userId: session.user.id,
-      agentId: agentId,
-      title: await generateTitleFromUserMessage({ message: userMessage }),
+      messages,
     });
 
     return { status: 'success', data: chat };
   } catch (error) {
+    if (error instanceof ApplicationError) {
+      return { status: 'failed', error: error.message };
+    }
     console.error('Failed to create chat', error);
     return { status: 'failed' };
   }
@@ -191,18 +120,20 @@ export async function deleteChat({ id }: { id: string }): Promise<{
     ActionStateStatus['status'],
     'idle' | 'in_progress' | 'invalid_data'
   >;
+  error?: string;
 }> {
   const session = await getUser();
-  const chat = await getChatById({ id });
-
-  if (!session?.user?.id || chat?.userId !== session.user.id) {
+  if (!session?.user?.id) {
     return notFound();
   }
 
   try {
-    await deleteChatById({ id });
+    await removeChatById(id, session.user.id);
     return { status: 'success' };
   } catch (error) {
+    if (error instanceof ApplicationError) {
+      return { status: 'failed', error: error.message };
+    }
     console.error('Failed to delete chat', error);
     return { status: 'failed' };
   }
@@ -214,9 +145,8 @@ export async function saveAgent(
 ): Promise<ActionStateData<ClientAgent, typeof agentFormSchema>> {
   try {
     const session = await getUser();
-
     if (!session?.user?.id) {
-      return { status: 'failed', data: null };
+      return notFound();
     }
 
     const validatedData = agentFormSchema.parse({
@@ -228,101 +158,17 @@ export async function saveAgent(
         .getAll('dynamicBlocks')
         .map((item) => JSON.parse(item as string)),
     });
-
-    const formTools = await getAllToolsById(
-      validatedData.tools,
-      session.user.id,
-    );
-    const dynamicBlocks = await getOrCreateAllDynamicBlocks(
-      session.user.id,
-      validatedData.dynamicBlocks,
-    );
-
-    let agent: Agent;
     const id = formData.get('id') as string;
-    if (id) {
-      const prevAgent = await getAgentById({ id });
+    const data = {
+      userId: session.user.id,
+      ...validatedData,
+    };
 
-      if (prevAgent?.userId !== session.user.id) {
-        return { status: 'failed', data: null };
-      }
-
-      agent = await updateAgent({
-        id,
-        name: validatedData.name,
-        systemPrompt: validatedData.systemPrompt,
-        visibility: validatedData.visibility,
-      });
-
-      const [deletedTools, newTools] = getDiffRelation(
-        prevAgent.tools.map((tool) => tool.tool),
-        formTools,
-        (a, b) => a.id === b.id,
-      );
-      const [deletedDynamicBlocks, newDynamicBlocks] = getDiffRelation(
-        prevAgent.dynamicBlocks.map(({ dynamicBlock }) => dynamicBlock),
-        dynamicBlocks,
-        (a, b) => a.id === b.id,
-      );
-
-      if (newTools.length > 0) {
-        await createAllAgentToTools(
-          newTools.map((tool) => ({ agentId: id, toolId: tool.id })),
-        );
-      }
-
-      if (deletedTools.length > 0) {
-        await deleteAllAgentToTools(
-          id,
-          deletedTools.map(({ id }) => id),
-        );
-      }
-
-      if (newDynamicBlocks.length > 0) {
-        await createAllAgentToDynamicBlocks(
-          newDynamicBlocks.map((block) => ({
-            agentId: id,
-            dynamicBlockId: block.id,
-          })),
-        );
-      }
-
-      if (deletedDynamicBlocks.length > 0) {
-        const deleteIds = deletedDynamicBlocks.map(({ id }) => id);
-        await deleteAllAgentToDynamicBlocks(id, deleteIds);
-        await deleteAllDynamicBlocksHanging(deleteIds);
-      }
-    } else {
-      agent = await createAgent({
-        name: validatedData.name,
-        systemPrompt: validatedData.systemPrompt,
-        visibility: validatedData.visibility,
-        userId: session.user.id,
-      });
-
-      if (formTools.length > 0) {
-        await createAllAgentToTools(
-          formTools.map((tool) => ({ agentId: agent.id, toolId: tool.id })),
-        );
-      }
-
-      if (dynamicBlocks.length > 0) {
-        await createAllAgentToDynamicBlocks(
-          dynamicBlocks.map((block) => ({
-            agentId: agent.id,
-            dynamicBlockId: block.id,
-          })),
-        );
-      }
-    }
+    const agent = await (id ? updateAgent({ id, ...data }) : createAgent(data));
 
     return {
       status: 'success',
-      data: mapAgent(session.user.id, {
-        ...agent,
-        tools: formTools.map((tool) => ({ tool })),
-        dynamicBlocks: dynamicBlocks.map((dynamicBlock) => ({ dynamicBlock })),
-      }),
+      data: mapAgent(session.user.id, agent),
     };
   } catch (error) {
     if (error instanceof z.ZodError) {
@@ -334,15 +180,14 @@ export async function saveAgent(
       };
     }
 
-    if (isUniqueConstraintError(error)) {
-      const errorMessage = `Agent with the same name already exists ${formData.get('visibility') === 'private' ? 'for this user' : 'for the application, change the visiblity to private or change the name'}`;
+    if (error instanceof ConflictError) {
       return {
         status: 'invalid_data',
         data: null,
         errors: {
           _errors: [],
           name: {
-            _errors: [errorMessage],
+            _errors: [error.message],
           },
         },
       };
@@ -355,81 +200,47 @@ export async function saveAgent(
 
 export async function duplicateAgent({ id }: { id: string }) {
   const session = await getUser();
-
   if (!session?.user?.id) {
     return notFound();
   }
 
-  const agent = await getAgentById({ id });
-
-  const isOwner = session.user.id === agent?.userId;
-  if (!agent || (!isOwner && agent.visibility === 'private')) {
-    return notFound();
-  }
-
   try {
-    const hasSameAgent = await getAgentByNameAndUserId({
-      name: agent.name,
-      userId: session.user.id,
-    });
-
-    if (hasSameAgent) {
-      return {
-        status: 'exists',
-        data: null,
-      };
-    }
-
-    const newAgent = await createAgent({
-      name: agent.name,
-      systemPrompt: agent.systemPrompt,
-      visibility: 'private',
-      userId: session.user.id,
-    });
-
-    if (agent.tools.length > 0) {
-      await createAllAgentToTools(
-        agent.tools.map(({ tool }) => ({
-          agentId: newAgent.id,
-          toolId: tool.id,
-        })),
-      );
-    }
-
-    if (agent.dynamicBlocks.length > 0) {
-      await createAllAgentToDynamicBlocks(
-        agent.dynamicBlocks.map(({ dynamicBlock }) => ({
-          agentId: newAgent.id,
-          dynamicBlockId: dynamicBlock.id,
-        })),
-      );
-    }
-
+    const newAgent = await duplicateAgentRepository(id, session.user.id);
     return {
       status: 'success',
-      data: mapAgent(session.user.id, {
-        ...newAgent,
-        tools: agent.tools.map(({ tool }) => ({ tool })),
-        dynamicBlocks: agent.dynamicBlocks.map(({ dynamicBlock }) => ({
-          dynamicBlock,
-        })),
-      }),
+      data: mapAgent(session.user.id, newAgent),
     };
   } catch (error) {
+    if (error instanceof ApplicationError) {
+      return {
+        status: 'failed',
+        error: error.message,
+      };
+    }
     console.error('Failed to duplicate agent', error);
-    return { status: 'failed', data: null };
+    return {
+      status: 'failed',
+      error: 'An unexpected error occurred',
+    };
   }
 }
 
 export async function deleteAgent({ id }: { id: string }) {
   const session = await getUser();
-  const agent = await getAgentById({ id });
-
-  if (!agent || !session?.user?.id || session.user.id !== agent.userId) {
+  if (!session?.user?.id) {
     return notFound();
   }
 
-  await deleteAgentById({ id });
+  try {
+    await removeAgent(id, session.user.id);
+    return { status: 'success' };
+  } catch (error) {
+    if (error instanceof ApplicationError) {
+      return { status: 'failed', error: error.message };
+    }
+    console.error('Failed to delete agent', error);
+    return { status: 'failed' };
+  }
 }
 
 export async function saveFlowTool(
@@ -444,7 +255,7 @@ export async function saveFlowTool(
     }
 
     const id = formData.get('id') as string;
-    const { flowId, ...validatedData } = flowToolSchema.parse({
+    const validatedData = flowToolSchema.parse({
       name: formData.get('name'),
       verboseName: formData.get('verboseName'),
       description: formData.get('description'),
@@ -453,29 +264,11 @@ export async function saveFlowTool(
     });
 
     let tool: Tool;
-    const { name, verboseName, description, parameters } = createChatFlowTool(
-      flowId,
-      validatedData,
-    );
-    const data = {
-      source: 'automagik',
-      name,
-      verboseName,
-      description,
-      parameters: parameters && zerialize(parameters),
-      data: { flowId },
-    } as const;
+    const data = { ...validatedData, userId: session.user.id } as const;
     if (id) {
-      const flowTool = await getToolById({ id });
-      const isFlowSource = flowTool?.source === data.source;
-
-      if (flowTool?.userId !== session.user.id || !isFlowSource) {
-        return notFound();
-      }
-
-      tool = await updateTool({ id, ...data });
+      tool = await updateFlowTool({ id, ...data });
     } else {
-      tool = await createTool({ ...data, userId: session.user.id });
+      tool = await createFlowTool(data);
     }
 
     return { status: 'success', data: mapTool(session.user.id, tool) };
@@ -490,15 +283,14 @@ export async function saveFlowTool(
       };
     }
 
-    if (isUniqueConstraintError(error)) {
-      const errorMessage = `Tool with the same name already exists ${formData.get('visibility') === 'private' ? 'for this user' : 'for the application, change the visiblity to private or change the name'}`;
+    if (error instanceof ConflictError) {
       return {
         status: 'invalid_data',
         data: null,
         errors: {
           _errors: [],
           verboseName: {
-            _errors: [errorMessage],
+            _errors: [error.message],
           },
         },
       };
