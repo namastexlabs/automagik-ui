@@ -1,6 +1,6 @@
 import 'server-only';
 import { config } from 'dotenv';
-import { getDiffRelation } from '@/lib/utils';
+import { getDiffRelation } from '@/lib/utils.server';
 
 config({
   path: '.env.local',
@@ -17,16 +17,15 @@ const run = async () => {
     createAgent,
     updateAgent,
     deleteAgentById,
-    getInternalTools,
     createAllAgentToTools,
     deleteAllAgentToTools,
-  } = await import('./queries');
+  } = await import('./queries/agent');
+
+  const { getInternalTools } = await import('./queries/tool');
 
   const automagikAgent = await import('@/lib/agents/default-agents/automagik');
 
-  const defaultAgents = [
-    automagikAgent,
-  ]
+  const defaultAgents = [automagikAgent];
 
   console.log('⏳ Upserting default agents...');
 
@@ -73,7 +72,8 @@ const run = async () => {
         ...data,
       });
 
-      const currentAgentTools = createdAgent.tools.map(({ tool }) => tool) || [];
+      const currentAgentTools =
+        createdAgent.tools.map(({ tool }) => tool) || [];
       const [deletedTools, newTools] = getDiffRelation(
         currentAgentTools,
         agentTools,
@@ -89,7 +89,10 @@ const run = async () => {
         );
       }
       if (deletedTools.length > 0) {
-        await deleteAllAgentToTools(createdAgent.id, deletedTools.map((tool) => tool.id));
+        await deleteAllAgentToTools(
+          createdAgent.id,
+          deletedTools.map((tool) => tool.id),
+        );
       }
 
       updateCount++;

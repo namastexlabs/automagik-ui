@@ -153,9 +153,7 @@ async function processMessage(
     return content as MessageContent;
   }
 
-  const oldContent = content as unknown as
-    | CoreMessage['content']
-    | string;
+  const oldContent = content as unknown as CoreMessage['content'] | string;
 
   // Convert assistant message content
   const converted = convertCoreContentToUIMessage(oldContent);
@@ -212,7 +210,7 @@ async function processMessage(
 
 const run = async () => {
   const { getMessages, updateMessage, deleteMessage } = await import(
-    './queries'
+    './queries/message'
   );
 
   const messages = await getMessages();
