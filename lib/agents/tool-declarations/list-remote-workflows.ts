@@ -1,9 +1,11 @@
 import 'server-only';
 
 import { z } from 'zod';
+
+import { getRemoteWorkflows } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { getRemoteWorkflows } from '../automagik';
 
 export const listRemoteWorkflowsTool = createToolDefinition({
   name: InternalToolName.listRemoteWorkflows,

@@ -1,8 +1,9 @@
 import 'server-only';
 
+import { getTasks } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { getTasks } from '../automagik';
 
 export const listTasksTool = createToolDefinition({
   name: InternalToolName.listTasks,

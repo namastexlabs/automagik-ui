@@ -2,10 +2,10 @@ import 'server-only';
 import { z } from 'zod';
 
 import { validateUUID } from '@/lib/utils';
+import { disableSchedule, enableSchedule } from '@/lib/services/automagik';
 
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { disableSchedule, enableSchedule } from '../automagik';
 
 const namedRefinements = {
   validateUUID: (id: string, ctx: z.RefinementCtx) => {

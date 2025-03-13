@@ -2,7 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 
 import { createToolDefinition } from '../tool-declaration';
-import { createRemoteSource } from '../automagik';
+import { createRemoteSource } from '../../services/automagik';
 import { InternalToolName } from './client';
 
 export const createRemoteSourceTool = createToolDefinition({

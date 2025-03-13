@@ -1,7 +1,8 @@
 import 'server-only';
 
+import { createSchedule } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
-import { createSchedule } from '../automagik';
 import { InternalToolName } from './client';
 import { z } from 'zod';
 

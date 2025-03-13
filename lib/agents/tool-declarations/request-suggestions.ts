@@ -4,15 +4,15 @@ import { streamObject } from 'ai';
 
 import { generateUUID, validateUUID } from '@/lib/utils';
 import type { Suggestion } from '@/lib/db/schema';
-
-import type { DocumentExecuteReturn } from '../types';
-import { createToolDefinition } from '../tool-declaration';
-import { InternalToolName } from './client';
 import { accessModel } from '@/lib/ai/models';
 import { getModel } from '@/lib/ai/models.server';
 import { suggestionPrompt } from '@/lib/ai/prompts';
 import { getDocument } from '@/lib/repositories/document';
 import { createSuggestions } from '@/lib/repositories/suggestion';
+
+import type { DocumentExecuteReturn } from '../types';
+import { createToolDefinition } from '../tool-declaration';
+import { InternalToolName } from './client';
 
 const namedRefinements = {
   validateUUID: (id: string, ctx: z.RefinementCtx) => {

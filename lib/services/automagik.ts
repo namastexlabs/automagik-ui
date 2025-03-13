@@ -1,7 +1,5 @@
 import 'server-only';
-import { z } from 'zod';
-import { createToolDefinition } from './tool-declaration';
-import type { ExecutionResult, FlowData, Schedule, Task } from './types';
+import type { FlowData, Schedule, Task } from './types';
 
 const AUTOMAGIK_URL = process.env.AUTOMAGIK_URL || '';
 const AUTOMAGIK_API_KEY = process.env.AUTOMAGIK_API_KEY || '';
@@ -240,45 +238,4 @@ export async function getTasks() {
 
   const data: Task[] = await response.json();
   return data;
-}
-
-export function createChatFlowTool(
-  flowId: string,
-  {
-    name,
-    verboseName,
-    description,
-    visibility = 'public',
-  }: {
-    name: string;
-    verboseName: string;
-    description: string;
-    visibility?: 'private' | 'public';
-  },
-) {
-  return createToolDefinition({
-    name,
-    verboseName,
-    description,
-    visibility,
-    namedRefinements: undefined,
-    parameters: z.object({
-      inputValue: z.string(),
-    }),
-    execute: async ({ inputValue }): Promise<ExecutionResult> => {
-      try {
-        const result = await runWorkflow(flowId, inputValue);
-
-        return {
-          result: result,
-          content: 'Flow executed successfully',
-        };
-      } catch (error) {
-        return {
-          result: null,
-          content: 'Failed to execute flow',
-        };
-      }
-    },
-  });
 }

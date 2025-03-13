@@ -1,7 +1,8 @@
 import 'server-only';
 
+import { getWorkflows } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
-import { getWorkflows } from '../automagik';
 import { InternalToolName } from './client';
 
 export const listWorkflowsTool = createToolDefinition({

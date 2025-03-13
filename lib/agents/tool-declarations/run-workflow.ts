@@ -2,7 +2,8 @@ import { z } from 'zod';
 
 import { validateUUID } from '@/lib/utils';
 
-import { runWorkflow } from '../automagik';
+import { runWorkflow } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
 import type { ExecutionResult } from '../types';
 import { InternalToolName } from './client';

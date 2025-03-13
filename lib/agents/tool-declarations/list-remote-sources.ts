@@ -1,7 +1,8 @@
 import 'server-only';
 
+import { getRemoteSources } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
-import { getRemoteSources } from '../automagik';
 import { InternalToolName } from './client';
 
 export const listRemoteSourcesTool = createToolDefinition({

@@ -1,7 +1,6 @@
 import 'server-only';
 import { zerialize } from 'zodex';
 
-import { createChatFlowTool } from '@/lib/agents/automagik';
 import {
   getToolById,
   createTool,
@@ -10,8 +9,9 @@ import {
   getAvailableTools,
 } from '@/lib/db/queries/tool';
 import type { Tool } from '@/lib/db/schema';
+import { isUniqueConstraintError } from '@/lib/db/queries';
 import { ConflictError, NotFoundError, UnauthorizedError } from '@/lib/errors';
-import { isUniqueConstraintError } from '../db/queries';
+import { createChatFlowTool } from '@/lib/agents/tool';
 
 export async function createFlowTool({
   userId,

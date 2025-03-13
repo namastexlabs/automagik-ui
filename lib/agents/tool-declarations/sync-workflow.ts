@@ -1,8 +1,9 @@
 import 'server-only';
 import { z } from 'zod';
 
+import { syncWorkflow } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
-import { syncWorkflow } from '../automagik';
 import { InternalToolName } from './client';
 
 export const syncWorkflowTool = createToolDefinition({

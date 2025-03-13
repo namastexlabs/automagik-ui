@@ -1,9 +1,11 @@
 import 'server-only';
 
 import { z } from 'zod';
+
+import { getSchedules } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { getSchedules } from '../automagik';
 
 export const listSchedulesTool = createToolDefinition({
   name: InternalToolName.listSchedules,
