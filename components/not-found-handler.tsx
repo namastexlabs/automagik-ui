@@ -17,7 +17,7 @@ export function NotFoundHandler({
     <div className="w-full h-[90vh] flex justify-center items-center">
       <motion.div
         key="overview"
-        className="max-w-3xl"
+        className="motion max-w-3xl"
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.98 }}

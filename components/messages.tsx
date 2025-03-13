@@ -1,31 +1,31 @@
 'use client';
 
-import { memo } from 'react';
-import equal from 'fast-deep-equal';
+import { AlertCircle } from 'lucide-react';
 
 import type { Vote } from '@/lib/db/schema';
+import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
+import { useChat, useChatMessages } from '@/contexts/chat';
 
 import { PreviewMessage, ThinkingMessage } from './message';
-import { useScrollToBottom } from './use-scroll-to-bottom';
+
 import { Overview } from './overview';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-import { AlertCircle } from 'lucide-react';
-import { useChat, useChatMessages } from '@/contexts/chat';
 
 interface MessagesProps {
   votes: Array<Vote> | undefined;
   isBlockVisible: boolean;
 }
 
-function PureMessages({
-  votes,
-}: MessagesProps) {
+export function Messages({ votes }: MessagesProps) {
   const { chat, error, isReadOnly, isLoading } = useChat();
   const { messages } = useChatMessages();
-  const messagesEndRef = useScrollToBottom<HTMLDivElement>(messages);
+  const containerRef = useScrollToBottom<HTMLDivElement>(messages, isLoading);
 
   return (
-    <div className="flex flex-col min-w-0 flex-1 overflow-y-scroll pt-4">
+    <div
+      className="flex flex-col min-w-0 flex-1 overflow-y-auto py-4"
+      ref={containerRef}
+    >
       {messages.length === 0 && <Overview />}
 
       <div className="flex flex-col mx-auto w-full max-w-3xl gap-6">
@@ -60,17 +60,6 @@ function PureMessages({
           </div>
         )}
       </div>
-      <div
-        ref={messagesEndRef}
-        className="shrink-0 min-w-[24px] min-h-[24px]"
-      />
     </div>
   );
 }
-
-export const Messages = memo(PureMessages, (prevProps, nextProps) => {
-  if (prevProps.isBlockVisible && nextProps.isBlockVisible) return true;
-  if (!equal(prevProps.votes, nextProps.votes)) return false;
-
-  return true;
-});

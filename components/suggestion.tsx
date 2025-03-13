@@ -27,7 +27,7 @@ export const Suggestion = ({
     <AnimatePresence>
       {!isExpanded ? (
         <motion.div
-          className={cn('cursor-pointer text-muted-foreground p-1', {
+          className={cn('motion cursor-pointer text-muted-foreground p-1', {
             'absolute -right-8': blockKind === 'text',
             'sticky top-0 right-4': blockKind === 'code',
           })}
@@ -41,7 +41,7 @@ export const Suggestion = ({
       ) : (
         <motion.div
           key={suggestion.id}
-          className="absolute bg-background p-3 flex flex-col gap-3 rounded-2xl border text-sm w-56 shadow-xl z-50 -right-12 md:-right-16 font-sans"
+          className="motion absolute bg-background p-3 flex flex-col gap-3 rounded-2xl border text-sm w-56 shadow-xl z-50 -right-12 md:-right-16 font-sans"
           transition={{ type: 'spring', stiffness: 500, damping: 30 }}
           initial={{ opacity: 0, y: -10 }}
           animate={{ opacity: 1, y: -20 }}

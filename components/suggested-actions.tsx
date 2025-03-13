@@ -2,7 +2,7 @@
 
 import { motion } from 'framer-motion';
 import { Button } from './ui/button';
-import { ChatRequestOptions, CreateMessage, Message } from 'ai';
+import type { ChatRequestOptions, CreateMessage, Message } from 'ai';
 import { memo } from 'react';
 
 interface SuggestedActionsProps {
@@ -46,7 +46,7 @@ function PureSuggestedActions({ chatId, append }: SuggestedActionsProps) {
           exit={{ opacity: 0, y: 20 }}
           transition={{ delay: 0.05 * index }}
           key={`suggested-action-${suggestedAction.title}-${index}`}
-          className={index > 1 ? 'hidden sm:block' : 'block'}
+          className={`motion ${index > 1 ? 'hidden sm:block' : 'block'}`}
         >
           <Button
             variant="ghost"

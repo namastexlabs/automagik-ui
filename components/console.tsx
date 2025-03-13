@@ -89,7 +89,7 @@ export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
 
       <div
         className={cn(
-          'fixed flex flex-col bottom-0 dark:bg-zinc-900 bg-zinc-50 w-full border-t z-40 overflow-y-scroll overflow-x-hidden dark:border-zinc-700 border-zinc-200',
+          'fixed flex flex-col bottom-0 dark:bg-zinc-900 bg-zinc-50 w-full border-t z-40 overflow-y-auto overflow-x-hidden dark:border-zinc-700 border-zinc-200',
           {
             'select-none': isResizing,
           },
@@ -149,7 +149,7 @@ export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
                   </div>
                 </div>
               ) : (
-                <div className="dark:text-zinc-50 text-zinc-900 w-full flex flex-col gap-2 overflow-x-scroll">
+                <div className="dark:text-zinc-50 text-zinc-900 w-full flex flex-col gap-2 overflow-x-auto">
                   {consoleOutput.contents.map((content, index) =>
                     content.type === 'image' ? (
                       <picture key={`${consoleOutput.id}-${index}`}>
