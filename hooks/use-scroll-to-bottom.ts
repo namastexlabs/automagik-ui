@@ -86,7 +86,6 @@ export function useScrollToBottom<T extends HTMLElement>(
     const observer = new MutationObserver(() => {
       if (containerRef.current) {
         currentScrollTopRef.current = containerRef.current.scrollTop;
-        console.log(containerRef.current.scrollTop);
       }
     });
 

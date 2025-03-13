@@ -63,7 +63,9 @@ export function getModel(provider: string, modelId: string) {
   ).supports;
 
   if (supports.includes(ModelSupport.REASONING)) {
-    const tagName = provider === 'anthropic' ? 'thinking' : 'think';
+    const tagName = ['openai', 'anthropic'].includes(provider)
+      ? 'thinking'
+      : 'think';
     model = wrapLanguageModel({
       model,
       middleware: extractReasoningMiddleware({ tagName }),

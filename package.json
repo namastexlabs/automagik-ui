@@ -28,7 +28,7 @@
     "@ai-sdk/groq": "^1.1.11",
     "@ai-sdk/mistral": "^1.1.13",
     "@ai-sdk/openai": "1.1.9",
-    "@ai-sdk/react": "^1.1.18",
+    "@ai-sdk/react": "^1.1.21",
     "@ai-sdk/togetherai": "^0.1.13",
     "@bprogress/core": "^1.1.18",
     "@bprogress/next": "^3.1.3",
