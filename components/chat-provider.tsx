@@ -20,13 +20,14 @@ import {
   ChatMessagesContext,
   ChatHandlersContext,
 } from '@/contexts/chat';
-import type { ClientAgent } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
 import type { Chat } from '@/lib/db/schema';
-import { createChat } from '@/app/(chat)/actions';
+import { createChatAction } from '@/app/(chat)/actions';
 import { generateUUID } from '@/lib/utils';
 import { getModelData, isImagesAllowed } from '@/lib/ai/models';
 
 import { DataStreamHandler } from './data-stream-handler';
+
 export function ChatProvider({
   chat,
   initialMessages,
@@ -79,27 +80,25 @@ export function ChatProvider({
   const { mutate } = useSWRConfig();
   const router = useRouter();
 
+  const getLocalStorageInput = useCallback(() => {
+    return localStorage.getItem('input') || '';
+  }, []);
+
+  const setLocalStorageInput = useCallback((value: string) => {
+    localStorage.setItem('input', value);
+  }, []);
+
+  useEffect(() => {
+    setInput(getLocalStorageInput());
+  }, [setInput, getLocalStorageInput]);
+
+  useEffect(() => {
+    setLocalStorageInput(input);
+  }, [input, setLocalStorageInput]);
+
   useEffect(() => {
     setAttachments([]);
   }, [chat]);
-
-  useEffect(() => {
-    switch (status) {
-      case 'submitted':
-        setProgress(0.1);
-        break;
-      case 'streaming':
-        setProgress(0.7);
-        break;
-      case 'ready':
-      case 'error':
-        setProgress(1);
-        stopProgress();
-        break;
-      default:
-        break;
-    }
-  }, [status, setProgress, stopProgress]);
 
   useEffect(() => {
     if (isCreatingChat) {
@@ -124,21 +123,20 @@ export function ChatProvider({
     async (messages: Message[], tab: string) => {
       if (!chat) {
         setIsCreatingChat(true);
-        const { status, data } = await createChat({
-          agentId: tab,
-          messages,
-        });
+        const { errors, data } = await createChatAction(tab, messages);
 
-        if (status === 'failed' || !data) {
-          return null;
+        if (errors) {
+          toast.error(errors._errors?.[0] || 'Failed to create chat');
         }
 
-        mutate(`/api/history?agentId=${tab}`, data, {
-          revalidate: false,
-          populateCache: (data, history = []) => {
-            return [data, ...history];
-          },
-        });
+        if (data) {
+          mutate(`/api/history?agentId=${tab}`, data, {
+            revalidate: false,
+            populateCache: (data, history = []) => {
+              return [data, ...history];
+            },
+          });
+        }
         setIsCreatingChat(false);
 
         return data;
@@ -174,9 +172,13 @@ export function ChatProvider({
       content: string,
       newAttachments: Array<Attachment>,
       currentAgent: string | null,
-      currentAgents: ClientAgent[],
+      currentAgents: AgentDTO[],
       currentTabs: string[],
     ) => {
+      if (content.trim().length === 0) {
+        return;
+      }
+
       if (currentAgents.length === 0) {
         setAgentDialogState({
           agentId: null,
@@ -191,6 +193,8 @@ export function ChatProvider({
         return;
       }
 
+      setLocalStorageInput('');
+
       const message: Message = {
         id: generateUUID(),
         createdAt: new Date(),
@@ -202,7 +206,6 @@ export function ChatProvider({
       const data = await getOrCreateChat([message], currentAgent);
       if (!data) {
         stopProgress();
-        toast.error('Something went wrong, please try again!');
         return;
       }
 
@@ -227,12 +230,13 @@ export function ChatProvider({
       }
     },
     [
+      setLocalStorageInput,
       getOrCreateChat,
       setInput,
       setAttachments,
+      stopProgress,
       shouldRemoveLastMessage,
       append,
-      stopProgress,
       selectedModelId,
       selectedProvider,
       chat,

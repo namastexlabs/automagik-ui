@@ -1,6 +1,6 @@
 import { z } from 'zod';
 import { cookies } from 'next/headers';
-import { notFound, redirect } from 'next/navigation';
+import { notFound } from 'next/navigation';
 
 import { getUser } from '@/lib/auth';
 import { Chat } from '@/components/chat';
@@ -10,19 +10,15 @@ import {
   DEFAULT_PROVIDER,
   isModelValid,
 } from '@/lib/ai/models';
-import {
-  getAvailableAgents,
-  getChatById,
-  getMessagesByChatId,
-} from '@/lib/db/queries';
 import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AgentTabsProvider } from '@/components/agent-tabs-provider';
-import { mapAgent } from '@/lib/data';
 import { UserProvider } from '@/components/user-provider';
 import { MODEL_COOKIE_KEY, PROVIDER_COOKIE_KEY } from '@/lib/ai/cookies';
-import { convertAttachmentUrls } from '@/lib/utils.server';
-import { convertToUIMessages } from '@/lib/utils';
+import { getInitialAgents } from '@/lib/data/agent';
+import { getChat } from '@/lib/data/chat';
+import { DataStatus } from '@/lib/data';
+import { getChatMessages } from '@/lib/data/message';
 
 export default async function Page({
   params,
@@ -34,30 +30,34 @@ export default async function Page({
     notFound();
   }
 
-  if (!session || !session.user) {
-    return redirect(
-      `/login?redirect=${encodeURIComponent(`/chat/${id}`)}`,
-    );
-  }
-  const chat = await getChatById({ id });
+  const chatData = await getChat(id);
 
-  if (!chat) {
+  if (chatData.status === DataStatus.NotFound) {
     notFound();
   }
 
-  if (chat.visibility === 'private') {
-    if (session.user.id !== chat.userId) {
-      return notFound();
-    }
+  const agentsData = await getInitialAgents();
+  const messagesData = await getChatMessages(id);
+
+  const error = [
+    ...(chatData.errors?._errors ?? []),
+    ...(agentsData.errors?._errors ?? []),
+    ...(messagesData.errors?._errors ?? []),
+  ];
+
+  if (error.length > 0) {
+    throw new Error(JSON.stringify(error));
   }
 
-  const agentsFromDb = session.user.id
-    ? await getAvailableAgents({ userId: session.user.id })
-    : [];
+  const chat = chatData.data;
+  const agents = agentsData.data;
+  const messages = messagesData.data;
 
-  const messagesFromDb = await getMessagesByChatId({
-    id,
-  });
+  const isChatOwner = session.user.id === chat.userId;
+  const currentAgent = agents.find((agent) => agent.id === chat.agentId);
+  const isAgentReadOnly =
+    currentAgent?.visibility === 'private' &&
+    currentAgent?.userId !== session.user.id;
 
   const cookieStore = await cookies();
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
@@ -73,12 +73,6 @@ export default async function Page({
       ? [providerFromCookie, modelIdFromCookie]
       : [DEFAULT_PROVIDER, DEFAULT_CHAT_MODEL];
 
-  const initialMessages = await Promise.all(
-    convertToUIMessages(messagesFromDb).map((message) =>
-      convertAttachmentUrls(message, id),
-    ),
-  );
-
   return (
     <UserProvider
       user={{
@@ -92,14 +86,12 @@ export default async function Page({
           <SidebarInset>
             <Chat
               chat={chat}
-              initialAgents={agentsFromDb.map((agent) =>
-                mapAgent(session.user.id, agent),
-              )}
-              initialMessages={initialMessages}
+              initialAgents={agents}
+              initialMessages={messages}
               provider={provider}
               modelId={modelId}
               selectedVisibilityType={chat.visibility}
-              isReadonly={session.user.id !== chat.userId}
+              isReadonly={!isChatOwner || isAgentReadOnly}
             />
           </SidebarInset>
         </SidebarProvider>

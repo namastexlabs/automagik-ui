@@ -21,7 +21,7 @@ import {
   useChatInput,
   useChatMessages,
 } from '@/contexts/chat';
-import type { ClientAgent } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
 
 import { ArrowUpIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
@@ -36,7 +36,7 @@ export function MultimodalInput({
   className,
   agents,
 }: {
-  agents: ClientAgent[];
+  agents: AgentDTO[];
   className?: string;
 }) {
   const { width } = useWindowSize();

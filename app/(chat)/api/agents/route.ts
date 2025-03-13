@@ -1,16 +1,6 @@
-import { getUser } from '@/lib/auth';
-import { mapAgent } from '@/lib/data';
-import { getUserAgents } from '@/lib/repositories/agent';
+import { toHTTPResponse } from '@/lib/data/index.server';
+import { getInitialAgents } from '@/lib/data/agent';
 
 export async function GET(request: Request) {
-  const session = await getUser();
-
-  if (!session?.user?.id) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
-  const agents = (await getUserAgents(session.user.id)).map((agent) =>
-    mapAgent(session.user.id, agent),
-  );
-  return Response.json(agents, { status: 200 });
+  return toHTTPResponse(await getInitialAgents());
 }

@@ -1,10 +1,12 @@
 'use client';
 
-import { updateChatVisibility } from '@/app/(chat)/actions';
+import { useMemo } from 'react';
+import { toast } from 'sonner';
+import useSWR, { useSWRConfig } from 'swr';
+
+import { updateChatVisibilityAction } from '@/app/(chat)/actions';
 import type { VisibilityType } from '@/components/visibility-selector';
 import type { Chat } from '@/lib/db/schema';
-import { useMemo } from 'react';
-import useSWR, { useSWRConfig } from 'swr';
 
 export function useChatVisibility({
   chatId,
@@ -31,18 +33,26 @@ export function useChatVisibility({
     return chat.visibility;
   }, [history, chatId, localVisibility]);
 
-  const setVisibilityType = (updatedVisibilityType: VisibilityType) => {
+  const setVisibilityType = async (updatedVisibilityType: VisibilityType) => {
     if (!chatId) {
       return;
     }
     setLocalVisibility(updatedVisibilityType);
 
-    mutate(`${chatId}-visibility`, updatedVisibilityType);
+    const response = await updateChatVisibilityAction(
+      chatId,
+      updatedVisibilityType,
+    );
 
-    updateChatVisibility({
-      chatId: chatId,
-      visibility: updatedVisibilityType,
-    });
+    if (response.errors) {
+      toast.error(
+        response.errors?._errors?.[0] || 'Failed to update chat visibility',
+      );
+
+      setLocalVisibility(localVisibility);
+    }
+
+    mutate(`${chatId}-visibility`, updatedVisibilityType);
   };
 
   return { visibilityType, setVisibilityType };

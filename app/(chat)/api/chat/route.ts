@@ -28,30 +28,14 @@ import {
 import { generateUUID } from '@/lib/utils';
 import { toCoreTools } from '@/lib/agents/tool';
 import { insertDynamicBlocksIntoPrompt } from '@/lib/agents/dynamic-blocks';
-import {
-  getChat,
-  removeChatById,
-  verifyChatWritePermission,
-} from '@/lib/repositories/chat';
+import { getChat, verifyChatWritePermission } from '@/lib/repositories/chat';
 import { getAgent } from '@/lib/repositories/agent';
 import { createMessages } from '@/lib/repositories/message';
 import { ApplicationError } from '@/lib/errors';
-
-type ReasoningUIPart = {
-  type: 'reasoning';
-  reasoning: string;
-  details: Array<
-    | {
-        type: 'text';
-        text: string;
-        signature?: string;
-      }
-    | {
-        type: 'redacted';
-        data: string;
-      }
-  >;
-};
+import {
+  toHTTPResponse,
+  handleApplicationError,
+} from '@/lib/data/index.server';
 
 export const maxDuration = 300;
 
@@ -93,7 +77,14 @@ export async function POST(request: Request) {
     verifyChatWritePermission(chat, userId);
 
     const agent = await getAgent(chat.agentId, userId);
-    const coreMessages = convertToCoreMessages(messages);
+    const sanitnizedMessages = isReasoningAllowed(modelData)
+      ? messages
+      : messages.map((message) => ({
+          ...message,
+          parts: message.parts?.filter((part) => part.type !== 'reasoning'),
+        }));
+
+    const coreMessages = convertToCoreMessages(sanitnizedMessages);
     const lastMessage = messages.at(-1);
     const userMessage = getMostRecentUserMessage(coreMessages);
 
@@ -161,14 +152,14 @@ export async function POST(request: Request) {
           experimental_transform: smoothStream({ chunking: 'word' }),
           onFinish: async ({ response, finishReason }) => {
             if (finishReason !== 'error') {
-              const updatedMessages = appendResponseMessages({
-                messages,
-                responseMessages: sanitizeResponseMessages({
-                  messages: response.messages,
-                }),
-              }).slice(-1);
-
               try {
+                const updatedMessages = appendResponseMessages({
+                  messages,
+                  responseMessages: sanitizeResponseMessages({
+                    messages: response.messages,
+                  }),
+                }).slice(-1);
+
                 await createMessages(
                   updatedMessages.map(
                     ({ id, createdAt, role, ...message }) => ({
@@ -262,42 +253,10 @@ export async function POST(request: Request) {
     });
   } catch (error) {
     if (error instanceof ApplicationError) {
-      return new Response(error.message, {
-        status: error.statusCode,
-      });
+      return toHTTPResponse(handleApplicationError(error));
     }
 
     console.log(error);
-    return new Response('An error occurred while processing your request', {
-      status: 500,
-    });
-  }
-}
-
-export async function DELETE(request: Request) {
-  const { searchParams } = new URL(request.url);
-  const id = searchParams.get('id');
-
-  if (!id) {
-    return new Response('Not Found', { status: 404 });
-  }
-
-  const session = await getUser();
-
-  if (!session?.user?.id) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
-  try {
-    await removeChatById(id, session.user.id);
-
-    return new Response('Chat deleted', { status: 200 });
-  } catch (error) {
-    if (error instanceof ApplicationError) {
-      return new Response(error.message, {
-        status: error.statusCode,
-      });
-    }
     return new Response('An error occurred while processing your request', {
       status: 500,
     });

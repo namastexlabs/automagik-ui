@@ -89,6 +89,9 @@ export async function createAgent({
     if (isUniqueConstraintError(error) && error.column_name === 'name') {
       throw new ConflictError(
         `A ${visibility} agent with this name already exists`,
+        {
+          name: ['A agent with this name already exists'],
+        },
       );
     }
     throw error;
@@ -159,6 +162,9 @@ export async function updateAgent({
     if (isUniqueConstraintError(error) && error.column_name === 'name') {
       throw new ConflictError(
         `A ${data.visibility} agent with this name already exists`,
+        {
+          name: ['A agent with this name already exists'],
+        },
       );
     }
     throw error;

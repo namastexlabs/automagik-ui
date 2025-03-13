@@ -19,7 +19,7 @@ import { useSidebar } from '@/components/ui/sidebar';
 import { AgentFormDialog } from '@/components/agent-form-dialog';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { setTabCookie } from '@/lib/agents/cookies';
-import type { ClientAgent } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
 import { useChatInput } from '@/contexts/chat';
 
 export function AgentTabs({
@@ -30,7 +30,7 @@ export function AgentTabs({
   agentDialog,
   onSubmit,
 }: {
-  agents: ClientAgent[];
+  agents: AgentDTO[];
   changeAgentDialog: (
     isOpen: boolean,
     agentId?: string,
@@ -47,7 +47,7 @@ export function AgentTabs({
     content: string,
     attachments: Attachment[],
     agentId: string,
-    agents: ClientAgent[],
+    agents: AgentDTO[],
     tabs: string[],
   ) => void;
 }) {
@@ -67,7 +67,7 @@ export function AgentTabs({
   );
 
   const onSaveAgent = useCallback(
-    (agent: ClientAgent) => {
+    (agent: AgentDTO) => {
       if (agentDialog.isSubmitting) {
         onSubmit(input, attachments, agent.id, [agent], [agent.id]);
       }

@@ -20,7 +20,7 @@ import { textBlock } from '@/blocks/text';
 import { imageBlock } from '@/blocks/image';
 import { codeBlock } from '@/blocks/code';
 import { sheetBlock } from '@/blocks/sheet';
-import type { ClientAgent } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
 
 import { MultimodalInput } from './multimodal-input';
 import { Toolbar } from './toolbar';
@@ -53,7 +53,7 @@ function PureBlock({
   agents,
 }: {
   votes: Array<Vote> | undefined;
-  agents: Array<ClientAgent>;
+  agents: Array<AgentDTO>;
 }) {
   const { block, setBlock, metadata, setMetadata } = useBlock();
 
@@ -231,14 +231,14 @@ function PureBlock({
   return (
     <AnimatePresence>
       <motion.div
-        className={`flex flex-row h-dvh w-dvw fixed top-0 left-0 z-50 bg-transparent ${block.isVisible ? '' : 'invisible'}`}
+        className={`motion flex flex-row h-dvh w-dvw fixed top-0 left-0 z-50 bg-transparent ${block.isVisible ? '' : 'invisible'}`}
         initial={{ opacity: 0 }}
         animate={{ opacity: block.isVisible ? 1 : 0 }}
         exit={{ opacity: 0, transition: { delay: 0.4 } }}
       >
         {!isMobile && (
           <motion.div
-            className="fixed bg-background h-dvh"
+            className="motion fixed bg-background h-dvh"
             initial={{
               width:
                 isSidebarOpen && windowWidth ? windowWidth - 256 : windowWidth,
@@ -258,7 +258,7 @@ function PureBlock({
 
         {!isMobile && (
           <motion.div
-            className="relative w-[400px] bg-muted dark:bg-background h-dvh shrink-0"
+            className="motion relative w-[400px] bg-muted dark:bg-background h-dvh shrink-0"
             initial={{ opacity: 0, x: 10, scale: 1 }}
             animate={{
               opacity: block.isVisible ? 1 : 0,
@@ -281,7 +281,7 @@ function PureBlock({
             <AnimatePresence>
               {!isCurrentVersion && (
                 <motion.div
-                  className="left-0 absolute h-dvh w-[400px] top-0 bg-zinc-900/50 z-50"
+                  className="motion left-0 absolute h-dvh w-[400px] top-0 bg-zinc-900/50 z-50"
                   initial={{ opacity: 0 }}
                   animate={{ opacity: block.isVisible ? 1 : 0 }}
                   exit={{ opacity: 0 }}
@@ -292,18 +292,20 @@ function PureBlock({
             <div className="flex flex-col h-full justify-between items-center gap-4">
               <BlockMessages votes={votes} />
 
-              <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
-                <MultimodalInput
-                  agents={agents}
-                  className="bg-background dark:bg-muted"
-                />
-              </form>
+              {block.isVisible && (
+                <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
+                  <MultimodalInput
+                    agents={agents}
+                    className="bg-background dark:bg-muted"
+                  />
+                </form>
+              )}
             </div>
           </motion.div>
         )}
 
         <motion.div
-          className="fixed dark:bg-muted bg-background h-dvh flex flex-col md:border-l dark:border-zinc-700 border-zinc-200"
+          className="motion fixed dark:bg-muted bg-background h-dvh flex flex-col md:border-l dark:border-zinc-700 border-zinc-200"
           variants={
             isMobile
               ? {
@@ -412,7 +414,7 @@ function PureBlock({
 
           <div
             className={cn(
-              'dark:bg-muted bg-background h-full overflow-y-scroll !max-w-full items-center',
+              'dark:bg-muted bg-background h-full overflow-y-auto !max-w-full items-center',
               {
                 'py-2 px-2': block.kind === 'code',
                 'py-8 md:p-20 px-4': block.kind === 'text',

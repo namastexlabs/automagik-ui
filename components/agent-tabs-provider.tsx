@@ -11,7 +11,7 @@ import {
   type AgentTabsContextValue,
 } from '@/contexts/agent-tabs';
 import { resetTabCookie, setTabCookie } from '@/lib/agents/cookies';
-import type { ClientAgent } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
 import { fetcher } from '@/lib/utils';
 
 export function AgentTabsProvider({
@@ -21,7 +21,7 @@ export function AgentTabsProvider({
   children: React.ReactNode;
   initialTab?: string;
 }) {
-  const { data: agents = [] } = useSWR<ClientAgent[]>('/api/agents', fetcher, {
+  const { data: agents = [] } = useSWR<AgentDTO[]>('/api/agents', fetcher, {
     revalidateOnMount: false,
   });
 

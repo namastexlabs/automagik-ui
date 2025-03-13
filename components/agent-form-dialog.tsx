@@ -4,6 +4,8 @@ import { useActionState, useCallback, useEffect, useId, useState } from 'react';
 import Form from 'next/form';
 import { toast } from 'sonner';
 import { useSWRConfig } from 'swr';
+import { Fullscreen } from 'lucide-react';
+import { TooltipContent } from '@radix-ui/react-tooltip';
 
 import {
   Dialog,
@@ -15,10 +17,10 @@ import {
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { SubmitButton } from '@/components/submit-button';
-import { type AgentSchema, saveAgent } from '@/app/(chat)/actions';
+import { saveAgentAction } from '@/app/(chat)/actions';
 import { ToolsCombobox } from '@/components/tools-combobox';
-import type { ClientAgent } from '@/lib/data';
-import type { ActionStateData } from '@/app/types';
+import { DataStatus } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
 
 import { PromptTemplate } from './prompt-template';
 import { VisibilitySelector } from './visibility-selector';
@@ -32,9 +34,7 @@ import {
   AlertDialogTitle,
 } from './ui/alert-dialog';
 import { Button } from './ui/button';
-import { Fullscreen } from 'lucide-react';
 import { Tooltip, TooltipTrigger } from './ui/tooltip';
-import { TooltipContent } from '@radix-ui/react-tooltip';
 
 export function AgentFormDialog({
   onSuccess,
@@ -42,8 +42,8 @@ export function AgentFormDialog({
   isOpen,
   setOpen,
 }: {
-  onSuccess: (agent: ClientAgent) => void;
-  agent?: ClientAgent | null;
+  onSuccess: (agent: AgentDTO) => void;
+  agent?: AgentDTO | null;
   isOpen: boolean;
   setOpen: (isOpen: boolean) => void;
 }) {
@@ -51,7 +51,7 @@ export function AgentFormDialog({
   const { mutate } = useSWRConfig();
   const [isCloseAttempt, setCloseAttempt] = useState(false);
   const [openPromptTemplate, setOpenPromptTemplate] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [errors, setErrors] = useState<{ [key: string]: string[] }>({});
   const [name, setName] = useState(agent?.name || '');
   const [template, setTemplate] = useState(agent?.systemPrompt || '');
   const [visibility, setVisibility] = useState(agent?.visibility ?? 'private');
@@ -60,32 +60,16 @@ export function AgentFormDialog({
   );
 
   const [, formAction] = useActionState<
-    ActionStateData<ClientAgent, AgentSchema>,
+    Awaited<ReturnType<typeof saveAgentAction>>,
     FormData
   >(
     async (state, formData) => {
-      const newState = await saveAgent(state, formData);
       setErrors({});
+      const newState = await saveAgentAction(state, formData);
 
-      if (newState.status === 'failed') {
-        toast.error('Unexpected error, please try again!');
-      } else if (newState.status === 'invalid_data') {
-        setErrors(
-          Object.entries(newState.errors || {}).reduce(
-            (acc, [key, value]) => {
-              if (Object.hasOwn(value, '_errors')) {
-                acc[key] = (value as { _errors: string[] })._errors[0];
-              } else {
-                acc[key] = (value as string[])[0];
-              }
-              return acc;
-            },
-            {} as { [key: string]: string },
-          ),
-        );
-      } else if (newState.status === 'success' && newState.data) {
+      if (newState.status === DataStatus.Success && newState.data) {
         toast.success('Agent created successfully');
-        mutate<ClientAgent[], ClientAgent>('/api/agents', newState.data, {
+        mutate<AgentDTO[], AgentDTO>('/api/agents', newState.data, {
           populateCache: (data, agents = []) => {
             const hasAgent = agents.some((agent) => agent.id === data.id);
             if (hasAgent) {
@@ -96,7 +80,6 @@ export function AgentFormDialog({
                 return agent;
               });
             }
-
             return [...agents, data];
           },
           revalidate: false,
@@ -104,11 +87,22 @@ export function AgentFormDialog({
 
         setOpen(false);
         onSuccess(newState.data);
+
+        return newState;
+      }
+
+      if (newState.errors) {
+        const { _errors, ...errors } = newState.errors;
+        setErrors(errors);
+
+        if (_errors) {
+          toast.error(_errors[0]);
+        }
       }
 
       return newState;
     },
-    { status: 'idle', data: null },
+    { status: DataStatus.Success, data: null },
   );
 
   useEffect(() => {
@@ -191,7 +185,7 @@ export function AgentFormDialog({
                 />
                 {!!errors.name && (
                   <span className="text-sm text-destructive">
-                    {errors.name}
+                    {errors.name.join(', ')}
                   </span>
                 )}
               </div>
@@ -229,7 +223,7 @@ export function AgentFormDialog({
                 />
                 {!!errors.systemPrompt && (
                   <span className="text-sm text-destructive">
-                    {errors.systemPrompt}
+                    {errors.systemPrompt.join(', ')}
                   </span>
                 )}
               </div>

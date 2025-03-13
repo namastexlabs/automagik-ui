@@ -1,4 +1,5 @@
 import { getUser } from '@/lib/auth';
+import { getErrorStatusCode } from '@/lib/data/index.server';
 import { ApplicationError } from '@/lib/errors';
 import { getDocumentSuggestions } from '@/lib/repositories/suggestion';
 
@@ -33,7 +34,7 @@ export async function GET(request: Request) {
   } catch (error) {
     if (error instanceof ApplicationError) {
       return new Response(error.message, {
-        status: error.statusCode,
+        status: getErrorStatusCode(error.status),
       });
     }
 

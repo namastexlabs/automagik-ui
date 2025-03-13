@@ -2,7 +2,7 @@ import 'server-only';
 
 import type { Vote } from '@/lib/db/schema';
 import { voteMessage, getVotesByChatId } from '@/lib/db/queries/vote';
-import { getChat } from './chat';
+import { getChat } from '@/lib/repositories/chat';
 
 export async function updateMessageVote({
   chatId,
@@ -20,7 +20,10 @@ export async function updateMessageVote({
   await voteMessage({ chatId: chat.id, messageId, type });
 }
 
-export async function getChatVotes(chatId: string, userId: string): Promise<Vote[]> {
+export async function getChatVotes(
+  chatId: string,
+  userId: string,
+): Promise<Vote[]> {
   const chat = await getChat(chatId, userId);
 
   return await getVotesByChatId({ id: chat.id });

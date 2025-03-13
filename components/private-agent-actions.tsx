@@ -5,14 +5,18 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import type { ClientAgent } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
 
 import { TrashIcon } from './icons';
 
-export function PrivateAgentActions({ openAgentDialog, setAgentDelete, agent }: {
+export function PrivateAgentActions({
+  openAgentDialog,
+  setAgentDelete,
+  agent,
+}: {
   openAgentDialog: (id: string) => void;
   setAgentDelete: (id: string) => void;
-  agent: ClientAgent;
+  agent: AgentDTO;
 }) {
   return (
     <div className="flex item-center space-x-2">

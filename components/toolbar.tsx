@@ -31,14 +31,14 @@ import {
 } from '@/components/ui/tooltip';
 import { useChat, useChatHandlers, useChatMessages } from '@/contexts/chat';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
-import type { ClientAgent } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
 
 import { ArrowUpIcon, StopIcon, SummarizeIcon } from './icons';
 import { blockDefinitions, type BlockKind } from './block';
 import type { BlockToolbarItem } from './create-block';
 
 type ToolProps = {
-  description: string;
+  description: string;  
   icon: ReactNode;
   selectedTool: string | null;
   setSelectedTool: Dispatch<SetStateAction<string | null>>;
@@ -94,7 +94,7 @@ const Tool = ({
     <Tooltip open={isHovered && !isAnimating}>
       <TooltipTrigger asChild>
         <motion.div
-          className={cx('p-3 rounded-full', {
+          className={cx('motion p-3 rounded-full', {
             'bg-primary !text-primary-foreground': selectedTool === description,
           })}
           onHoverStart={() => {
@@ -180,7 +180,7 @@ const ReadingLevelSelector = ({
       {randomArr.map((id) => (
         <motion.div
           key={id}
-          className="size-[40px] flex flex-row items-center justify-center"
+          className="motion size-[40px] flex flex-row items-center justify-center"
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
@@ -195,7 +195,7 @@ const ReadingLevelSelector = ({
           <TooltipTrigger asChild>
             <motion.div
               className={cx(
-                'absolute bg-background p-3 border rounded-full flex flex-row items-center',
+                'motion absolute bg-background p-3 border rounded-full flex flex-row items-center',
                 {
                   'bg-primary text-primary-foreground': currentLevel !== 2,
                   'bg-background text-foreground': currentLevel === 2,
@@ -265,7 +265,7 @@ export const Tools = ({
 
   return (
     <motion.div
-      className="flex flex-col gap-1.5"
+      className="motion flex flex-col gap-1.5"
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.95 }}
@@ -310,7 +310,7 @@ const PureToolbar = ({
   isToolbarVisible: boolean;
   setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
   blockKind: BlockKind;
-  agents: ClientAgent[];
+  agents: AgentDTO[];
 }) => {
   const { isLoading } = useChat();
   const { messages } = useChatMessages();
@@ -324,8 +324,7 @@ const PureToolbar = ({
   const { currentTab } = useCurrentAgentTab();
 
   const onSubmit = (content: string, attachments?: Attachment[]) => {
-    // biome-ignore lint/style/noNonNullAssertion: <explanation>
-    handleSubmit(content, attachments || [], currentTab!, agents, tabs);
+    handleSubmit(content, attachments || [], currentTab as string, agents, tabs);
   }
 
   useOnClickOutside(toolbarRef as RefObject<HTMLDivElement>, () => {
@@ -381,7 +380,7 @@ const PureToolbar = ({
   return (
     <TooltipProvider delayDuration={0}>
       <motion.div
-        className="cursor-pointer absolute right-6 bottom-6 p-1.5 border rounded-full shadow-lg bg-background flex flex-col justify-end"
+        className="motion cursor-pointer absolute right-6 bottom-6 p-1.5 border rounded-full shadow-lg bg-background flex flex-col justify-end"
         initial={{ opacity: 0, y: -20, scale: 1 }}
         animate={
           isToolbarVisible
@@ -429,7 +428,7 @@ const PureToolbar = ({
             initial={{ scale: 1 }}
             animate={{ scale: 1.4 }}
             exit={{ scale: 1 }}
-            className="p-3"
+            className="motion p-3"
             onClick={() => {
               stop();
               setMessages(messages);

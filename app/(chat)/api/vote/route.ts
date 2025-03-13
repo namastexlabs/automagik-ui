@@ -1,6 +1,5 @@
-import { getUser } from '@/lib/auth';
-import { ApplicationError } from '@/lib/errors';
-import { getChatVotes, updateMessageVote } from '@/lib/repositories/vote';
+import { toHTTPResponse } from '@/lib/data/index.server';
+import { getMessageVotes, updateMessageVote } from '@/lib/data/message';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -10,14 +9,7 @@ export async function GET(request: Request) {
     return new Response('chatId is required', { status: 400 });
   }
 
-  const session = await getUser();
-
-  if (!session?.user?.id) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
-  const votes = await getChatVotes(chatId, session.user.id);
-  return Response.json(votes, { status: 200 });
+  return toHTTPResponse(await getMessageVotes(chatId));
 }
 
 export async function PATCH(request: Request) {
@@ -32,31 +24,5 @@ export async function PATCH(request: Request) {
     return new Response('messageId and type are required', { status: 400 });
   }
 
-  const session = await getUser();
-
-  if (!session?.user?.id) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
-  try {
-    await updateMessageVote({
-      chatId,
-      messageId,
-      type: type,
-      userId: session.user.id,
-    });
-
-    return new Response('Message voted', { status: 200 });
-  } catch (error) {
-    if (error instanceof ApplicationError) {
-      return new Response(error.message, {
-        status: error.statusCode,
-      });
-    }
-
-    console.error('Failed to vote on message:', error);
-    return new Response('An unexpected error occurred', {
-      status: 500,
-    });
-  }
+  return toHTTPResponse(await updateMessageVote(chatId, messageId, type));
 }
