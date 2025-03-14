@@ -5,13 +5,15 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from 'react';
 import type { Attachment } from 'ai';
-import { useSWRConfig } from 'swr';
-import { useRouter } from 'next/navigation';
+import useSWR, { useSWRConfig } from 'swr';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { useLocalStorage } from 'usehooks-ts';
 import { useProgress } from '@bprogress/next';
 
 import {
@@ -24,6 +26,7 @@ import type { AgentDTO } from '@/lib/data/agent';
 import type { Chat } from '@/lib/db/schema';
 import { createChatAction } from '@/app/(chat)/actions';
 import { generateUUID } from '@/lib/utils';
+import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { getModelData, isImagesAllowed } from '@/lib/ai/models';
 
 import { DataStreamHandler } from './data-stream-handler';
@@ -50,17 +53,34 @@ export function ChatProvider({
     isSubmitting: boolean;
   }) => void;
 }>) {
-  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  const searchParams = useSearchParams();
+  const [attachments, setAttachments] = useLocalStorage<Array<Attachment>>(
+    'input-attachments',
+    [],
+    { initializeWithValue: false },
+  );
   const [selectedProvider, setProvider] = useState(provider);
   const [selectedModelId, setModelId] = useState(modelId);
   const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const isMounted = useRef(false);
   const [isExtendedThinking, setIsExtendedThinking] = useState(false);
   const { set: setProgress, stop: stopProgress } = useProgress();
+
+  const { currentTab } = useCurrentAgentTab();
+  const { tabs } = useAgentTabs();
+  const { data: agents = [] } = useSWR<AgentDTO[]>('/api/agents', null);
+
+  const getLocalStorageInput = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('input') || '';
+    }
+    return '';
+  }, []);
 
   const {
     messages,
     setMessages,
-    input,
+    input: _input,
     setInput,
     append,
     status,
@@ -71,21 +91,26 @@ export function ChatProvider({
   } = useChat({
     id: chat?.id,
     initialMessages,
+    initialInput: getLocalStorageInput(),
     sendExtraMessageFields: true,
     experimental_throttle: 50,
     body: {
       isExtendedThinking,
     },
   });
+
   const { mutate } = useSWRConfig();
   const router = useRouter();
 
-  const getLocalStorageInput = useCallback(() => {
-    return localStorage.getItem('input') || '';
-  }, []);
+  const input = isMounted.current ? _input : '';
+  const shouldSubmit = !!searchParams.get('submit');
 
   const setLocalStorageInput = useCallback((value: string) => {
     localStorage.setItem('input', value);
+  }, []);
+
+  useEffect(() => {
+    isMounted.current = true;
   }, []);
 
   useEffect(() => {
@@ -98,7 +123,7 @@ export function ChatProvider({
 
   useEffect(() => {
     setAttachments([]);
-  }, [chat]);
+  }, [chat, setAttachments]);
 
   useEffect(() => {
     if (isCreatingChat) {
@@ -113,7 +138,7 @@ export function ChatProvider({
     if (!isImageAllowed) {
       setAttachments([]);
     }
-  }, [isImageAllowed]);
+  }, [isImageAllowed, setAttachments]);
 
   useEffect(() => {
     setIsExtendedThinking(false);
@@ -193,8 +218,6 @@ export function ChatProvider({
         return;
       }
 
-      setLocalStorageInput('');
-
       const message: Message = {
         id: generateUUID(),
         createdAt: new Date(),
@@ -206,6 +229,9 @@ export function ChatProvider({
       const data = await getOrCreateChat([message], currentAgent);
       if (!data) {
         stopProgress();
+        return;
+      } else if (!chat) {
+        router.push(`/chat/${data.id}?submit=true`);
         return;
       }
 
@@ -225,12 +251,11 @@ export function ChatProvider({
         experimental_attachments: newAttachments,
       });
 
-      if (!chat) {
-        router.push(`/chat/${data.id}`);
+      if (shouldSubmit) {
+        router.replace(`/chat/${data.id}`);
       }
     },
     [
-      setLocalStorageInput,
       getOrCreateChat,
       setInput,
       setAttachments,
@@ -240,6 +265,7 @@ export function ChatProvider({
       selectedModelId,
       selectedProvider,
       chat,
+      shouldSubmit,
       setAgentDialogState,
       setOpenAgentListDialog,
       setMessages,
@@ -247,6 +273,12 @@ export function ChatProvider({
     ],
   );
 
+  useEffect(() => {
+    if (shouldSubmit && currentTab && tabs.length > 0) {
+      onSubmit(input, attachments, currentTab, agents, tabs);
+    }
+  }, [shouldSubmit, onSubmit, input, attachments, currentTab, agents, tabs]);
+ 
   const isLoading = status === 'submitted' || status === 'streaming';
   const chatContextValue = useMemo(() => {
     return {
