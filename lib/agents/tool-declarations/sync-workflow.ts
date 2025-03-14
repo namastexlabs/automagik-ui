@@ -17,7 +17,10 @@ export const syncWorkflowTool = createToolDefinition({
     inputComponentId: z.string(),
     outputComponentId: z.string(),
   }),
-  execute: async ({ remoteWorkflowId, inputComponentId, outputComponentId }) => {
+  execute: async (
+    { remoteWorkflowId, inputComponentId, outputComponentId },
+    context,
+  ) => {
     try {
       const data = await syncWorkflow(
         remoteWorkflowId,
@@ -25,6 +28,7 @@ export const syncWorkflowTool = createToolDefinition({
           input_component: inputComponentId,
           output_component: outputComponentId,
         },
+        context.abortSignal,
       );
 
       if (data) {

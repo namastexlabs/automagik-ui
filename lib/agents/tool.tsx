@@ -90,9 +90,13 @@ export function createChatFlowTool(
     parameters: z.object({
       inputValue: z.string(),
     }),
-    execute: async ({ inputValue }): Promise<ExecutionResult> => {
+    execute: async ({ inputValue }, context): Promise<ExecutionResult> => {
       try {
-        const result = await runWorkflow(flowId, inputValue);
+        const result = await runWorkflow(
+          flowId,
+          inputValue,
+          context.abortSignal,
+        );
 
         return {
           result: result,

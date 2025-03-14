@@ -29,7 +29,7 @@ export const createDocumentTool = createToolDefinition({
     kind: z.enum(['text', 'code', 'image', 'sheet']),
   }),
   execute: async ({ title, kind }, context): Promise<DocumentExecuteReturn> => {
-    const { dataStream, userId, chat, agent } = context;
+    const { dataStream, userId, chat, agent, abortSignal } = context;
     const id = generateUUID();
     let draftText = '';
 
@@ -56,6 +56,7 @@ export const createDocumentTool = createToolDefinition({
     if (kind === 'text') {
       const { fullStream } = streamText({
         model: getModel(...accessModel('openai', 'gpt-4o-mini')),
+        abortSignal,
         system: textPrompt,
         experimental_transform: smoothStream({ chunking: 'line' }),
         prompt: title,
@@ -91,6 +92,7 @@ export const createDocumentTool = createToolDefinition({
         model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: codePrompt,
         prompt: title,
+        abortSignal,
         schema: z.object({
           code: z.string(),
         }),
@@ -127,7 +129,11 @@ export const createDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     } else if (kind === 'image') {
       const { image } = await experimental_generateImage({
-        model: getImageModel('togetherai', 'stabilityai/stable-diffusion-xl-base-1.0'),
+        model: getImageModel(
+          'togetherai',
+          'stabilityai/stable-diffusion-xl-base-1.0',
+        ),
+        abortSignal,
         prompt: title,
         n: 1,
       });
@@ -136,7 +142,7 @@ export const createDocumentTool = createToolDefinition({
         title,
         Buffer.from(image.uint8Array),
         chat.id,
-        'document'
+        'document',
       );
       draftText = await getMessageFile(name, chat.id);
       dataStream.writeData({
@@ -150,6 +156,7 @@ export const createDocumentTool = createToolDefinition({
         model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: sheetPrompt,
         prompt: title,
+        abortSignal,
         schema: z.object({
           csv: z.string().describe('CSV data'),
         }),
@@ -191,13 +198,15 @@ export const createDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     }
 
-    await createDocument({
-      id,
-      title,
-      kind,
-      content: draftText,
-      userId,
-    });
+    if (!abortSignal.aborted) {
+      await createDocument({
+        id,
+        title,
+        kind,
+        content: draftText,
+        userId,
+      });
+    }
 
     return {
       id,

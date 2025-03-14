@@ -38,7 +38,7 @@ export const requestSuggestionsTool = createToolDefinition({
       .describe('The ID of the document to request edits'),
   }),
   execute: async ({ documentId }, context): Promise<DocumentExecuteReturn> => {
-    const { dataStream, userId } = context;
+    const { dataStream, userId, abortSignal } = context;
     const document = await getDocument(documentId, userId);
 
     if (!document) {
@@ -58,6 +58,7 @@ export const requestSuggestionsTool = createToolDefinition({
       system: suggestionPrompt,
       prompt: content,
       output: 'array',
+      abortSignal,
       schema: z.object({
         originalSentence: z.string().describe('The original sentence'),
         suggestedSentence: z.string().describe('The suggested sentence'),
@@ -83,14 +84,16 @@ export const requestSuggestionsTool = createToolDefinition({
       suggestions.push(suggestion);
     }
 
-    await createSuggestions(
-      suggestions.map((suggestion) => ({
-        ...suggestion,
-        userId,
-        createdAt: new Date(),
-        documentCreatedAt: document.createdAt,
-      })),
-    );
+    if (!abortSignal.aborted) {
+      await createSuggestions(
+        suggestions.map((suggestion) => ({
+          ...suggestion,
+          userId,
+          createdAt: new Date(),
+          documentCreatedAt: document.createdAt,
+        })),
+      );
+    }
 
     return {
       id: documentId,

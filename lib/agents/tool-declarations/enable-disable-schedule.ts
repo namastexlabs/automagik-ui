@@ -31,10 +31,10 @@ export const enableDisableScheduleTool = createToolDefinition({
       .superRefine(namedRefinements.validateUUID)
       .describe('The ID of the schedule to enable/disable'),
   }),
-  execute: async ({ scheduleId, status }) => {
+  execute: async ({ scheduleId, status }, context) => {
     try {
       const run = status === 'enable' ? enableSchedule : disableSchedule;
-      const response = await run(scheduleId);
+      const response = await run(scheduleId, context.abortSignal);
 
       return { data: response, error: null };
     } catch (error) {

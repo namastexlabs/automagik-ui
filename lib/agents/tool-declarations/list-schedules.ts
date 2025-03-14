@@ -16,9 +16,9 @@ export const listSchedulesTool = createToolDefinition({
   parameters: z.object({
     page: z.number().default(0),
   }),
-  execute: async ({ page }) => {
+  execute: async ({ page }, context) => {
     try {
-      const schedules = await getSchedules();
+      const schedules = await getSchedules(context.abortSignal);
       return {
         page,
         data: {
@@ -29,7 +29,7 @@ export const listSchedulesTool = createToolDefinition({
       };
     } catch (error) {
       console.error(error);
-      return { data: null, error: 'Error fetching remote workflows' };
+      return { data: null, error: 'Error fetching schedules' };
     }
   },
 });

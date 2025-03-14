@@ -7,6 +7,7 @@ import {
   appendResponseMessages,
   type Message,
 } from 'ai';
+import type { NextRequest } from 'next/server';
 
 import { getUser } from '@/lib/auth';
 import {
@@ -39,7 +40,7 @@ import {
 
 export const maxDuration = 300;
 
-export async function POST(request: Request) {
+export async function POST(request: NextRequest) {
   const {
     id,
     messages,
@@ -126,6 +127,7 @@ export async function POST(request: Request) {
               dataStream,
               agent,
               chat,
+              abortSignal: request.signal,
             })
           : undefined;
 
@@ -137,6 +139,7 @@ export async function POST(request: Request) {
         const result = streamText({
           model,
           system,
+          abortSignal: request.signal,
           experimental_generateMessageId: generateUUID,
           messages: [...coreMessages.slice(0, -1), userMessageWithAttachments],
           maxSteps: 5,
@@ -182,6 +185,7 @@ export async function POST(request: Request) {
               model,
               system,
               tools,
+              abortSignal: request.signal,
               experimental_telemetry: {
                 isEnabled: true,
                 functionId: 'tool-repair',
@@ -246,6 +250,10 @@ export async function POST(request: Request) {
         });
       },
       onError: (error) => {
+        if (request.signal.aborted) {
+          throw error;
+        }
+
         console.log(error);
 
         return 'Oops, an error occured!';
@@ -254,6 +262,10 @@ export async function POST(request: Request) {
   } catch (error) {
     if (error instanceof ApplicationError) {
       return toHTTPResponse(handleApplicationError(error));
+    }
+
+    if (request.signal.aborted) {
+      throw error;
     }
 
     console.log(error);

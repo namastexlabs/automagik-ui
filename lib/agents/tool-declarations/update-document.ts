@@ -48,7 +48,7 @@ export const updateDocumentTool = createToolDefinition({
     { id, description },
     context,
   ): Promise<DocumentExecuteReturn> => {
-    const { dataStream, userId, agent, chat } = context;
+    const { dataStream, userId, agent, chat, abortSignal } = context;
     const document = await getDocument(id, userId);
 
     if (!document) {
@@ -71,6 +71,7 @@ export const updateDocumentTool = createToolDefinition({
         system: updateDocumentPrompt(currentContent, 'text'),
         experimental_transform: smoothStream({ chunking: 'line' }),
         prompt: description,
+        abortSignal,
         providerOptions: {
           openai: {
             prediction: {
@@ -111,6 +112,7 @@ export const updateDocumentTool = createToolDefinition({
         model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: updateDocumentPrompt(currentContent, 'code'),
         prompt: description,
+        abortSignal,
         schema: z.object({
           code: z.string(),
         }),
@@ -158,6 +160,7 @@ export const updateDocumentTool = createToolDefinition({
         model: getImageModel('openai', 'dall-e-3'),
         prompt: description,
         n: 1,
+        abortSignal,
       });
 
       const name = await saveMessageFile(
@@ -178,6 +181,7 @@ export const updateDocumentTool = createToolDefinition({
         model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: updateDocumentPrompt(currentContent, 'sheet'),
         prompt: description,
+        abortSignal,
         schema: z.object({
           csv: z.string(),
         }),
@@ -214,13 +218,15 @@ export const updateDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     }
 
-    await createDocument({
-      id,
-      userId,
-      title: document.title,
-      content: draftText,
-      kind: document.kind,
-    });
+    if (!abortSignal.aborted) {
+      await createDocument({
+        id,
+        userId,
+        title: document.title,
+        content: draftText,
+        kind: document.kind,
+      });
+    }
 
     return {
       id,

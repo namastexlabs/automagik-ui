@@ -30,14 +30,16 @@ export const deleteRemoteSourceTool = createToolDefinition({
       .superRefine(namedRefinements.validateUUID)
       .describe('The ID of the remote source to delete'),
   }),
-  execute: async ({ remoteSourceId }) => {
+  execute: async ({ remoteSourceId }, context) => {
     try {
-      await deleteRemoteSource(remoteSourceId);
-      return { data: { message: 'Remote source deleted successfully' }, error: null };
+      await deleteRemoteSource(remoteSourceId, context.abortSignal);
+      return {
+        data: { message: 'Remote source deleted successfully' },
+        error: null,
+      };
     } catch (error) {
       console.error(error);
       return { data: null, error: 'Error deleting remote source' };
     }
   },
 });
-

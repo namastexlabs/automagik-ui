@@ -8,6 +8,6 @@ export async function GET(request: Request) {
     return new Response('Unauthorized', { status: 401 });
   }
 
-  const workflows = await getWorkflows();
+  const workflows = await getWorkflows(request.signal);
   return Response.json(workflows, { status: 200 });
 }

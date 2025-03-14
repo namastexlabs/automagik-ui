@@ -12,9 +12,9 @@ export const listTasksTool = createToolDefinition({
   visibility: 'public',
   namedRefinements: undefined,
   parameters: undefined,
-  execute: async () => {
+  execute: async (context) => {
     try {
-      const data = await getTasks();
+      const data = await getTasks(context.abortSignal);
       return { data, error: null };
     } catch (error) {
       console.error(error);

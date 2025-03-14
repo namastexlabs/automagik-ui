@@ -32,9 +32,12 @@ export const runWorkflowTool = createToolDefinition({
       .superRefine(namedRefinements.validateUUID)
       .describe('The UUID of the workflow to run'),
   }),
-  execute: async ({ inputValue, flowId }): Promise<ExecutionResult> => {
+  execute: async (
+    { inputValue, flowId },
+    context,
+  ): Promise<ExecutionResult> => {
     try {
-      const result = await runWorkflow(flowId, inputValue);
+      const result = await runWorkflow(flowId, inputValue, context.abortSignal);
 
       return {
         result: result,

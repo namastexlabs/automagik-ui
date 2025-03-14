@@ -16,9 +16,9 @@ export const listRemoteWorkflowsTool = createToolDefinition({
   parameters: z.object({
     page: z.number().default(0),
   }),
-  execute: async ({ page }) => {
+  execute: async ({ page }, context) => {
     try {
-      const workflows = await getRemoteWorkflows();
+      const workflows = await getRemoteWorkflows(context.abortSignal);
       return {
         page,
         data: {

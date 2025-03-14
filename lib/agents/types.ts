@@ -13,13 +13,16 @@ export type ToolRequestContext = {
   userId: string;
   agent: AgentData;
   chat: Chat;
+  abortSignal: AbortSignal;
 };
 
 export type ToolDefinition<
   NAME extends string,
   RESULT,
   PARAMETERS,
-  REFINEMENTS extends Record<string, (value: any, ctx: z.RefinementCtx) => any> | undefined = undefined,
+  REFINEMENTS extends
+    | Record<string, (value: any, ctx: z.RefinementCtx) => any>
+    | undefined = undefined,
 > = {
   name: NAME;
   verboseName: string;
@@ -29,14 +32,22 @@ export type ToolDefinition<
   dynamicDescription?: (context: ToolRequestContext) => string;
   parameters: PARAMETERS;
   execute: PARAMETERS extends z.ZodTypeAny
-    ? (params: InferParameters<PARAMETERS>, context: ToolRequestContext) => Promise<RESULT>
+    ? (
+        params: InferParameters<PARAMETERS>,
+        context: ToolRequestContext,
+      ) => Promise<RESULT>
     : (context: ToolRequestContext) => Promise<RESULT>;
 };
 
 export type ToolInvocation<
   NAME extends string,
   TOOL,
-> = TOOL extends ToolDefinition<NAME, infer RESULT, infer PARAMETERS, infer NAMED_REFINEMENTS>
+> = TOOL extends ToolDefinition<
+  NAME,
+  infer RESULT,
+  infer PARAMETERS,
+  infer NAMED_REFINEMENTS
+>
   ?
       | ({
           state: 'partial-call' | 'call';
@@ -76,7 +87,7 @@ export type DocumentExecuteReturn =
     }
   | {
       error: string;
-    }
+    };
 
 export type WeatherAtLocation = {
   latitude: number;

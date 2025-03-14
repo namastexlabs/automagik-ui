@@ -12,9 +12,9 @@ export const listWorkflowsTool = createToolDefinition({
   visibility: 'public',
   namedRefinements: undefined,
   parameters: undefined,
-  execute: async () => {
+  execute: async (context) => {
     try {
-      const workflows = await getWorkflows();
+      const workflows = await getWorkflows(context.abortSignal);
       return {
         data: workflows.map((workflow) => ({
           id: workflow.id,
