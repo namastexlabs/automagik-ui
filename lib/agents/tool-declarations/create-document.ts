@@ -1,6 +1,7 @@
 import 'server-only';
 import { z } from 'zod';
 import {
+  convertToCoreMessages,
   experimental_generateImage,
   smoothStream,
   streamObject,
@@ -21,15 +22,20 @@ import { InternalToolName } from './client';
 export const createDocumentTool = createToolDefinition({
   name: InternalToolName.createDocument,
   verboseName: 'Create Document',
-  description: 'Create a document for a writing activity.',
+  description: 'Create a documents of different types.',
   visibility: 'public',
   namedRefinements: undefined,
   parameters: z.object({
     title: z.string(),
+    description: z.string(),
     kind: z.enum(['text', 'code', 'image', 'sheet']),
   }),
-  execute: async ({ title, kind }, context): Promise<DocumentExecuteReturn> => {
-    const { dataStream, userId, chat, agent, abortSignal } = context;
+  execute: async (
+    { title, description, kind },
+    context,
+  ): Promise<DocumentExecuteReturn> => {
+    const { dataStream, userId, chat, agent, userMessage, abortSignal } =
+      context;
     const id = generateUUID();
     let draftText = '';
 
@@ -53,13 +59,26 @@ export const createDocumentTool = createToolDefinition({
       content: '',
     });
 
+    const newTextPart = {
+      type: 'text',
+      text: `# ${title}\n\n${description}`,
+    } as const;
+
+    const messages = convertToCoreMessages([
+      {
+        ...userMessage,
+        content: `${userMessage.content}\n\n${newTextPart.text}`,
+        parts: [...(userMessage.parts ?? []), newTextPart],
+      },
+    ]);
+
     if (kind === 'text') {
       const { fullStream } = streamText({
         model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         abortSignal,
         system: textPrompt,
-        experimental_transform: smoothStream({ chunking: 'line' }),
-        prompt: title,
+        messages,
+        experimental_transform: smoothStream({ chunking: 'word' }),
         experimental_telemetry: {
           isEnabled: true,
           functionId: 'create-document-text',
@@ -91,7 +110,7 @@ export const createDocumentTool = createToolDefinition({
       const { fullStream } = streamObject({
         model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: codePrompt,
-        prompt: title,
+        messages,
         abortSignal,
         schema: z.object({
           code: z.string(),
@@ -134,7 +153,7 @@ export const createDocumentTool = createToolDefinition({
           'stabilityai/stable-diffusion-xl-base-1.0',
         ),
         abortSignal,
-        prompt: title,
+        prompt: `${messages.map((m) => m.content).join('\n\n')}`,
         n: 1,
       });
 
@@ -155,7 +174,7 @@ export const createDocumentTool = createToolDefinition({
       const { fullStream } = streamObject({
         model: getModel(...accessModel('openai', 'gpt-4o-mini')),
         system: sheetPrompt,
-        prompt: title,
+        messages,
         abortSignal,
         schema: z.object({
           csv: z.string().describe('CSV data'),

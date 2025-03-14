@@ -1,11 +1,16 @@
 import type { BlockKind } from '@/components/block';
 
 export const textPrompt = `
-You are a writing assistant. Write about the given topic. Markdown is supported. Use headings wherever appropriate.
+You are a smart agentic tool for writing assistant.
+Write based on the given user and assistant messages. Markdown is supported. Use headings wherever appropriate.
 `;
 
 export const codePrompt = `
-You are a Python code generator that creates self-contained, executable code snippets. When writing code:
+You are a smart agentic tool for Python code generator.
+
+Create self-contained, executable code snippets based on the given user and assistant messages.
+
+When writing code:
 
 1. Each snippet should be complete and runnable on its own
 2. Prefer using print() statements to display outputs
@@ -33,35 +38,34 @@ print(f"Factorial of 5 is: {factorial(5)}")
 `;
 
 export const sheetPrompt = `
-You are a spreadsheet creation assistant. Create a spreadsheet in csv format based on the given prompt. The spreadsheet should contain meaningful column headers and data.
+You are a smart agentic tool for spreadsheet creation assistant.
+
+Create a spreadsheet in csv format based on the given user and assistant messages.
+The spreadsheet should contain meaningful column headers and data.
 `;
 
-export const updateDocumentPrompt = (
-  currentContent: string | null,
-  type: BlockKind,
-) =>
+export const updateDocumentPrompt = (type: BlockKind) =>
   type === 'text'
     ? `\
-Improve the following contents of the document based on the given prompt.
+You are a smart agentic tool for writing assistant.
+Change the following contents of the document based on the given prompt.
 
-${currentContent}
 `
     : type === 'code'
       ? `\
-Improve the following code snippet based on the given prompt.
-
-${currentContent}
+You are a smart agentic tool for Python code generator.
+Change the following code snippet based on the given prompt.
 `
       : type === 'sheet'
         ? `\
-Improve the following spreadsheet based on the given prompt.
-
-${currentContent}
+You are a smart agentic tool for spreadsheet creation assistant.
+Change the following spreadsheet based on the given prompt.
 `
         : '';
 
 export const suggestionPrompt = `\
-You are a help writing assistant.
+You are a smart agentic tool for writing assistant.
+
 Given a piece of writing, please offer suggestions to improve the piece of writing and describe the change.
 It is very important for the edits to contain full sentences instead of just words. Max 5 suggestions.
 `;

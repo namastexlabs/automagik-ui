@@ -95,7 +95,7 @@ export function ChatProvider({
     initialMessages,
     initialInput: getLocalStorageInput(),
     sendExtraMessageFields: true,
-    experimental_throttle: 50,
+    experimental_throttle: 100,
     body: {
       isExtendedThinking,
     },

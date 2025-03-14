@@ -127,6 +127,7 @@ export async function POST(request: NextRequest) {
               dataStream,
               agent,
               chat,
+              userMessage: lastMessage,
               abortSignal: request.signal,
             })
           : undefined;
