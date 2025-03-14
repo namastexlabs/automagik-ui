@@ -59,10 +59,12 @@ export function ChatProvider({
     [],
     { initializeWithValue: false },
   );
+  const isMounted = useRef(false);
+  const isAutoSubmitting = useRef(false);
+
   const [selectedProvider, setProvider] = useState(provider);
   const [selectedModelId, setModelId] = useState(modelId);
-  const [isCreatingChat, setIsCreatingChat] = useState(false);
-  const isMounted = useRef(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExtendedThinking, setIsExtendedThinking] = useState(false);
   const { set: setProgress, stop: stopProgress } = useProgress();
 
@@ -80,7 +82,7 @@ export function ChatProvider({
   const {
     messages,
     setMessages,
-    input: _input,
+    input,
     setInput,
     append,
     status,
@@ -102,7 +104,7 @@ export function ChatProvider({
   const { mutate } = useSWRConfig();
   const router = useRouter();
 
-  const input = isMounted.current ? _input : '';
+  const _input = isMounted.current ? input : '';
   const shouldSubmit = !!searchParams.get('submit');
 
   const setLocalStorageInput = useCallback((value: string) => {
@@ -125,12 +127,6 @@ export function ChatProvider({
     setAttachments([]);
   }, [chat, setAttachments]);
 
-  useEffect(() => {
-    if (isCreatingChat) {
-      setProgress(0.1);
-    }
-  }, [isCreatingChat, setProgress]);
-
   const isImageAllowed = isImagesAllowed(
     getModelData(selectedProvider, selectedModelId),
   );
@@ -147,10 +143,11 @@ export function ChatProvider({
   const getOrCreateChat = useCallback(
     async (messages: Message[], tab: string) => {
       if (!chat) {
-        setIsCreatingChat(true);
+        setProgress(0.1);
         const { errors, data } = await createChatAction(tab, messages);
 
         if (errors) {
+          stopProgress();
           toast.error(errors._errors?.[0] || 'Failed to create chat');
         }
 
@@ -161,15 +158,16 @@ export function ChatProvider({
               return [data, ...history];
             },
           });
+
+          router.push(`/chat/${data.id}?submit=true`);
         }
-        setIsCreatingChat(false);
 
         return data;
       }
 
       return chat;
     },
-    [chat, mutate],
+    [chat, router, mutate, setProgress, stopProgress],
   );
 
   const reloadMessage = useCallback(() => {
@@ -200,7 +198,7 @@ export function ChatProvider({
       currentAgents: AgentDTO[],
       currentTabs: string[],
     ) => {
-      if (content.trim().length === 0) {
+      if (content.trim().length === 0 || isSubmitting) {
         return;
       }
 
@@ -226,40 +224,41 @@ export function ChatProvider({
         experimental_attachments: newAttachments,
       };
 
-      const data = await getOrCreateChat([message], currentAgent);
-      if (!data) {
-        stopProgress();
-        return;
-      } else if (!chat) {
-        router.push(`/chat/${data.id}?submit=true`);
-        return;
-      }
+      setIsSubmitting(true);
+      try {
+        const data = await getOrCreateChat([message], currentAgent);
+        if (!data || !chat) {
+          return;
+        }
 
-      setInput('');
-      setAttachments([]);
+        setInput('');
+        setAttachments([]);
 
-      if (shouldRemoveLastMessage) {
-        setMessages((messages) => messages.slice(0, -1));
-      }
+        if (shouldRemoveLastMessage) {
+          setMessages((messages) => messages.slice(0, -1));
+        }
 
-      await append(message, {
-        body: {
-          id: data.id,
-          modelId: selectedModelId,
-          provider: selectedProvider,
-        },
-        experimental_attachments: newAttachments,
-      });
+        await append(message, {
+          body: {
+            id: data.id,
+            modelId: selectedModelId,
+            provider: selectedProvider,
+          },
+          experimental_attachments: newAttachments,
+        });
 
-      if (shouldSubmit) {
-        router.replace(`/chat/${data.id}`);
+        if (shouldSubmit) {
+          router.replace(`/chat/${data.id}`);
+        }
+      } finally {
+        setIsSubmitting(false);
       }
     },
     [
+      isSubmitting,
       getOrCreateChat,
       setInput,
       setAttachments,
-      stopProgress,
       shouldRemoveLastMessage,
       append,
       selectedModelId,
@@ -274,11 +273,22 @@ export function ChatProvider({
   );
 
   useEffect(() => {
+    if (!shouldSubmit) {
+      isAutoSubmitting.current = false;
+    }
+  }, [shouldSubmit]);
+
+  useEffect(() => {
+    if (isAutoSubmitting.current) {
+      return;
+    }
+
     if (shouldSubmit && currentTab && tabs.length > 0) {
+      isAutoSubmitting.current = true;
       onSubmit(input, attachments, currentTab, agents, tabs);
     }
   }, [shouldSubmit, onSubmit, input, attachments, currentTab, agents, tabs]);
- 
+
   const isLoading = status === 'submitted' || status === 'streaming';
   const chatContextValue = useMemo(() => {
     return {
@@ -288,7 +298,8 @@ export function ChatProvider({
       isExtendedThinking,
       modelId: selectedModelId,
       provider: selectedProvider,
-      isLoading: isCreatingChat || isLoading,
+      isSubmitting,
+      isLoading,
       error: currentError || null,
     };
   }, [
@@ -297,10 +308,10 @@ export function ChatProvider({
     isExtendedThinking,
     selectedModelId,
     selectedProvider,
-    isCreatingChat,
     isImageAllowed,
     isLoading,
     currentError,
+    isSubmitting,
   ]);
 
   const chatMessagesContextValue = useMemo(() => {
@@ -311,10 +322,10 @@ export function ChatProvider({
 
   const chatInputContextValue = useMemo(() => {
     return {
-      input,
+      input: _input,
       attachments,
     };
-  }, [input, attachments]);
+  }, [_input, attachments]);
 
   const chatHandlersContextValue = useMemo(() => {
     return {

@@ -13,6 +13,7 @@ export type ChatContextValue = {
   isImageAllowed: boolean;
   isExtendedThinking: boolean;
   error: string | null;
+  isSubmitting: boolean;
 }
 
 export type ChatInputContextValue = {

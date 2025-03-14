@@ -78,14 +78,14 @@ export async function POST(request: NextRequest) {
     verifyChatWritePermission(chat, userId);
 
     const agent = await getAgent(chat.agentId, userId);
-    const sanitnizedMessages = isReasoningAllowed(modelData)
+    const sanitizedMessages = isReasoningAllowed(modelData)
       ? messages
       : messages.map((message) => ({
           ...message,
           parts: message.parts?.filter((part) => part.type !== 'reasoning'),
         }));
 
-    const coreMessages = convertToCoreMessages(sanitnizedMessages);
+    const coreMessages = convertToCoreMessages(sanitizedMessages);
     const lastMessage = messages.at(-1);
     const userMessage = getMostRecentUserMessage(coreMessages);
 

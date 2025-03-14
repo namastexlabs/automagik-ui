@@ -49,6 +49,7 @@ export function MultimodalInput({
     modelId,
     provider,
     isExtendedThinking,
+    isSubmitting,
   } = useChat();
   const { input, attachments } = useChatInput();
   const {
@@ -254,6 +255,7 @@ export function MultimodalInput({
               input={input}
               submitForm={submitForm}
               uploadQueue={uploadQueue}
+              isSubmitting={isSubmitting}
             />
           )}
         </div>
@@ -315,19 +317,25 @@ function SendButton({
   submitForm,
   input,
   uploadQueue,
+  isSubmitting,
 }: {
   submitForm: () => void;
   input: string;
   uploadQueue: Array<string>;
+  isSubmitting: boolean;
 }) {
   return (
     <Button
       className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
       onClick={(event) => {
         event.preventDefault();
+        if (isSubmitting) {
+          return;
+        }
+
         submitForm();
       }}
-      disabled={input.length === 0 || uploadQueue.length > 0}
+      disabled={input.trim() === '' || uploadQueue.length > 0 || isSubmitting}
     >
       <ArrowUpIcon size={14} />
     </Button>
