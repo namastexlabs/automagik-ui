@@ -267,7 +267,7 @@ function PureAttachmentsButton({
   fileInputRef,
 }: {
   disabled?: boolean;
-  fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
 }) {
   return (
     <Button
@@ -311,7 +311,7 @@ function PureStopButton({
 
 const StopButton = memo(PureStopButton);
 
-function PureSendButton({
+function SendButton({
   submitForm,
   input,
   uploadQueue,
@@ -333,10 +333,3 @@ function PureSendButton({
     </Button>
   );
 }
-
-const SendButton = memo(PureSendButton, (prevProps, nextProps) => {
-  if (prevProps.uploadQueue.length !== nextProps.uploadQueue.length)
-    return false;
-  if (prevProps.input !== nextProps.input) return false;
-  return true;
-});
