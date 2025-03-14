@@ -1,70 +1,14 @@
 /**
- * Data access layer for DTO conversion
+ * @fileoverview Top-level layer for data access.
+ * It is responsible for fetching and saving resources on API routes, server actions, and server components.
+ * It also contains DTOs and schema for the resource form.
  */
 
-import 'server-only';
-import type { AgentData } from '@/lib/db/queries';
-import type { Tool } from '../db/schema';
-
-export const mapTool = (
-  authUserId: string,
-  {
-    id,
-    name,
-    verboseName,
-    source,
-    data,
-    visibility,
-    description,
-    userId,
-  }: Tool,
-) => {
-  return {
-    id,
-    name,
-    verboseName,
-    source,
-    data,
-    visibility,
-    description: userId !== authUserId ? undefined : description,
-  };
-};
-
-export type ClientTool = ReturnType<typeof mapTool>;
-
-export const mapAgent = (
-  authUserId: string,
-  {
-    id,
-    name,
-    userId,
-    systemPrompt,
-    visibility,
-    tools,
-    dynamicBlocks,
-  }: AgentData,
-) => {
-  return {
-    id,
-    name,
-    userId,
-    visibility,
-    systemPrompt: userId !== authUserId ? undefined : systemPrompt,
-    tools: tools.map(({ tool: { id, name, verboseName, visibility, data, source } }) => ({
-      id,
-      name,
-      verboseName,
-      visibility,
-      data,
-      source,
-    })),
-    dynamicBlocks: dynamicBlocks.map(
-      ({ dynamicBlock: { name, visibility } }) => ({
-        name,
-        visibility,
-      }),
-    ),
-  };
-};
-
-export type ClientAgent = ReturnType<typeof mapAgent>;
+export enum DataStatus {
+  NotFound = 'not_found',
+  InvalidData = 'invalid_data',
+  Unauthorized = 'unauthorized',
+  Conflict = 'conflict',
+  Success = 'success',
+  Unexpected = 'unexpected',
+}

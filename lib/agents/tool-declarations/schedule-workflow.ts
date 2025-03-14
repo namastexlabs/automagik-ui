@@ -1,7 +1,8 @@
 import 'server-only';
 
+import { createSchedule } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
-import { createSchedule } from '../automagik';
 import { InternalToolName } from './client';
 import { z } from 'zod';
 
@@ -21,14 +22,14 @@ export const scheduleWorkflowTool = createToolDefinition({
       }),
     }),
   }),
-  execute: async ({ schedule }) => {
+  execute: async ({ schedule }, context) => {
     try {
       const data = await createSchedule({
         workflow_id: schedule.workflowId,
         input_value: schedule.inputValue,
         schedule_type: schedule.scheduleType,
         schedule_expr: schedule.scheduleValue,
-      });
+      }, context.abortSignal);
       return {
         data,
         error: null,

@@ -35,6 +35,12 @@ const THEME_COLOR_SCRIPT = `\
   updateThemeColor();
 })();`;
 
+const INLINE_SCRIPT = `
+  <style>
+    .motion { opacity: 1 !important }
+  </style>
+`;
+
 export default async function RootLayout({
   children,
 }: Readonly<{
@@ -55,6 +61,7 @@ export default async function RootLayout({
             __html: THEME_COLOR_SCRIPT,
           }}
         />
+      <noscript dangerouslySetInnerHTML={{ __html: INLINE_SCRIPT }} />
       </head>
       <body className="antialiased">
         <Providers>

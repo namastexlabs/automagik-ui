@@ -11,7 +11,6 @@ import {
 } from '@/components/ui/popover';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
-import type { ClientAgent } from '@/lib/data';
 import { getDynamicBlocksFromPrompt } from '@/lib/agents/dynamic-blocks';
 import {
   Dialog,
@@ -19,6 +18,7 @@ import {
   DialogDescription,
   DialogTitle,
 } from './ui/dialog';
+import type { AgentDTO } from '@/lib/data/agent';
 
 export function PromptTemplate({
   name,
@@ -34,7 +34,7 @@ export function PromptTemplate({
   onChange: (template: string) => void;
   name: string;
   placeholder: string;
-  agent?: ClientAgent | null;
+  agent?: AgentDTO | null;
   formId: string;
   openDialog: boolean;
   setOpenDialog: (isOpen: boolean) => void;

@@ -5,13 +5,15 @@ import {
   useCallback,
   useEffect,
   useMemo,
+  useRef,
   useState,
   type PropsWithChildren,
 } from 'react';
 import type { Attachment } from 'ai';
-import { useSWRConfig } from 'swr';
-import { useRouter } from 'next/navigation';
+import useSWR, { useSWRConfig } from 'swr';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
+import { useLocalStorage } from 'usehooks-ts';
 import { useProgress } from '@bprogress/next';
 
 import {
@@ -20,13 +22,15 @@ import {
   ChatMessagesContext,
   ChatHandlersContext,
 } from '@/contexts/chat';
-import type { ClientAgent } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
 import type { Chat } from '@/lib/db/schema';
-import { createChat } from '@/app/(chat)/actions';
+import { createChatAction } from '@/app/(chat)/actions';
 import { generateUUID } from '@/lib/utils';
+import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { getModelData, isImagesAllowed } from '@/lib/ai/models';
 
 import { DataStreamHandler } from './data-stream-handler';
+
 export function ChatProvider({
   chat,
   initialMessages,
@@ -49,12 +53,31 @@ export function ChatProvider({
     isSubmitting: boolean;
   }) => void;
 }>) {
-  const [attachments, setAttachments] = useState<Array<Attachment>>([]);
+  const searchParams = useSearchParams();
+  const [attachments, setAttachments] = useLocalStorage<Array<Attachment>>(
+    'input-attachments',
+    [],
+    { initializeWithValue: false },
+  );
+  const isMounted = useRef(false);
+  const isAutoSubmitting = useRef(false);
+
   const [selectedProvider, setProvider] = useState(provider);
   const [selectedModelId, setModelId] = useState(modelId);
-  const [isCreatingChat, setIsCreatingChat] = useState(false);
+  const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExtendedThinking, setIsExtendedThinking] = useState(false);
   const { set: setProgress, stop: stopProgress } = useProgress();
+
+  const { currentTab } = useCurrentAgentTab();
+  const { tabs } = useAgentTabs();
+  const { data: agents = [] } = useSWR<AgentDTO[]>('/api/agents', null);
+
+  const getLocalStorageInput = useCallback(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('input') || '';
+    }
+    return '';
+  }, []);
 
   const {
     messages,
@@ -70,42 +93,39 @@ export function ChatProvider({
   } = useChat({
     id: chat?.id,
     initialMessages,
+    initialInput: getLocalStorageInput(),
     sendExtraMessageFields: true,
-    experimental_throttle: 50,
+    experimental_throttle: 100,
     body: {
       isExtendedThinking,
     },
   });
+
   const { mutate } = useSWRConfig();
   const router = useRouter();
 
+  const _input = isMounted.current ? input : '';
+  const shouldSubmit = !!searchParams.get('submit');
+
+  const setLocalStorageInput = useCallback((value: string) => {
+    localStorage.setItem('input', value);
+  }, []);
+
+  useEffect(() => {
+    isMounted.current = true;
+  }, []);
+
+  useEffect(() => {
+    setInput(getLocalStorageInput());
+  }, [setInput, getLocalStorageInput]);
+
+  useEffect(() => {
+    setLocalStorageInput(input);
+  }, [input, setLocalStorageInput]);
+
   useEffect(() => {
     setAttachments([]);
-  }, [chat]);
-
-  useEffect(() => {
-    switch (status) {
-      case 'submitted':
-        setProgress(0.1);
-        break;
-      case 'streaming':
-        setProgress(0.7);
-        break;
-      case 'ready':
-      case 'error':
-        setProgress(1);
-        stopProgress();
-        break;
-      default:
-        break;
-    }
-  }, [status, setProgress, stopProgress]);
-
-  useEffect(() => {
-    if (isCreatingChat) {
-      setProgress(0.1);
-    }
-  }, [isCreatingChat, setProgress]);
+  }, [chat, setAttachments]);
 
   const isImageAllowed = isImagesAllowed(
     getModelData(selectedProvider, selectedModelId),
@@ -114,7 +134,7 @@ export function ChatProvider({
     if (!isImageAllowed) {
       setAttachments([]);
     }
-  }, [isImageAllowed]);
+  }, [isImageAllowed, setAttachments]);
 
   useEffect(() => {
     setIsExtendedThinking(false);
@@ -123,30 +143,31 @@ export function ChatProvider({
   const getOrCreateChat = useCallback(
     async (messages: Message[], tab: string) => {
       if (!chat) {
-        setIsCreatingChat(true);
-        const { status, data } = await createChat({
-          agentId: tab,
-          messages,
-        });
+        setProgress(0.1);
+        const { errors, data } = await createChatAction(tab, messages);
 
-        if (status === 'failed' || !data) {
-          return null;
+        if (errors) {
+          stopProgress();
+          toast.error(errors._errors?.[0] || 'Failed to create chat');
         }
 
-        mutate(`/api/history?agentId=${tab}`, data, {
-          revalidate: false,
-          populateCache: (data, history = []) => {
-            return [data, ...history];
-          },
-        });
-        setIsCreatingChat(false);
+        if (data) {
+          mutate(`/api/history?agentId=${tab}`, data, {
+            revalidate: false,
+            populateCache: (data, history = []) => {
+              return [data, ...history];
+            },
+          });
+
+          router.push(`/chat/${data.id}?submit=true`);
+        }
 
         return data;
       }
 
       return chat;
     },
-    [chat, mutate],
+    [chat, router, mutate, setProgress, stopProgress],
   );
 
   const reloadMessage = useCallback(() => {
@@ -174,9 +195,13 @@ export function ChatProvider({
       content: string,
       newAttachments: Array<Attachment>,
       currentAgent: string | null,
-      currentAgents: ClientAgent[],
+      currentAgents: AgentDTO[],
       currentTabs: string[],
     ) => {
+      if (content.trim().length === 0 || isSubmitting) {
+        return;
+      }
+
       if (currentAgents.length === 0) {
         setAgentDialogState({
           agentId: null,
@@ -199,49 +224,70 @@ export function ChatProvider({
         experimental_attachments: newAttachments,
       };
 
-      const data = await getOrCreateChat([message], currentAgent);
-      if (!data) {
-        stopProgress();
-        toast.error('Something went wrong, please try again!');
-        return;
-      }
+      setIsSubmitting(true);
+      try {
+        const data = await getOrCreateChat([message], currentAgent);
+        if (!data || !chat) {
+          return;
+        }
 
-      setInput('');
-      setAttachments([]);
+        setInput('');
+        setAttachments([]);
 
-      if (shouldRemoveLastMessage) {
-        setMessages((messages) => messages.slice(0, -1));
-      }
+        if (shouldRemoveLastMessage) {
+          setMessages((messages) => messages.slice(0, -1));
+        }
 
-      await append(message, {
-        body: {
-          id: data.id,
-          modelId: selectedModelId,
-          provider: selectedProvider,
-        },
-        experimental_attachments: newAttachments,
-      });
+        await append(message, {
+          body: {
+            id: data.id,
+            modelId: selectedModelId,
+            provider: selectedProvider,
+          },
+          experimental_attachments: newAttachments,
+        });
 
-      if (!chat) {
-        router.push(`/chat/${data.id}`);
+        if (shouldSubmit) {
+          router.replace(`/chat/${data.id}`);
+        }
+      } finally {
+        setIsSubmitting(false);
       }
     },
     [
+      isSubmitting,
       getOrCreateChat,
       setInput,
       setAttachments,
       shouldRemoveLastMessage,
       append,
-      stopProgress,
       selectedModelId,
       selectedProvider,
       chat,
+      shouldSubmit,
       setAgentDialogState,
       setOpenAgentListDialog,
       setMessages,
       router,
     ],
   );
+
+  useEffect(() => {
+    if (!shouldSubmit) {
+      isAutoSubmitting.current = false;
+    }
+  }, [shouldSubmit]);
+
+  useEffect(() => {
+    if (isAutoSubmitting.current) {
+      return;
+    }
+
+    if (shouldSubmit && currentTab && tabs.length > 0) {
+      isAutoSubmitting.current = true;
+      onSubmit(input, attachments, currentTab, agents, tabs);
+    }
+  }, [shouldSubmit, onSubmit, input, attachments, currentTab, agents, tabs]);
 
   const isLoading = status === 'submitted' || status === 'streaming';
   const chatContextValue = useMemo(() => {
@@ -252,7 +298,8 @@ export function ChatProvider({
       isExtendedThinking,
       modelId: selectedModelId,
       provider: selectedProvider,
-      isLoading: isCreatingChat || isLoading,
+      isSubmitting,
+      isLoading,
       error: currentError || null,
     };
   }, [
@@ -261,10 +308,10 @@ export function ChatProvider({
     isExtendedThinking,
     selectedModelId,
     selectedProvider,
-    isCreatingChat,
     isImageAllowed,
     isLoading,
     currentError,
+    isSubmitting,
   ]);
 
   const chatMessagesContextValue = useMemo(() => {
@@ -275,10 +322,10 @@ export function ChatProvider({
 
   const chatInputContextValue = useMemo(() => {
     return {
-      input,
+      input: _input,
       attachments,
     };
-  }, [input, attachments]);
+  }, [_input, attachments]);
 
   const chatHandlersContextValue = useMemo(() => {
     return {

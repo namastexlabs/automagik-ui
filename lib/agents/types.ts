@@ -1,8 +1,8 @@
-import type { ToolCall, ToolResult, DataStreamWriter } from 'ai';
+import type { ToolCall, ToolResult, DataStreamWriter, Message } from 'ai';
 import type { z } from 'zod';
 
-import type { AgentData } from '@/lib/db/queries';
 import type { Document, Chat } from '@/lib/db/schema';
+import type { AgentData } from '../db/queries/agent';
 
 export type InferParameters<T> = T extends z.ZodTypeAny
   ? z.infer<T>
@@ -11,15 +11,19 @@ export type InferParameters<T> = T extends z.ZodTypeAny
 export type ToolRequestContext = {
   dataStream: DataStreamWriter;
   userId: string;
+  userMessage: Message;
   agent: AgentData;
   chat: Chat;
+  abortSignal: AbortSignal;
 };
 
 export type ToolDefinition<
   NAME extends string,
   RESULT,
   PARAMETERS,
-  REFINEMENTS extends Record<string, (value: any, ctx: z.RefinementCtx) => any> | undefined = undefined,
+  REFINEMENTS extends
+    | Record<string, (value: any, ctx: z.RefinementCtx) => any>
+    | undefined = undefined,
 > = {
   name: NAME;
   verboseName: string;
@@ -29,14 +33,22 @@ export type ToolDefinition<
   dynamicDescription?: (context: ToolRequestContext) => string;
   parameters: PARAMETERS;
   execute: PARAMETERS extends z.ZodTypeAny
-    ? (params: InferParameters<PARAMETERS>, context: ToolRequestContext) => Promise<RESULT>
+    ? (
+        params: InferParameters<PARAMETERS>,
+        context: ToolRequestContext,
+      ) => Promise<RESULT>
     : (context: ToolRequestContext) => Promise<RESULT>;
 };
 
 export type ToolInvocation<
   NAME extends string,
   TOOL,
-> = TOOL extends ToolDefinition<NAME, infer RESULT, infer PARAMETERS, infer NAMED_REFINEMENTS>
+> = TOOL extends ToolDefinition<
+  NAME,
+  infer RESULT,
+  infer PARAMETERS,
+  infer NAMED_REFINEMENTS
+>
   ?
       | ({
           state: 'partial-call' | 'call';
@@ -76,7 +88,7 @@ export type DocumentExecuteReturn =
     }
   | {
       error: string;
-    }
+    };
 
 export type WeatherAtLocation = {
   latitude: number;
@@ -119,111 +131,4 @@ export type WeatherAtLocation = {
 export type ExecutionResult = {
   result: string | null;
   content: string;
-};
-
-type FlowNode = {
-  data: {
-    description: string;
-    id: string;
-    node: {
-      template: Record<
-        string,
-        {
-          display_name: string;
-          fileTypes: string[];
-          file_path: string;
-          info: string;
-          list: boolean;
-          name: string;
-          required: boolean;
-          type: string;
-          value: string;
-        }
-      >;
-    };
-    type: string;
-  };
-  id: string;
-};
-
-type FlowEdge = {
-  source: string;
-  target: string;
-  data: {
-    targetHandle: {
-      fieldName: string;
-      id: string;
-      inputTypes: string[];
-      type: string;
-    };
-    sourceHandle: {
-      dataType: string;
-      id: string;
-      name: string;
-      output_types: string[];
-    };
-  };
-};
-
-export type FlowData = {
-  name: string;
-  description: string;
-  source: string;
-  is_component: boolean;
-  input_component: string;
-  output_component: string;
-  id: string;
-  created_at: string;
-  updated_at: string;
-  folder_id: string;
-  folder_name: string;
-  source_id: string;
-};
-
-export type LangFlowResponse = {
-  id: string;
-  name: string;
-  description: string;
-  folder_id: string;
-  data: {
-    nodes: FlowNode[];
-    edges: FlowEdge[];
-  };
-};
-
-export type FlowPayload = {
-  id: string;
-  name: string;
-  description: string;
-  nodes: {
-    id: string;
-    type: string;
-  }[];
-};
-
-export type Schedule = {
-  flow_id: string;
-  schedule_type: string;
-  schedule_expr: string;
-  // TODO: Discover how to use this
-  flow_params: any;
-  status: 'paused' | 'active' | 'stopped';
-  next_run_at: string;
-  id: string;
-};
-
-export type Task = {
-  flow_id: string;
-  // TODO: Discover how to use this
-  input_data: any;
-  // TODO: Discover how to use this
-  output_data: any;
-  error: string;
-  tries: number;
-  max_retries: number;
-  next_retry_at: string;
-  started_at: string;
-  finished_at: string;
-  id: string;
-  status: string;
 };

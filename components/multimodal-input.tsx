@@ -10,9 +10,10 @@ import {
   useCallback,
   type ChangeEvent,
   memo,
+  useMemo,
 } from 'react';
 import { toast } from 'sonner';
-import { useLocalStorage, useWindowSize } from 'usehooks-ts';
+import { useWindowSize } from 'usehooks-ts';
 import { ImageIcon, Lightbulb } from 'lucide-react';
 
 import {
@@ -21,25 +22,26 @@ import {
   useChatInput,
   useChatMessages,
 } from '@/contexts/chat';
-import type { ClientAgent } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
+import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
+import { throttle } from '@/lib/utils';
+import { getModelData, isExtendedThinkingAllowed } from '@/lib/ai/models';
 
 import { ArrowUpIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
-import { getModelData, isExtendedThinkingAllowed } from '@/lib/ai/models';
 import { Toggle } from './ui/toggle';
 
 export function MultimodalInput({
   className,
   agents,
 }: {
-  agents: ClientAgent[];
+  agents: AgentDTO[];
   className?: string;
 }) {
-  const { width } = useWindowSize();
+  const { width, height } = useWindowSize({ initializeWithValue: false });
   const {
     chat,
     isLoading,
@@ -47,6 +49,7 @@ export function MultimodalInput({
     modelId,
     provider,
     isExtendedThinking,
+    isSubmitting,
   } = useChat();
   const { input, attachments } = useChatInput();
   const {
@@ -62,78 +65,56 @@ export function MultimodalInput({
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
-  useEffect(() => {
+  const adjustHeight = useCallback((height?: number) => {
     if (textareaRef.current) {
-      adjustHeight();
+      const MAX_HEIGHT = (height || 0) * 0.33;
+      const isMaxHeight =
+        height && textareaRef.current.scrollHeight > MAX_HEIGHT;
+
+      if (isMaxHeight) {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = `${MAX_HEIGHT}px`;
+      } else {
+        textareaRef.current.style.height = 'auto';
+        textareaRef.current.style.height = `${textareaRef.current.scrollHeight + 2}px`;
+      }
     }
   }, []);
 
-  const adjustHeight = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = `${textareaRef.current.scrollHeight + 2}px`;
-    }
-  };
-
-  const resetHeight = () => {
-    if (textareaRef.current) {
-      textareaRef.current.style.height = 'auto';
-      textareaRef.current.style.height = '98px';
-    }
-  };
-
-  const [localStorageInput, setLocalStorageInput] = useLocalStorage(
-    'input',
-    '',
+  const throttledAdjustHeight = useMemo(
+    () => throttle(adjustHeight, 50),
+    [adjustHeight],
   );
 
   useEffect(() => {
     if (textareaRef.current) {
-      const domValue = textareaRef.current.value;
-      // Prefer DOM value over localStorage to handle hydration
-      const finalValue = domValue || localStorageInput || '';
-      setInput(finalValue);
-      adjustHeight();
+      throttledAdjustHeight(height);
     }
-    // Only run once after hydration
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [throttledAdjustHeight, height]);
 
-  useEffect(() => {
-    setLocalStorageInput(input);
-  }, [input, setLocalStorageInput]);
+  const resetHeight = () => {
+    if (textareaRef.current) {
+      textareaRef.current.style.height = 'auto';
+      textareaRef.current.style.height = '56px';
+    }
+  };
 
   const handleInput = (event: React.ChangeEvent<HTMLTextAreaElement>) => {
     setInput(event.target.value);
-    adjustHeight();
+    throttledAdjustHeight(height);
   };
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
   const submitForm = useCallback(() => {
-    if (input.trim().length === 0) {
-      return;
-    }
-
-    // biome-ignore lint/style/noNonNullAssertion: <explanation>
-    handleSubmit(input, attachments, currentTab!, agents, tabs);
-    setLocalStorageInput('');
+    handleSubmit(input, attachments, currentTab as string, agents, tabs);
     resetHeight();
 
     if (width && width > 768) {
       textareaRef.current?.focus();
     }
-  }, [
-    input,
-    handleSubmit,
-    attachments,
-    currentTab,
-    agents,
-    tabs,
-    setLocalStorageInput,
-    width,
-  ]);
+  }, [input, handleSubmit, attachments, currentTab, agents, tabs, width]);
 
   const uploadFile = async (file: File, chatId?: string) => {
     const formData = new FormData();
@@ -193,7 +174,7 @@ export function MultimodalInput({
       />
 
       {(attachments.length > 0 || uploadQueue.length > 0) && (
-        <div className="flex flex-row gap-2 overflow-x-scroll items-end">
+        <div className="flex flex-row gap-2 overflow-x-auto items-end">
           {attachments.map((attachment) => (
             <PreviewAttachment key={attachment.url} attachment={attachment} />
           ))}
@@ -212,67 +193,72 @@ export function MultimodalInput({
         </div>
       )}
 
-      <Textarea
-        ref={textareaRef}
-        placeholder="Send a message..."
-        value={input}
-        onChange={handleInput}
-        className={cx(
-          'min-h-[24px] max-h-[calc(75dvh)] overflow-hidden resize-none rounded-2xl !text-base bg-muted pb-10 dark:border-zinc-700',
-          className,
-        )}
-        rows={2}
-        autoFocus
-        onKeyDown={(event) => {
-          if (event.key === 'Enter' && !event.shiftKey) {
-            event.preventDefault();
+      <div className="relative w-full flex flex-col rounded-2xl gap-4 bg-muted border dark:border-zinc-700 max-h-[calc(33dvh)] has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background has-[:focus-visible]:ring-2">
+        <Textarea
+          ref={textareaRef}
+          placeholder="Send a message..."
+          value={input}
+          onChange={handleInput}
+          className={cx(
+            'resize-none mb-12 px-4 mt-3 pt-0 min-h-[56px] !text-base outline-none bg-transparent border-none focus-visible:!ring-offset-transparent focus-visible:!ring-transparent',
+            className,
+          )}
+          rows={1}
+          autoFocus
+          onKeyDown={(event) => {
+            if (event.key === 'Enter' && !event.shiftKey) {
+              event.preventDefault();
 
-            if (isLoading) {
-              toast.error('Please wait for the model to finish its response!');
-            } else {
-              submitForm();
+              if (isLoading) {
+                toast.error(
+                  'Please wait for the model to finish its response!',
+                );
+              } else {
+                submitForm();
+              }
             }
-          }
-        }}
-      />
+          }}
+        />
 
-      <div className="absolute bottom-0 p-2 gap-2 w-fit flex flex-row justify-start items-center">
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <AttachmentsButton
-              fileInputRef={fileInputRef}
-              disabled={isLoading || !isImageAllowed}
+        <div className="absolute bottom-0 p-2 gap-2 w-fit flex flex-row justify-start items-center">
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <AttachmentsButton
+                fileInputRef={fileInputRef}
+                disabled={isLoading || !isImageAllowed}
+              />
+            </TooltipTrigger>
+            <TooltipContent>
+              {isImageAllowed
+                ? 'Attach an image'
+                : 'Images are not allowed for this model'}
+            </TooltipContent>
+          </Tooltip>
+          {isExtendedThinkingAllowed(getModelData(provider, modelId)) && (
+            <Toggle
+              className="data-[state=on]:bg-black data-[state=on]:text-white"
+              variant="outline"
+              size="sm"
+              pressed={isExtendedThinking}
+              onPressedChange={toggleExtendedThinking}
+            >
+              <Lightbulb /> Reasoning
+            </Toggle>
+          )}
+        </div>
+
+        <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
+          {isLoading ? (
+            <StopButton stop={stop} setMessages={setMessages} />
+          ) : (
+            <SendButton
+              input={input}
+              submitForm={submitForm}
+              uploadQueue={uploadQueue}
+              isSubmitting={isSubmitting}
             />
-          </TooltipTrigger>
-          <TooltipContent>
-            {isImageAllowed
-              ? 'Attach an image'
-              : 'Images are not allowed for this model'}
-          </TooltipContent>
-        </Tooltip>
-        {isExtendedThinkingAllowed(getModelData(provider, modelId)) && (
-          <Toggle
-            className="data-[state=on]:bg-black"
-            variant="outline"
-            size="sm"
-            pressed={isExtendedThinking}
-            onPressedChange={toggleExtendedThinking}
-          >
-            <Lightbulb /> Reasoning
-          </Toggle>
-        )}
-      </div>
-
-      <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
-        {isLoading ? (
-          <StopButton stop={stop} setMessages={setMessages} />
-        ) : (
-          <SendButton
-            input={input}
-            submitForm={submitForm}
-            uploadQueue={uploadQueue}
-          />
-        )}
+          )}
+        </div>
       </div>
     </div>
   );
@@ -283,7 +269,7 @@ function PureAttachmentsButton({
   fileInputRef,
 }: {
   disabled?: boolean;
-  fileInputRef: React.MutableRefObject<HTMLInputElement | null>;
+  fileInputRef: React.RefObject<HTMLInputElement | null>;
 }) {
   return (
     <Button
@@ -327,32 +313,31 @@ function PureStopButton({
 
 const StopButton = memo(PureStopButton);
 
-function PureSendButton({
+function SendButton({
   submitForm,
   input,
   uploadQueue,
+  isSubmitting,
 }: {
   submitForm: () => void;
   input: string;
   uploadQueue: Array<string>;
+  isSubmitting: boolean;
 }) {
   return (
     <Button
       className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
       onClick={(event) => {
         event.preventDefault();
+        if (isSubmitting) {
+          return;
+        }
+
         submitForm();
       }}
-      disabled={input.length === 0 || uploadQueue.length > 0}
+      disabled={input.trim() === '' || uploadQueue.length > 0 || isSubmitting}
     >
       <ArrowUpIcon size={14} />
     </Button>
   );
 }
-
-const SendButton = memo(PureSendButton, (prevProps, nextProps) => {
-  if (prevProps.uploadQueue.length !== nextProps.uploadQueue.length)
-    return false;
-  if (prevProps.input !== nextProps.input) return false;
-  return true;
-});

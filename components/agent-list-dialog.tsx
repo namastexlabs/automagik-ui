@@ -4,7 +4,7 @@ import { toast } from 'sonner';
 import { useRouter } from 'next/navigation';
 import { useSWRConfig } from 'swr';
 
-import { deleteAgent, duplicateAgent } from '@/app/(chat)/actions';
+import { deleteAgentAction, duplicateAgentAction } from '@/app/(chat)/actions';
 import {
   Tooltip,
   TooltipTrigger,
@@ -33,7 +33,7 @@ import {
 import { Label } from '@/components/ui/label';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { useUser } from '@/contexts/user';
-import type { ClientAgent } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
 
 import { PrivateAgentActions } from './private-agent-actions';
 
@@ -44,7 +44,7 @@ export function AgentListDialog({
   isOpenAgentListDialog,
   openAgentListDialog,
 }: {
-  agents: ClientAgent[];
+  agents: AgentDTO[];
   isAgentDialogOpen: boolean;
   openAgentDialog: (agentId?: string) => void;
   openAgentListDialog: (isOpen: boolean) => void;
@@ -52,6 +52,7 @@ export function AgentListDialog({
 }) {
   const [isDuplicatingAgent, setIsDuplicatingAgent] = useState(false);
   const [agentDelete, setAgentDelete] = useState<string | null>(null);
+  const [isDeletingAgent, setIsDeletingAgent] = useState(false);
   const router = useRouter();
   const { mutate } = useSWRConfig();
   const { tabs, removeTab, toggleTab } = useAgentTabs();
@@ -96,71 +97,88 @@ export function AgentListDialog({
   );
 
   const handleDelete = async (agentId: string) => {
-    toast.promise(deleteAgent({ id: agentId }), {
-      loading: 'Deleting agent...',
-      success: () => {
-        const currentIndex = tabs.indexOf(agentId);
-        removeTab(agentId);
-        if (agentId === currentTab) {
-          router.push('/');
-    
-          if (tabs.length > 1) {
-            setTab(tabs[currentIndex === 0 ? 1 : currentIndex - 1]);
-          }
-        }
+    toast.promise(
+      async () => {
+        setIsDeletingAgent(true);
+        const response = await deleteAgentAction(agentId);
+        setIsDeletingAgent(false);
 
-        removeTab(agentId);
-        mutate('/api/agents', (agents: ClientAgent[] = []) => {
-          const newAgents = agents.filter((agent) => agent.id !== agentId);
-
-          if (newAgents.length === 0) {
-            router.push('/');
-            openAgentListDialog(false);
-          }
-
-          return newAgents;
-        });
-
-        setAgentDelete(null);
-        return 'Agent deleted successfully';
+        return response;
       },
-      error: 'Failed to delete agent',
-    });
+      {
+        loading: 'Deleting agent...',
+        success: (response) => {
+          if (response.errors) {
+            toast.error(
+              response.errors?._errors?.[0] || 'Failed to delete agent',
+            );
+
+            return;
+          }
+          const currentIndex = tabs.indexOf(agentId);
+          removeTab(agentId);
+          if (agentId === currentTab) {
+            router.push('/');
+
+            if (tabs.length > 1) {
+              setTab(tabs[currentIndex === 0 ? 1 : currentIndex - 1]);
+            }
+          }
+
+          removeTab(agentId);
+          mutate('/api/agents', (agents: AgentDTO[] = []) => {
+            const newAgents = agents.filter((agent) => agent.id !== agentId);
+
+            if (newAgents.length === 0) {
+              router.push('/');
+              openAgentListDialog(false);
+            }
+
+            return newAgents;
+          });
+
+          setAgentDelete(null);
+          return 'Agent deleted successfully';
+        },
+      },
+    );
   };
 
   const handleDuplicate = (agentId: string) => {
-    toast.promise(async () => {
-      setIsDuplicatingAgent(true);
-      try {
-        const { status, data } = await duplicateAgent({ id: agentId });
-
-        if (status === 'failed') {
-          throw new Error('Failed to duplicate agent');
-        }
-
-        if (status === 'exists') {
-          throw new Error('Agent with the same name already exists');
-        }
-
-        return data;
-      } finally {
+    toast.promise(
+      async () => {
+        setIsDuplicatingAgent(true);
+        const response = await duplicateAgentAction(agentId);
         setIsDuplicatingAgent(false);
-      }
-    }, {
-      loading: 'Duplicating agent...',
-      success: (data) => {
-        if (data) {
-          mutate('/api/agents', (agents: ClientAgent[] = []) => [
-            ...agents,
-            data,
-          ]);
-        }
-        return 'Agent duplicated successfully';
+
+        return response;
       },
-      error: (error) => {
-        return String(error.message);
+      {
+        loading: 'Duplicating agent...',
+        success: (response) => {
+          const { data } = response;
+
+          if (response.errors) {
+            toast.error(
+              response.errors?._errors?.[0] || 'Failed to duplicate agent',
+            );
+            return;
+          }
+
+          if (data) {
+            mutate('/api/agents', (agents: AgentDTO[] = []) => [
+              ...agents,
+              data,
+            ]);
+          }
+
+          return 'Agent duplicated successfully';
+        },
+        error: (error) => {
+          return String(error.message);
+        },
       },
-    });
+    );
   };
 
   const handleCheckboxChange = (agentId: string, isChecked: boolean) => {
@@ -283,12 +301,15 @@ export function AgentListDialog({
               </AlertDialogDescription>
             </AlertDialogHeader>
             <AlertDialogFooter>
-              <AlertDialogCancel>Cancel</AlertDialogCancel>
+              <AlertDialogCancel disabled={isDeletingAgent}>
+                Cancel
+              </AlertDialogCancel>
               <Button
                 type="button"
                 variant="destructive"
                 onClick={() => agentDelete && handleDelete(agentDelete)}
                 className="bg-destructive hover:bg-destructive"
+                disabled={isDeletingAgent}
               >
                 Continue
               </Button>

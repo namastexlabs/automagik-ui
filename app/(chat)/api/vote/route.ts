@@ -1,5 +1,5 @@
-import { getUser } from '@/lib/auth';
-import { getVotesByChatId, voteMessage } from '@/lib/db/queries';
+import { toHTTPResponse } from '@/lib/data/index.server';
+import { getMessageVotes, updateMessageVote } from '@/lib/data/message';
 
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
@@ -9,14 +9,7 @@ export async function GET(request: Request) {
     return new Response('chatId is required', { status: 400 });
   }
 
-  const session = await getUser();
-
-  if (!session?.user?.id) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
-  const votes = await getVotesByChatId({ id: chatId });
-  return Response.json(votes, { status: 200 });
+  return toHTTPResponse(await getMessageVotes(chatId));
 }
 
 export async function PATCH(request: Request) {
@@ -31,17 +24,5 @@ export async function PATCH(request: Request) {
     return new Response('messageId and type are required', { status: 400 });
   }
 
-  const session = await getUser();
-
-  if (!session?.user?.id) {
-    return new Response('Unauthorized', { status: 401 });
-  }
-
-  await voteMessage({
-    chatId,
-    messageId,
-    type: type,
-  });
-
-  return new Response('Message voted', { status: 200 });
+  return toHTTPResponse(await updateMessageVote(chatId, messageId, type));
 }

@@ -5,7 +5,7 @@ import { ChevronsUpDown } from 'lucide-react';
 import useSWR from 'swr';
 
 import { fetcher } from '@/lib/utils';
-import type { ClientTool } from '@/lib/data';
+import type { ToolDTO } from '@/lib/data/tool';
 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Button } from './ui/button';
@@ -31,13 +31,13 @@ export function ToolsCombobox({
 }) {
   const [openToolForm, setOpenToolForm] = useState(false);
   const [open, setOpen] = useState(false);
-  const { data: tools = [], isLoading } = useSWR<ClientTool[]>(
+  const { data: tools = [], isLoading } = useSWR<ToolDTO[]>(
     '/api/tools',
     fetcher,
   );
 
   const handleCreate = useCallback(
-    (tool: ClientTool) => onChange(tool.id),
+    (tool: ToolDTO) => onChange(tool.id),
     [onChange],
   );
   const selectedTools = tools

@@ -2,10 +2,10 @@ import 'server-only';
 import { z } from 'zod';
 
 import { validateUUID } from '@/lib/utils';
+import { deleteSchedule } from '@/lib/services/automagik';
 
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { deleteSchedule } from '../automagik';
 
 const namedRefinements = {
   validateUUID: (id: string, ctx: z.RefinementCtx) => {
@@ -30,11 +30,14 @@ export const deleteScheduleTool = createToolDefinition({
       .superRefine(namedRefinements.validateUUID)
       .describe('The ID of the schedule to delete'),
   }),
-  execute: async ({ scheduleId }) => {
+  execute: async ({ scheduleId }, context) => {
     try {
-      await deleteSchedule(scheduleId);
+      await deleteSchedule(scheduleId, context.abortSignal);
 
-      return { data: { message: 'Schedule deleted successfully' }, error: null };
+      return {
+        data: { message: 'Schedule deleted successfully' },
+        error: null,
+      };
     } catch (error) {
       console.error(error);
       return { data: null, error: 'Error deleting schedule' };

@@ -1,7 +1,8 @@
 import 'server-only';
 
+import { getRemoteSources } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
-import { getRemoteSources } from '../automagik';
 import { InternalToolName } from './client';
 
 export const listRemoteSourcesTool = createToolDefinition({
@@ -11,9 +12,9 @@ export const listRemoteSourcesTool = createToolDefinition({
   visibility: 'public',
   namedRefinements: undefined,
   parameters: undefined,
-  execute: async () => {
+  execute: async (context) => {
     try {
-      const sources = await getRemoteSources();
+      const sources = await getRemoteSources(context.abortSignal);
 
       return { data: sources, error: null };
     } catch (error) {

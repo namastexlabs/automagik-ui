@@ -2,10 +2,10 @@ import 'server-only';
 import { z } from 'zod';
 
 import { validateUUID } from '@/lib/utils';
+import { deleteRemoteSource } from '@/lib/services/automagik';
 
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { deleteRemoteSource } from '../automagik';
 
 const namedRefinements = {
   validateUUID: (id: string, ctx: z.RefinementCtx) => {
@@ -30,14 +30,16 @@ export const deleteRemoteSourceTool = createToolDefinition({
       .superRefine(namedRefinements.validateUUID)
       .describe('The ID of the remote source to delete'),
   }),
-  execute: async ({ remoteSourceId }) => {
+  execute: async ({ remoteSourceId }, context) => {
     try {
-      await deleteRemoteSource(remoteSourceId);
-      return { data: { message: 'Remote source deleted successfully' }, error: null };
+      await deleteRemoteSource(remoteSourceId, context.abortSignal);
+      return {
+        data: { message: 'Remote source deleted successfully' },
+        error: null,
+      };
     } catch (error) {
       console.error(error);
       return { data: null, error: 'Error deleting remote source' };
     }
   },
 });
-

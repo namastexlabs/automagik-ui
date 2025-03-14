@@ -12,7 +12,7 @@ import {
 } from '@/lib/agents/tool-declarations/client';
 import type { Vote } from '@/lib/db/schema';
 import { cn, fetcher } from '@/lib/utils';
-import type { ClientAgent } from '@/lib/data';
+import type { AgentDTO } from '@/lib/data/agent';
 
 import { Markdown } from './markdown';
 import { PencilEditIcon, SparklesIcon } from './icons';
@@ -25,34 +25,6 @@ import { ToolInvocation } from './internal-tool-invocation';
 import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
 import { MessageReasoning } from './message-reasoning';
-
-function sortByPriority<ARR, PRIORITY>(
-  arr: ARR[],
-  priority: PRIORITY[],
-  getPriority: (item: ARR) => PRIORITY,
-) {
-  const prioritySet = new Set(priority);
-  const priorityMap = new Map(priority.map((item, index) => [item, index]));
-
-  const priorityItems = [];
-  const nonPriorityItems = [];
-
-  for (const item of arr) {
-    if (prioritySet.has(getPriority(item))) {
-      priorityItems.push(item);
-    } else {
-      nonPriorityItems.push(item);
-    }
-  }
-
-  priorityItems.sort(
-    (a, b) =>
-      priorityMap.get(getPriority(a)) ||
-      0 - (priorityMap.get(getPriority(b)) || 0),
-  );
-
-  return [...priorityItems, ...nonPriorityItems];
-}
 
 export function PreviewMessage({
   chatId,
@@ -69,7 +41,7 @@ export function PreviewMessage({
 }) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
   const { data: agents = [], isLoading: isAgentsLoading } = useSWR<
-    ClientAgent[]
+    AgentDTO[]
   >('/api/agents', fetcher, { revalidateOnMount: false });
 
   const tools = useMemo(() => {
@@ -114,7 +86,7 @@ export function PreviewMessage({
   return (
     <AnimatePresence>
       <motion.div
-        className="w-full px-4 group/message"
+        className="motion w-full px-4 group/message"
         initial={{ y: 5, opacity: 0 }}
         animate={{ y: 0, opacity: 1 }}
         data-role={message.role}
@@ -237,7 +209,7 @@ export const ThinkingMessage = () => {
 
   return (
     <motion.div
-      className="w-full px-4 group/message "
+      className="motion w-full px-4 group/message "
       initial={{ y: 5, opacity: 0 }}
       animate={{ y: 0, opacity: 1, transition: { delay: 1 } }}
       data-role={role}

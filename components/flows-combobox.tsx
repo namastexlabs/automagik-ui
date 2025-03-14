@@ -5,7 +5,7 @@ import { ChevronsUpDown } from 'lucide-react';
 import useSWR from 'swr';
 
 import { fetcher } from '@/lib/utils';
-import type { FlowData } from '@/lib/agents/types';
+import type { FlowData } from '@/lib/services/types';
 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
 import { Button } from './ui/button';

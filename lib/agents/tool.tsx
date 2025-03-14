@@ -4,14 +4,15 @@ import dedent from 'dedent';
 import { z } from 'zod';
 
 import type { Tool } from '@/lib/db/schema';
+import { runWorkflow } from '@/lib/services/automagik';
 
-import type { ToolRequestContext } from './types';
+import type { ExecutionResult, ToolRequestContext } from './types';
 import {
   castToolType,
   type InternalToolName,
 } from './tool-declarations/client';
 import { INTERNAL_TOOL_MAP } from './tool-declarations';
-import { createChatFlowTool } from './automagik';
+import { createToolDefinition } from './tool-declaration';
 
 export const getInternalTool = <K extends InternalToolName>(name: K) => {
   return INTERNAL_TOOL_MAP[name];
@@ -65,3 +66,48 @@ export const toCoreTools = (
     return tools;
   }, {});
 };
+
+export function createChatFlowTool(
+  flowId: string,
+  {
+    name,
+    verboseName,
+    description,
+    visibility = 'public',
+  }: {
+    name: string;
+    verboseName: string;
+    description: string;
+    visibility?: 'private' | 'public';
+  },
+) {
+  return createToolDefinition({
+    name,
+    verboseName,
+    description,
+    visibility,
+    namedRefinements: undefined,
+    parameters: z.object({
+      inputValue: z.string(),
+    }),
+    execute: async ({ inputValue }, context): Promise<ExecutionResult> => {
+      try {
+        const result = await runWorkflow(
+          flowId,
+          inputValue,
+          context.abortSignal,
+        );
+
+        return {
+          result: result,
+          content: 'Flow executed successfully',
+        };
+      } catch (error) {
+        return {
+          result: null,
+          content: 'Failed to execute flow',
+        };
+      }
+    },
+  });
+}

@@ -7,9 +7,9 @@ import {
   VisibilitySelector,
   type VisibilityType,
 } from '@/components/visibility-selector';
-import type { ClientAgent } from '@/lib/data';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useChat, useChatHandlers } from '@/contexts/chat';
+import type { AgentDTO } from '@/lib/data/agent';
 
 export function ChatHeader({
   agents,
@@ -19,7 +19,7 @@ export function ChatHeader({
   openAgentListDialog,
   changeAgentListDialog,
 }: {
-  agents: ClientAgent[];
+  agents: AgentDTO[];
   selectedVisibilityType: VisibilityType;
   openAgentListDialog: boolean;
   agentDialog: {

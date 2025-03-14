@@ -5,7 +5,7 @@
 
 import type { Tool } from '@/lib/db/schema';
 import type { Source, ToolData } from '../types';
-import type { ClientTool } from '@/lib/data';
+import type { ToolDTO } from '@/lib/data/tool';
 
 export type {
   InternalToolReturn,
@@ -33,7 +33,7 @@ export enum InternalToolName {
   enableDisableSchedule = 'enableDisableSchedule',
 }
 
-export const castToolType = <T extends Source, TOOL extends Tool | ClientTool>(
+export const castToolType = <T extends Source, TOOL extends Tool | ToolDTO>(
   source: T,
   tool: { source: Source; data: ToolData<Source> },
 ): tool is TOOL & { source: T; data: ToolData<T> } => {

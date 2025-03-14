@@ -1,7 +1,8 @@
 import 'server-only';
 
+import { getWorkflows } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
-import { getWorkflows } from '../automagik';
 import { InternalToolName } from './client';
 
 export const listWorkflowsTool = createToolDefinition({
@@ -11,9 +12,9 @@ export const listWorkflowsTool = createToolDefinition({
   visibility: 'public',
   namedRefinements: undefined,
   parameters: undefined,
-  execute: async () => {
+  execute: async (context) => {
     try {
-      const workflows = await getWorkflows();
+      const workflows = await getWorkflows(context.abortSignal);
       return {
         data: workflows.map((workflow) => ({
           id: workflow.id,

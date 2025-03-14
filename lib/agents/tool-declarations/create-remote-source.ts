@@ -2,7 +2,7 @@ import 'server-only';
 import { z } from 'zod';
 
 import { createToolDefinition } from '../tool-declaration';
-import { createRemoteSource } from '../automagik';
+import { createRemoteSource } from '../../services/automagik';
 import { InternalToolName } from './client';
 
 export const createRemoteSourceTool = createToolDefinition({
@@ -15,14 +15,14 @@ export const createRemoteSourceTool = createToolDefinition({
     url: z.string().url(),
     apiKey: z.string(),
   }),
-  execute: async ({ url, apiKey }) => {
+  execute: async ({ url, apiKey }, context) => {
     try {
       const source = await createRemoteSource({
         url,
         api_key: apiKey,
         source_type: 'langflow',
         status: 'activate',
-      });
+      }, context.abortSignal);
 
       return { data: source, error: null };
     } catch (error) {

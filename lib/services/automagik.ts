@@ -1,7 +1,5 @@
 import 'server-only';
-import { z } from 'zod';
-import { createToolDefinition } from './tool-declaration';
-import type { ExecutionResult, FlowData, Schedule, Task } from './types';
+import type { FlowData, Schedule, Task } from './types';
 
 const AUTOMAGIK_URL = process.env.AUTOMAGIK_URL || '';
 const AUTOMAGIK_API_KEY = process.env.AUTOMAGIK_API_KEY || '';
@@ -20,12 +18,15 @@ const AUTOMAGIK_HEADERS = {
   accept: 'application/json',
 };
 
-export async function createRemoteSource(params: {
-  url: string;
-  api_key: string;
-  source_type: string;
-  status: string;
-}) {
+export async function createRemoteSource(
+  params: {
+    url: string;
+    api_key: string;
+    source_type: string;
+    status: string;
+  },
+  abortSignal: AbortSignal,
+) {
   if (!checkAutomagikCredentials()) {
     return null;
   }
@@ -34,12 +35,16 @@ export async function createRemoteSource(params: {
     method: 'POST',
     headers: AUTOMAGIK_HEADERS,
     body: JSON.stringify(params),
+    signal: abortSignal,
   });
 
   return await response.json();
 }
 
-export async function deleteRemoteSource(sourceId: string) {
+export async function deleteRemoteSource(
+  sourceId: string,
+  abortSignal: AbortSignal,
+) {
   if (!checkAutomagikCredentials()) {
     return null;
   }
@@ -47,12 +52,13 @@ export async function deleteRemoteSource(sourceId: string) {
   const response = await fetch(`${AUTOMAGIK_URL}/api/v1/sources/${sourceId}/`, {
     method: 'DELETE',
     headers: AUTOMAGIK_HEADERS,
+    signal: abortSignal,
   });
 
   return await response.json();
 }
 
-export async function getRemoteSources() {
+export async function getRemoteSources(abortSignal: AbortSignal) {
   if (!checkAutomagikCredentials()) {
     return [];
   }
@@ -60,13 +66,14 @@ export async function getRemoteSources() {
   const response = await fetch(`${AUTOMAGIK_URL}/api/v1/sources/`, {
     method: 'GET',
     headers: AUTOMAGIK_HEADERS,
+    signal: abortSignal,
   });
 
   const data = await response.json();
   return data;
 }
 
-export async function getRemoteWorkflows() {
+export async function getRemoteWorkflows(abortSignal: AbortSignal) {
   if (!checkAutomagikCredentials()) {
     return [];
   }
@@ -76,6 +83,7 @@ export async function getRemoteWorkflows() {
     {
       method: 'GET',
       headers: AUTOMAGIK_HEADERS,
+      signal: abortSignal,
     },
   );
 
@@ -83,7 +91,7 @@ export async function getRemoteWorkflows() {
   return data;
 }
 
-export async function getWorkflows() {
+export async function getWorkflows(abortSignal: AbortSignal) {
   if (!checkAutomagikCredentials()) {
     return [];
   }
@@ -91,6 +99,7 @@ export async function getWorkflows() {
   const response = await fetch(`${AUTOMAGIK_URL}/api/v1/workflows/`, {
     method: 'GET',
     headers: AUTOMAGIK_HEADERS,
+    signal: abortSignal,
   });
 
   const data: FlowData[] = await response.json();
@@ -103,6 +112,7 @@ export async function syncWorkflow(
     input_component: string;
     output_component: string;
   },
+  abortSignal: AbortSignal,
 ) {
   if (!checkAutomagikCredentials()) {
     return null;
@@ -118,6 +128,7 @@ export async function syncWorkflow(
     {
       method: 'POST',
       headers: AUTOMAGIK_HEADERS,
+      signal: abortSignal,
     },
   );
 
@@ -125,7 +136,11 @@ export async function syncWorkflow(
   return data;
 }
 
-export async function runWorkflow(workflowId: string, inputValue: string) {
+export async function runWorkflow(
+  workflowId: string,
+  inputValue: string,
+  abortSignal: AbortSignal,
+) {
   if (!checkAutomagikCredentials()) {
     return null;
   }
@@ -136,6 +151,7 @@ export async function runWorkflow(workflowId: string, inputValue: string) {
       method: 'POST',
       headers: AUTOMAGIK_HEADERS,
       body: JSON.stringify(inputValue),
+      signal: abortSignal,
     },
   );
 
@@ -143,12 +159,15 @@ export async function runWorkflow(workflowId: string, inputValue: string) {
   return data;
 }
 
-export async function createSchedule(params: {
-  workflow_id: string;
-  input_value: string;
-  schedule_type: 'interval' | 'cron';
-  schedule_expr: string;
-}) {
+export async function createSchedule(
+  params: {
+    workflow_id: string;
+    input_value: string;
+    schedule_type: 'interval' | 'cron';
+    schedule_expr: string;
+  },
+  abortSignal: AbortSignal,
+) {
   if (!checkAutomagikCredentials()) {
     console.error('Missing credentials for Automagik');
     return null;
@@ -158,13 +177,17 @@ export async function createSchedule(params: {
     method: 'POST',
     headers: AUTOMAGIK_HEADERS,
     body: JSON.stringify(params),
+    signal: abortSignal,
   });
 
   const data: Schedule = await response.json();
   return data;
 }
 
-export async function enableSchedule(scheduleId: string) {
+export async function enableSchedule(
+  scheduleId: string,
+  abortSignal: AbortSignal,
+) {
   if (!checkAutomagikCredentials()) {
     return null;
   }
@@ -174,6 +197,7 @@ export async function enableSchedule(scheduleId: string) {
     {
       method: 'POST',
       headers: AUTOMAGIK_HEADERS,
+      signal: abortSignal,
     },
   );
 
@@ -181,7 +205,10 @@ export async function enableSchedule(scheduleId: string) {
   return data;
 }
 
-export async function disableSchedule(scheduleId: string) {
+export async function disableSchedule(
+  scheduleId: string,
+  abortSignal: AbortSignal,
+) {
   if (!checkAutomagikCredentials()) {
     return null;
   }
@@ -191,6 +218,7 @@ export async function disableSchedule(scheduleId: string) {
     {
       method: 'POST',
       headers: AUTOMAGIK_HEADERS,
+      signal: abortSignal,
     },
   );
 
@@ -198,7 +226,10 @@ export async function disableSchedule(scheduleId: string) {
   return data;
 }
 
-export async function deleteSchedule(scheduleId: string) {
+export async function deleteSchedule(
+  scheduleId: string,
+  abortSignal: AbortSignal,
+) {
   if (!checkAutomagikCredentials()) {
     return null;
   }
@@ -208,13 +239,14 @@ export async function deleteSchedule(scheduleId: string) {
     {
       method: 'DELETE',
       headers: AUTOMAGIK_HEADERS,
+      signal: abortSignal,
     },
   );
 
   return await response.json();
 }
 
-export async function getSchedules() {
+export async function getSchedules(abortSignal: AbortSignal) {
   if (!checkAutomagikCredentials()) {
     return [];
   }
@@ -222,13 +254,14 @@ export async function getSchedules() {
   const response = await fetch(`${AUTOMAGIK_URL}/api/v1/schedules/`, {
     method: 'GET',
     headers: AUTOMAGIK_HEADERS,
+    signal: abortSignal,
   });
 
   const data: Schedule[] = await response.json();
   return data;
 }
 
-export async function getTasks() {
+export async function getTasks(abortSignal: AbortSignal) {
   if (!checkAutomagikCredentials()) {
     return [];
   }
@@ -236,49 +269,9 @@ export async function getTasks() {
   const response = await fetch(`${AUTOMAGIK_URL}/api/v1/tasks/`, {
     method: 'GET',
     headers: AUTOMAGIK_HEADERS,
+    signal: abortSignal,
   });
 
   const data: Task[] = await response.json();
   return data;
-}
-
-export function createChatFlowTool(
-  flowId: string,
-  {
-    name,
-    verboseName,
-    description,
-    visibility = 'public',
-  }: {
-    name: string;
-    verboseName: string;
-    description: string;
-    visibility?: 'private' | 'public';
-  },
-) {
-  return createToolDefinition({
-    name,
-    verboseName,
-    description,
-    visibility,
-    namedRefinements: undefined,
-    parameters: z.object({
-      inputValue: z.string(),
-    }),
-    execute: async ({ inputValue }): Promise<ExecutionResult> => {
-      try {
-        const result = await runWorkflow(flowId, inputValue);
-
-        return {
-          result: result,
-          content: 'Flow executed successfully',
-        };
-      } catch (error) {
-        return {
-          result: null,
-          content: 'Failed to execute flow',
-        };
-      }
-    },
-  });
 }

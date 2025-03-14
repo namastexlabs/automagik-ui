@@ -1,8 +1,9 @@
 import 'server-only';
 
+import { getTasks } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { getTasks } from '../automagik';
 
 export const listTasksTool = createToolDefinition({
   name: InternalToolName.listTasks,
@@ -11,9 +12,9 @@ export const listTasksTool = createToolDefinition({
   visibility: 'public',
   namedRefinements: undefined,
   parameters: undefined,
-  execute: async () => {
+  execute: async (context) => {
     try {
-      const data = await getTasks();
+      const data = await getTasks(context.abortSignal);
       return { data, error: null };
     } catch (error) {
       console.error(error);

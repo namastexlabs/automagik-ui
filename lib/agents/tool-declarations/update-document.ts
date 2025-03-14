@@ -1,18 +1,19 @@
 import 'server-only';
 import { z } from 'zod';
 import {
+  convertToCoreMessages,
   experimental_generateImage,
   smoothStream,
   streamObject,
   streamText,
 } from 'ai';
 
-import { getDocumentById, saveDocument } from '@/lib/db/queries';
 import { accessModel } from '@/lib/ai/models';
 import { getImageModel, getModel } from '@/lib/ai/models.server';
 import { updateDocumentPrompt } from '@/lib/ai/prompts';
 import { getMessageFile, saveMessageFile } from '@/lib/services/minio';
 import { validateUUID } from '@/lib/utils';
+import { createDocument, getDocument } from '@/lib/repositories/document';
 
 import type { DocumentExecuteReturn } from '../types';
 import { createToolDefinition } from '../tool-declaration';
@@ -42,14 +43,17 @@ export const updateDocumentTool = createToolDefinition({
       .describe('The ID of the document to update'),
     description: z
       .string()
-      .describe('The description of changes that need to be made'),
+      .describe(
+        'The description of changes, including the parts that need to be added, removed, or modified, new data, etc.',
+      ),
   }),
   execute: async (
     { id, description },
     context,
   ): Promise<DocumentExecuteReturn> => {
-    const { dataStream, userId, agent, chat } = context;
-    const document = await getDocumentById({ id });
+    const { dataStream, userId, agent, chat, userMessage, abortSignal } =
+      context;
+    const document = await getDocument(id, userId);
 
     if (!document) {
       return {
@@ -65,12 +69,26 @@ export const updateDocumentTool = createToolDefinition({
       content: document.title,
     });
 
+    const newTextPart = {
+      type: 'text',
+      text: `Current content:\n\n${currentContent}\n\nChange the following:\n\n${description}`,
+    } as const;
+
+    const messages = convertToCoreMessages([
+      {
+        ...userMessage,
+        content: `${userMessage.content}\n\n${newTextPart.text}`,
+        parts: [...(userMessage.parts ?? []), newTextPart],
+      },
+    ]);
+
     if (document.kind === 'text') {
       const { fullStream } = streamText({
         model: getModel(...accessModel('openai', 'gpt-4o-mini')),
-        system: updateDocumentPrompt(currentContent, 'text'),
-        experimental_transform: smoothStream({ chunking: 'line' }),
-        prompt: description,
+        system: updateDocumentPrompt('text'),
+        experimental_transform: smoothStream({ chunking: 'word' }),
+        messages,
+        abortSignal,
         providerOptions: {
           openai: {
             prediction: {
@@ -109,8 +127,9 @@ export const updateDocumentTool = createToolDefinition({
     } else if (document.kind === 'code') {
       const { fullStream } = streamObject({
         model: getModel(...accessModel('openai', 'gpt-4o-mini')),
-        system: updateDocumentPrompt(currentContent, 'code'),
-        prompt: description,
+        system: updateDocumentPrompt('code'),
+        messages,
+        abortSignal,
         schema: z.object({
           code: z.string(),
         }),
@@ -156,8 +175,9 @@ export const updateDocumentTool = createToolDefinition({
     } else if (document.kind === 'image') {
       const { image } = await experimental_generateImage({
         model: getImageModel('openai', 'dall-e-3'),
-        prompt: description,
+        prompt: messages.map((m) => m.content).join('\n\n'),
         n: 1,
+        abortSignal,
       });
 
       const name = await saveMessageFile(
@@ -176,8 +196,9 @@ export const updateDocumentTool = createToolDefinition({
     } else if (document.kind === 'sheet') {
       const { fullStream } = streamObject({
         model: getModel(...accessModel('openai', 'gpt-4o-mini')),
-        system: updateDocumentPrompt(currentContent, 'sheet'),
-        prompt: description,
+        system: updateDocumentPrompt('sheet'),
+        messages,
+        abortSignal,
         schema: z.object({
           csv: z.string(),
         }),
@@ -214,13 +235,15 @@ export const updateDocumentTool = createToolDefinition({
       dataStream.writeData({ type: 'finish', content: '' });
     }
 
-    await saveDocument({
-      id,
-      userId,
-      title: document.title,
-      content: draftText,
-      kind: document.kind,
-    });
+    if (!abortSignal.aborted) {
+      await createDocument({
+        id,
+        userId,
+        title: document.title,
+        content: draftText,
+        kind: document.kind,
+      });
+    }
 
     return {
       id,

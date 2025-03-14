@@ -3,15 +3,16 @@ import { z } from 'zod';
 import { streamObject } from 'ai';
 
 import { generateUUID, validateUUID } from '@/lib/utils';
-import { getDocumentById, saveSuggestions } from '@/lib/db/queries';
 import type { Suggestion } from '@/lib/db/schema';
+import { accessModel } from '@/lib/ai/models';
+import { getModel } from '@/lib/ai/models.server';
+import { suggestionPrompt } from '@/lib/ai/prompts';
+import { getDocument } from '@/lib/repositories/document';
+import { createSuggestions } from '@/lib/repositories/suggestion';
 
 import type { DocumentExecuteReturn } from '../types';
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { accessModel } from '@/lib/ai/models';
-import { getModel } from '@/lib/ai/models.server';
-import { suggestionPrompt } from '@/lib/ai/prompts';
 
 const namedRefinements = {
   validateUUID: (id: string, ctx: z.RefinementCtx) => {
@@ -37,16 +38,16 @@ export const requestSuggestionsTool = createToolDefinition({
       .describe('The ID of the document to request edits'),
   }),
   execute: async ({ documentId }, context): Promise<DocumentExecuteReturn> => {
-    const { dataStream, userId } = context;
-    const document = await getDocumentById({ id: documentId });
+    const { dataStream, userId, abortSignal } = context;
+    const document = await getDocument(documentId, userId);
 
     if (!document) {
       return {
         error: 'Document not found',
       };
     }
-    // biome-ignore lint/style/noNonNullAssertion: <explanation>
-    const content = document.content!;
+
+    const content = document.content as string;
 
     const suggestions: Array<
       Omit<Suggestion, 'userId' | 'createdAt' | 'documentCreatedAt'>
@@ -57,6 +58,7 @@ export const requestSuggestionsTool = createToolDefinition({
       system: suggestionPrompt,
       prompt: content,
       output: 'array',
+      abortSignal,
       schema: z.object({
         originalSentence: z.string().describe('The original sentence'),
         suggestedSentence: z.string().describe('The suggested sentence'),
@@ -82,14 +84,16 @@ export const requestSuggestionsTool = createToolDefinition({
       suggestions.push(suggestion);
     }
 
-    await saveSuggestions({
-      suggestions: suggestions.map((suggestion) => ({
-        ...suggestion,
-        userId,
-        createdAt: new Date(),
-        documentCreatedAt: document.createdAt,
-      })),
-    });
+    if (!abortSignal.aborted) {
+      await createSuggestions(
+        suggestions.map((suggestion) => ({
+          ...suggestion,
+          userId,
+          createdAt: new Date(),
+          documentCreatedAt: document.createdAt,
+        })),
+      );
+    }
 
     return {
       id: documentId,

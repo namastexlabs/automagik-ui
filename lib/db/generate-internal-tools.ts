@@ -6,7 +6,6 @@ import {
   type InternalToolName,
   internalToolNames,
 } from '@/lib/agents/tool-declarations/client';
-import { INTERNAL_TOOL_MAP } from '@/lib/agents/tool-declarations';
 
 config({
   path: '.env.local',
@@ -19,7 +18,9 @@ const run = async () => {
 
   // Load queries only after .env is loaded
   const { getInternalTools, updateTool, createTool, deleteToolById } =
-    await import('./queries');
+    await import('./queries/tool');
+
+  const { INTERNAL_TOOL_MAP } = await import('@/lib/agents/tool-declarations');
 
   console.log('⏳ Upserting internal tools...');
 
@@ -44,9 +45,11 @@ const run = async () => {
       verboseName: internalTool.verboseName,
       description: internalTool.description,
       visibility: internalTool.visibility,
-      parameters: internalTool.parameters && zerialize(internalTool.parameters, {
-        superRefinements: internalTool.namedRefinements,
-      }),
+      parameters:
+        internalTool.parameters &&
+        zerialize(internalTool.parameters, {
+          superRefinements: internalTool.namedRefinements,
+        }),
       source: 'internal',
       data: {},
     } as const;

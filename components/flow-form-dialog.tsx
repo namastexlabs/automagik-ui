@@ -6,10 +6,10 @@ import { toast } from 'sonner';
 import { PlusIcon } from 'lucide-react';
 import { useSWRConfig } from 'swr';
 
-import { type FlowToolSchema, saveFlowTool } from '@/app/(chat)/actions';
-import type { ActionStateData } from '@/app/types';
-import type { ClientTool } from '@/lib/data';
+import { saveFlowToolAction } from '@/app/(chat)/actions';
+import type { ToolDTO } from '@/lib/data/tool';
 import type { ToolData } from '@/lib/agents/types';
+import { DataStatus } from '@/lib/data';
 
 import {
   Dialog,
@@ -42,13 +42,13 @@ export function FlowFormDialog({
   open,
   setOpen,
 }: {
-  tool?: Omit<ClientTool, 'data'> & { data: ToolData<'automagik'> };
-  onCreate: (tool: ClientTool) => void;
+  tool?: Omit<ToolDTO, 'data'> & { data: ToolData<'automagik'> };
+  onCreate: (tool: ToolDTO) => void;
   open: boolean;
   setOpen: (isOpen: boolean) => void;
 }) {
   const formId = useId();
-  const [errors, setErrors] = useState<{ [key: string]: string }>({});
+  const [errors, setErrors] = useState<{ [key: string]: string[] }>({});
   const [isCloseAttempt, setCloseAttempt] = useState(false);
   const [visibility, setVisibility] = useState(tool?.visibility ?? 'public');
   const [selectedFlow, setSelectedFlow] = useState(tool?.data.flowId || null);
@@ -57,34 +57,18 @@ export function FlowFormDialog({
   const { mutate } = useSWRConfig();
 
   const [, formAction] = useActionState<
-    ActionStateData<ClientTool, FlowToolSchema>,
+    Awaited<ReturnType<typeof saveFlowToolAction>>,
     FormData
   >(
     async (state, formData) => {
-      const newState = await saveFlowTool(state, formData);
+      setErrors({});
+      const newState = await saveFlowToolAction(state, formData);
 
-      if (newState.status === 'failed') {
-        toast.error('Unexpected error, please try again!');
-      } else if (newState.status === 'invalid_data') {
-        toast.error('Invalid data, please try again!');
-        setErrors(
-          Object.entries(newState.errors || {}).reduce(
-            (acc, [key, value]) => {
-              if (Object.hasOwn(value, '_errors')) {
-                acc[key] = (value as { _errors: string[] })._errors[0];
-              } else {
-                acc[key] = (value as string[])[0];
-              }
-              return acc;
-            },
-            {} as { [key: string]: string },
-          ),
-        );
-      } else if (newState.status === 'success' && newState.data) {
+      if (newState.status === DataStatus.Success && newState.data) {
         onCreate(newState.data);
         toast.success('Tool created successfully');
 
-        mutate<ClientTool[], ClientTool>('/api/tools', newState.data, {
+        mutate<ToolDTO[], ToolDTO>('/api/tools', newState.data, {
           populateCache: (data, tools = []) => {
             const hasTool = tools.some((tool) => tool.id === data.id);
             if (hasTool) {
@@ -101,11 +85,20 @@ export function FlowFormDialog({
           revalidate: false,
         });
         setOpen(false);
+
+        return newState;
+      } else if (newState.errors) {
+        const { _errors, ...errors } = newState.errors;
+        setErrors(errors);
+
+        if (_errors) {
+          toast.error(_errors[0]);
+        }
       }
 
       return newState;
     },
-    { status: 'idle', data: null },
+    { status: DataStatus.Success, data: null },
   );
 
   const toCamelCase = (str: string) => {
@@ -175,7 +168,7 @@ export function FlowFormDialog({
                 />
                 {!!errors.verboseName && (
                   <span className="text-sm text-destructive">
-                    {errors.verboseName}
+                    {[...errors.verboseName, ...errors.name].join(', ')}
                   </span>
                 )}
               </div>
@@ -193,7 +186,7 @@ export function FlowFormDialog({
                   placeholder="Use this tool when..."
                   required
                   onKeyDown={(e) => {
-                    if (e.key === "Enter" && !e.shiftKey) {
+                    if (e.key === 'Enter' && !e.shiftKey) {
                       e.stopPropagation();
                     }
                   }}

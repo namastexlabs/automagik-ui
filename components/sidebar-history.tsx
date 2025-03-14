@@ -48,7 +48,7 @@ import type { Chat } from '@/lib/db/schema';
 import { fetcher } from '@/lib/utils';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useCurrentAgentTab } from '@/contexts/agent-tabs';
-import { deleteChat } from '@/app/(chat)/actions';
+import { deleteChatAction } from '@/app/(chat)/actions';
 import { useUser } from '@/contexts/user';
 
 type GroupedChats = {
@@ -174,32 +174,22 @@ export function SidebarHistory() {
   const router = useRouter();
 
   const handleDelete = async () => {
-    let status: 'success' | 'failed' | undefined;
     const loadingToastId = toast.loading('Deleting chat...');
-    try {
-      const payload = await deleteChat({
-        id: deleteId as string,
-      });
+    const response = await deleteChatAction(deleteId as string);
 
-      status = payload.status;
-    } finally {
-      toast.dismiss(loadingToastId);
+    toast.dismiss(loadingToastId);
 
-      if (status === 'success') {
-        toast.success('Chat deleted successfully');
+    if (response.errors) {
+      toast.error(response.errors?._errors?.[0] || 'Failed to delete chat');
+      return;
+    }
 
-        if (deleteId === id) {
-          router.push('/');
-        }
+    toast.success('Chat deleted successfully');
 
-        mutate((history = []) =>
-          history.filter((chat) => chat.id !== deleteId),
-        );
-
-        setShowDeleteDialog(false);
-      } else if (status === 'failed') {
-        toast.error('Failed to delete chat');
-      }
+    mutate((history = []) => history.filter((chat) => chat.id !== deleteId));
+    setShowDeleteDialog(false);
+    if (deleteId === id) {
+      router.push('/');
     }
   };
 

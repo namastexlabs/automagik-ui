@@ -5,10 +5,9 @@ import { AlertCircle } from 'lucide-react';
 import type { Vote } from '@/lib/db/schema';
 import { useChat, useChatMessages } from '@/contexts/chat';
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
+import { useScrollToBottom } from '@/hooks/use-scroll-to-bottom';
 
 import { PreviewMessage } from './message';
-import { useScrollToBottom } from './use-scroll-to-bottom';
-
 interface BlockMessagesProps {
   votes: Array<Vote> | undefined;
 }
@@ -16,10 +15,13 @@ interface BlockMessagesProps {
 export function BlockMessages({ votes }: BlockMessagesProps) {
   const { messages } = useChatMessages();
   const { chat, isLoading, isReadOnly, error } = useChat();
-  const messagesEndRef = useScrollToBottom<HTMLDivElement>(messages);
+  const containerRef = useScrollToBottom<HTMLDivElement>(messages, isLoading);
 
   return (
-    <div className="flex flex-col max-w-full gap-4 h-full items-center overflow-y-scroll px-4 pt-20">
+    <div
+      className="flex flex-col max-w-full gap-4 h-full items-center overflow-y-auto px-4 pt-20 pb-4"
+      ref={containerRef}
+    >
       {messages.map((message, index) => (
         <PreviewMessage
           chatId={chat?.id}
@@ -46,10 +48,6 @@ export function BlockMessages({ votes }: BlockMessagesProps) {
           </Alert>
         </div>
       )}
-      <div
-        ref={messagesEndRef}
-        className="shrink-0 min-w-[24px] min-h-[24px]"
-      />
     </div>
   );
 }

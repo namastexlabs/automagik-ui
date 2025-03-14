@@ -2,13 +2,9 @@ import 'server-only';
 import { z } from 'zod';
 import dedent from 'dedent';
 
-import {
-  getAllDynamicBlocksByName,
-  updateDynamicBlock,
-} from '@/lib/db/queries';
-
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
+import { updateMemories } from '@/lib/repositories/dynamic-block';
 
 export const saveMemoriesTool = createToolDefinition({
   name: InternalToolName.saveMemories,
@@ -34,27 +30,10 @@ export const saveMemoriesTool = createToolDefinition({
       z.object({ name: z.string().trim(), content: z.string().trim() }),
     ),
   }),
-  execute: async ({ memories }) => {
-    const dynamicBlocks = await getAllDynamicBlocksByName(
-      memories.map(({ name }) => name),
-    );
-
-    const result: { name: string }[] = [];
-    for (const { name, userId } of dynamicBlocks) {
-      const memory = memories.find((m) => m.name === name);
-      if (!memory) {
-        continue;
-      }
-
-      await updateDynamicBlock({
-        userId,
-        name,
-        content: memory.content,
-      });
-
-      result.push({ name });
+  execute: async ({ memories }, context) => {
+    if (context.abortSignal.aborted) {
+      const result = await updateMemories(memories, context.agent);
+      return { result, content: 'Memory Updated' };
     }
-
-    return { result, content: 'Memory Updated' };
   },
 });

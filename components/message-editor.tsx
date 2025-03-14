@@ -9,7 +9,7 @@ import {
   useState,
 } from 'react';
 
-import { deleteTrailingMessages } from '@/app/(chat)/actions';
+import { deleteTrailingMessagesAction } from '@/app/(chat)/actions';
 
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
@@ -81,9 +81,15 @@ export function MessageEditor({ message, setMode }: MessageEditorProps) {
 
             setIsSubmitting(true);
 
-            await deleteTrailingMessages({
-              id: message.id,
-            });
+            const response = await deleteTrailingMessagesAction(message.id);
+
+            if (response.errors) {
+              toast.error(
+                response.errors?._errors?.[0] ||
+                  'Failed to delete trailing messages',
+              );
+              return;
+            }
 
             const index = messages.findIndex((m) => m.id === message.id);
 
@@ -97,11 +103,16 @@ export function MessageEditor({ message, setMode }: MessageEditorProps) {
                 }
                 return part;
               });
-              const updatedMessage = { ...message, content: draftContent, parts };
+              const updatedMessage = {
+                ...message,
+                content: draftContent,
+                parts,
+              };
 
               setMessages([...messages.slice(0, index), updatedMessage]);
             }
 
+            setIsSubmitting(false);
             setMode('view');
             reload();
           }}

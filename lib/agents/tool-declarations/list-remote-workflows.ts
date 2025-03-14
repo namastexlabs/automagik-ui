@@ -1,9 +1,11 @@
 import 'server-only';
 
 import { z } from 'zod';
+
+import { getRemoteWorkflows } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
 import { InternalToolName } from './client';
-import { getRemoteWorkflows } from '../automagik';
 
 export const listRemoteWorkflowsTool = createToolDefinition({
   name: InternalToolName.listRemoteWorkflows,
@@ -14,9 +16,9 @@ export const listRemoteWorkflowsTool = createToolDefinition({
   parameters: z.object({
     page: z.number().default(0),
   }),
-  execute: async ({ page }) => {
+  execute: async ({ page }, context) => {
     try {
-      const workflows = await getRemoteWorkflows();
+      const workflows = await getRemoteWorkflows(context.abortSignal);
       return {
         page,
         data: {

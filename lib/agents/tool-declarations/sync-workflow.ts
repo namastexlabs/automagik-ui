@@ -1,8 +1,9 @@
 import 'server-only';
 import { z } from 'zod';
 
+import { syncWorkflow } from '@/lib/services/automagik';
+
 import { createToolDefinition } from '../tool-declaration';
-import { syncWorkflow } from '../automagik';
 import { InternalToolName } from './client';
 
 export const syncWorkflowTool = createToolDefinition({
@@ -16,7 +17,10 @@ export const syncWorkflowTool = createToolDefinition({
     inputComponentId: z.string(),
     outputComponentId: z.string(),
   }),
-  execute: async ({ remoteWorkflowId, inputComponentId, outputComponentId }) => {
+  execute: async (
+    { remoteWorkflowId, inputComponentId, outputComponentId },
+    context,
+  ) => {
     try {
       const data = await syncWorkflow(
         remoteWorkflowId,
@@ -24,6 +28,7 @@ export const syncWorkflowTool = createToolDefinition({
           input_component: inputComponentId,
           output_component: outputComponentId,
         },
+        context.abortSignal,
       );
 
       if (data) {
