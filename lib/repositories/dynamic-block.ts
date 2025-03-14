@@ -14,12 +14,22 @@ export async function getOrCreateDynamicBlocks(
   blocks: Array<{ name: string; visibility: 'private' | 'public' }>,
 ): Promise<DynamicBlock[]> {
   const existingBlocks = await getAllDynamicBlocksByName(
-    blocks.map(({ name }) => name),
+    blocks.reduce((acc, { name, visibility }) => {
+      if (visibility === 'public') {
+        acc.push(name);
+      }
+      return acc;
+    }, [] as string[]),
     'public',
   );
 
   const privateBlocks = await getAllDynamicBlocksByName(
-    blocks.map(({ name }) => name),
+    blocks.reduce((acc, { name, visibility }) => {
+      if (visibility === 'private') {
+        acc.push(name);
+      }
+      return acc;
+    }, [] as string[]),
     'private',
     userId,
   );
