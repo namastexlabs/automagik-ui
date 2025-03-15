@@ -104,8 +104,8 @@ export function ChatProvider({
   const { mutate } = useSWRConfig();
   const router = useRouter();
 
-  const _input = isMounted.current ? input : '';
   const shouldSubmit = !!searchParams.get('submit');
+  const _input = isMounted.current ? input : '';
 
   const setLocalStorageInput = useCallback((value: string) => {
     localStorage.setItem('input', value);
@@ -158,8 +158,6 @@ export function ChatProvider({
               return [data, ...history];
             },
           });
-
-          router.push(`/chat/${data.id}?submit=true`);
         }
 
         return data;
@@ -167,7 +165,7 @@ export function ChatProvider({
 
       return chat;
     },
-    [chat, router, mutate, setProgress, stopProgress],
+    [chat, mutate, setProgress, stopProgress],
   );
 
   const reloadMessage = useCallback(() => {
@@ -198,7 +196,7 @@ export function ChatProvider({
       currentAgents: AgentDTO[],
       currentTabs: string[],
     ) => {
-      if (content.trim().length === 0 || isSubmitting) {
+      if (content.trim().length === 0) {
         return;
       }
 
@@ -227,7 +225,13 @@ export function ChatProvider({
       setIsSubmitting(true);
       try {
         const data = await getOrCreateChat([message], currentAgent);
-        if (!data || !chat) {
+        if (!data) {
+          setIsSubmitting(false);
+          return;
+        }
+
+        if (!chat) {
+          router.push(`/chat/${data.id}?submit=true`);
           return;
         }
 
@@ -250,12 +254,12 @@ export function ChatProvider({
         if (shouldSubmit) {
           router.replace(`/chat/${data.id}`);
         }
-      } finally {
+        setIsSubmitting(false);
+      } catch {
         setIsSubmitting(false);
       }
     },
     [
-      isSubmitting,
       getOrCreateChat,
       setInput,
       setAttachments,
