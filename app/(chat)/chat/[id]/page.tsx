@@ -10,10 +10,6 @@ import {
   DEFAULT_PROVIDER,
   isModelValid,
 } from '@/lib/ai/models';
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/app-sidebar';
-import { AgentTabsProvider } from '@/components/agent-tabs-provider';
-import { UserProvider } from '@/components/user-provider';
 import { MODEL_COOKIE_KEY, PROVIDER_COOKIE_KEY } from '@/lib/ai/cookies';
 import { getInitialAgents } from '@/lib/data/agent';
 import { getChat } from '@/lib/data/chat';
@@ -60,7 +56,6 @@ export default async function Page({
     currentAgent?.userId !== session.user.id;
 
   const cookieStore = await cookies();
-  const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
   const providerFromCookie = cookieStore.get(PROVIDER_COOKIE_KEY)
     ?.value as keyof ChatModel;
   const modelIdFromCookie = cookieStore.get(MODEL_COOKIE_KEY)
@@ -74,28 +69,14 @@ export default async function Page({
       : [DEFAULT_PROVIDER, DEFAULT_CHAT_MODEL];
 
   return (
-    <UserProvider
-      user={{
-        id: session.user.id,
-        email: session.user.email,
-      }}
-    >
-      <AgentTabsProvider>
-        <SidebarProvider defaultOpen={!isCollapsed}>
-          <AppSidebar />
-          <SidebarInset>
-            <Chat
-              chat={chat}
-              initialAgents={agents}
-              initialMessages={messages}
-              provider={provider}
-              modelId={modelId}
-              selectedVisibilityType={chat.visibility}
-              isReadonly={!isChatOwner || isAgentReadOnly}
-            />
-          </SidebarInset>
-        </SidebarProvider>
-      </AgentTabsProvider>
-    </UserProvider>
+    <Chat
+      chat={chat}
+      initialAgents={agents}
+      initialMessages={messages}
+      provider={provider}
+      modelId={modelId}
+      selectedVisibilityType={chat.visibility}
+      isReadonly={!isChatOwner || isAgentReadOnly}
+    />
   );
 }
