@@ -61,6 +61,11 @@ export function FlowFormDialog({
     FormData
   >(
     async (state, formData) => {
+      if (!selectedFlow) {
+        setErrors((state) => ({ ...state, flowId: ['Flow is required'] }));
+        return state;
+      }
+
       setErrors({});
       const newState = await saveFlowToolAction(state, formData);
 
@@ -87,11 +92,13 @@ export function FlowFormDialog({
         setOpen(false);
 
         return newState;
-      } else if (newState.errors) {
+      }
+
+      if (newState.errors) {
         const { _errors, ...errors } = newState.errors;
         setErrors(errors);
 
-        if (_errors) {
+        if (_errors && _errors.length > 0) {
           toast.error(_errors[0]);
         }
       }
@@ -166,9 +173,9 @@ export function FlowFormDialog({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
-                {!!errors.verboseName && (
+                {!!errors.name && (
                   <span className="text-sm text-destructive">
-                    {[...errors.verboseName, ...errors.name].join(', ')}
+                    {errors.name.join(', ')}
                   </span>
                 )}
               </div>
@@ -204,6 +211,11 @@ export function FlowFormDialog({
                   selected={selectedFlow}
                   onChange={onChange}
                 />
+                {!!errors.flowId && (
+                  <span className="text-sm text-destructive">
+                    {errors.flowId[0]}
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex justify-end mt-3">

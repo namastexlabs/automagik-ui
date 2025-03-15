@@ -1,5 +1,6 @@
 import { type ClassValue, clsx } from 'clsx';
 import { twMerge } from 'tailwind-merge';
+import { toast } from 'sonner';
 
 import type { Document } from '@/lib/db/schema';
 
@@ -7,23 +8,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
-interface FetcherError extends Error {
-  info: string;
-  status: number;
-}
-
 export const fetcher = async (url: string) => {
   const res = await fetch(url);
 
   if (!res.ok) {
-    const error = new Error(
-      'An error occurred while fetching the data.',
-    ) as FetcherError;
+    const errors = await res.json();
 
-    error.info = await res.json();
-    error.status = res.status;
+    if (errors._errors) {
+      toast.error(errors._errors[0]);
+    }
 
-    throw error;
+    throw new Error('An error occurred while fetching the data.');
   }
 
   return res.json();

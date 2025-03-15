@@ -156,12 +156,11 @@ export function AgentListDialog({
       {
         loading: 'Duplicating agent...',
         success: (response) => {
-          const { data } = response;
+          const { data, errors } = response;
 
-          if (response.errors) {
-            toast.error(
-              response.errors?._errors?.[0] || 'Failed to duplicate agent',
-            );
+          if (errors) {
+            console.log(errors);
+            toast.error(errors?._errors?.[0] || 'Failed to duplicate agent');
             return;
           }
 

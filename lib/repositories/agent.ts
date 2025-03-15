@@ -86,13 +86,9 @@ export async function createAgent({
       })),
     };
   } catch (error) {
-    if (isUniqueConstraintError(error) && error.column_name === 'name') {
-      throw new ConflictError(
-        `A ${visibility} agent with this name already exists`,
-        {
-          name: ['A agent with this name already exists'],
-        },
-      );
+    if (isUniqueConstraintError(error)) {
+      const message = `An ${visibility} agent with this name already exists`;
+      throw new ConflictError(message, { name: [message] });
     }
     throw error;
   }
@@ -159,13 +155,9 @@ export async function updateAgent({
         : [],
     };
   } catch (error) {
-    if (isUniqueConstraintError(error) && error.column_name === 'name') {
-      throw new ConflictError(
-        `A ${data.visibility} agent with this name already exists`,
-        {
-          name: ['A agent with this name already exists'],
-        },
-      );
+    if (isUniqueConstraintError(error)) {
+      const message = `An ${data.visibility} agent with this name already exists`;
+      throw new ConflictError(message, { name: [message] });
     }
     throw error;
   }
@@ -182,26 +174,31 @@ export async function duplicateAgent(
     throw new UnauthorizedError('Not authorized to duplicate this agent');
   }
 
-  const hasSameAgent = await findAgentByName(
-    agent.name,
-    userId,
-    agent.visibility,
-  );
-  if (hasSameAgent) {
-    throw new ConflictError('An agent with this name already exists');
-  }
+  try {
+    const newAgent = await createAgentTransaction({
+      name: agent.name,
+      systemPrompt: agent.systemPrompt,
+      userId,
+      visibility: 'private',
+      tools: agent.tools.map(({ tool }) => tool.id),
+      dynamicBlocks: agent.dynamicBlocks.map(
+        ({ dynamicBlock }) => dynamicBlock.id,
+      ),
+    });
 
-  return await createAgent({
-    name: agent.name,
-    systemPrompt: agent.systemPrompt,
-    userId,
-    visibility: 'private',
-    tools: agent.tools.map(({ tool }) => tool.id),
-    dynamicBlocks: agent.dynamicBlocks.map(({ dynamicBlock }) => ({
-      name: dynamicBlock.name,
-      visibility: dynamicBlock.visibility,
-    })),
-  });
+    return {
+      ...newAgent,
+      tools: agent.tools.map(({ tool }) => ({ tool })),
+      dynamicBlocks: agent.dynamicBlocks.map(({ dynamicBlock }) => ({
+        dynamicBlock,
+      })),
+    };
+  } catch (error) {
+    if (isUniqueConstraintError(error)) {
+      throw new ConflictError('Agent is already duplicated');
+    }
+    throw error;
+  }
 }
 
 export async function removeAgent(id: string, userId: string): Promise<void> {
