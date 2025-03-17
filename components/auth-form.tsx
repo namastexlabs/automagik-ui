@@ -44,15 +44,15 @@ export function AuthForm({
           <Label
             htmlFor="password"
             className="text-zinc-600 font-normal dark:text-zinc-400"
-        >
-          Password
-        </Label>
+          >
+            Password
+          </Label>
 
-        <Input
-          id="password"
-          name="password"
-          className="bg-muted text-md md:text-sm"
-          type="password"
+          <Input
+            id="password"
+            name="password"
+            className="bg-muted text-md md:text-sm"
+            type="password"
             required
           />
         </div>

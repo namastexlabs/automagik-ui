@@ -48,7 +48,6 @@ export function FlowFormDialog({
   setOpen: (isOpen: boolean) => void;
 }) {
   const formId = useId();
-  const [errors, setErrors] = useState<{ [key: string]: string[] }>({});
   const [isCloseAttempt, setCloseAttempt] = useState(false);
   const [visibility, setVisibility] = useState(tool?.visibility ?? 'public');
   const [selectedFlow, setSelectedFlow] = useState(tool?.data.flowId || null);
@@ -56,17 +55,19 @@ export function FlowFormDialog({
 
   const { mutate } = useSWRConfig();
 
-  const [, formAction] = useActionState<
+  const [{ errors = {} }, formAction] = useActionState<
     Awaited<ReturnType<typeof saveFlowToolAction>>,
     FormData
   >(
     async (state, formData) => {
       if (!selectedFlow) {
-        setErrors((state) => ({ ...state, flowId: ['Flow is required'] }));
-        return state;
+        return {
+          status: DataStatus.InvalidData,
+          data: null,
+          errors: { flowId: ['Flow is required'] },
+        };
       }
 
-      setErrors({});
       const newState = await saveFlowToolAction(state, formData);
 
       if (newState.status === DataStatus.Success && newState.data) {
@@ -95,8 +96,7 @@ export function FlowFormDialog({
       }
 
       if (newState.errors) {
-        const { _errors, ...errors } = newState.errors;
-        setErrors(errors);
+        const { _errors } = newState.errors;
 
         if (_errors && _errors.length > 0) {
           toast.error(_errors[0]);
