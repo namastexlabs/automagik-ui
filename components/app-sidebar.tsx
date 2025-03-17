@@ -1,6 +1,5 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import Link from 'next/link';
 import Image from 'next/image';
 
@@ -16,12 +15,15 @@ import {
   SidebarMenu,
   useSidebar,
 } from '@/components/ui/sidebar';
-import { Tooltip, TooltipContent, TooltipTrigger } from '@/components/ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from '@/components/ui/tooltip';
 import { useResolvedTheme } from '@/hooks/use-resolved-theme';
 
 export function AppSidebar() {
   const colorMode = useResolvedTheme();
-  const router = useRouter();
   const { setOpenMobile } = useSidebar();
 
   return (
@@ -58,11 +60,11 @@ export function AppSidebar() {
                   className="p-2 h-fit"
                   onClick={() => {
                     setOpenMobile(false);
-                    router.push('/');
-                    router.refresh();
                   }}
                 >
-                  <PlusIcon />
+                  <Link href="/">
+                    <PlusIcon />
+                  </Link>
                 </Button>
               </TooltipTrigger>
               <TooltipContent align="end">New Chat</TooltipContent>

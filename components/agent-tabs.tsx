@@ -2,6 +2,7 @@
 
 import { useCallback } from 'react';
 import { XIcon } from 'lucide-react';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useWindowSize } from 'usehooks-ts';
 import type { Attachment } from 'ai';
@@ -113,14 +114,11 @@ export function AgentTabs({
     <>
       {(!open || windowWidth < 768) && (
         <Button
+          asChild
           variant="outline"
           className="order-2 md:order-1 md:px-2 px-2 md:h-fit ml-auto md:ml-0"
-          onClick={() => {
-            router.push('/');
-            router.refresh();
-          }}
         >
-          New Chat <PlusIcon />
+          <Link href="/">New Chat <PlusIcon /></Link>
         </Button>
       )}
       <div className="flex order-4 items-center w-full overflow-x-auto">

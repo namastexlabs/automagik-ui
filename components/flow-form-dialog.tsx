@@ -48,7 +48,6 @@ export function FlowFormDialog({
   setOpen: (isOpen: boolean) => void;
 }) {
   const formId = useId();
-  const [errors, setErrors] = useState<{ [key: string]: string[] }>({});
   const [isCloseAttempt, setCloseAttempt] = useState(false);
   const [visibility, setVisibility] = useState(tool?.visibility ?? 'public');
   const [selectedFlow, setSelectedFlow] = useState(tool?.data.flowId || null);
@@ -56,12 +55,19 @@ export function FlowFormDialog({
 
   const { mutate } = useSWRConfig();
 
-  const [, formAction] = useActionState<
+  const [{ errors = {} }, formAction] = useActionState<
     Awaited<ReturnType<typeof saveFlowToolAction>>,
     FormData
   >(
     async (state, formData) => {
-      setErrors({});
+      if (!selectedFlow) {
+        return {
+          status: DataStatus.InvalidData,
+          data: null,
+          errors: { flowId: ['Flow is required'] },
+        };
+      }
+
       const newState = await saveFlowToolAction(state, formData);
 
       if (newState.status === DataStatus.Success && newState.data) {
@@ -87,11 +93,12 @@ export function FlowFormDialog({
         setOpen(false);
 
         return newState;
-      } else if (newState.errors) {
-        const { _errors, ...errors } = newState.errors;
-        setErrors(errors);
+      }
 
-        if (_errors) {
+      if (newState.errors) {
+        const { _errors } = newState.errors;
+
+        if (_errors && _errors.length > 0) {
           toast.error(_errors[0]);
         }
       }
@@ -166,9 +173,9 @@ export function FlowFormDialog({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
-                {!!errors.verboseName && (
+                {!!errors.name && (
                   <span className="text-sm text-destructive">
-                    {[...errors.verboseName, ...errors.name].join(', ')}
+                    {errors.name.join(', ')}
                   </span>
                 )}
               </div>
@@ -204,6 +211,11 @@ export function FlowFormDialog({
                   selected={selectedFlow}
                   onChange={onChange}
                 />
+                {!!errors.flowId && (
+                  <span className="text-sm text-destructive">
+                    {errors.flowId[0]}
+                  </span>
+                )}
               </div>
             </div>
             <div className="flex justify-end mt-3">

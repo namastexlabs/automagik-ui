@@ -2,15 +2,13 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useActionState, useState } from 'react';
-import { toast } from 'sonner';
+import { useActionState, useEffect, useState } from 'react';
 import { useProgress } from '@bprogress/next';
 
-import type { ActionStateStatus } from '@/app/types';
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
-
-import { login } from '../actions';
+import { createBrowserClient } from '@/lib/supabase/client';
+import { DataStatus } from '@/lib/data';
 
 export default function Page() {
   const router = useRouter();
@@ -18,23 +16,54 @@ export default function Page() {
 
   const [email, setEmail] = useState('');
 
-  const [, formAction] = useActionState<ActionStateStatus, FormData>(
-    async (state, formData) => {
-      const newState = await login(state, formData);
-      if (newState.status === 'failed') {
-        toast.error('Invalid credentials!');
-        stop();
-      } else if (newState.status === 'invalid_data') {
-        toast.error('Failed validating your submission!');
-        stop();
-      } else if (newState.status === 'success') {
+  useEffect(() => {
+    const checkSession = async () => {
+      const supabase = createBrowserClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
+
+      if (user) {
         router.replace('/');
       }
+    };
 
-      return newState;
+    checkSession();
+  }, [router]);
+
+  const [{ errors = {} }, formAction] = useActionState<
+    { status: DataStatus; errors?: { _errors?: string[] } },
+    FormData
+  >(
+    async (_, formData) => {
+      const supabase = createBrowserClient();
+      try {
+        const { error } = await supabase.auth.signInWithPassword({
+          email: formData.get('email') as string,
+          password: formData.get('password') as string,
+        });
+
+        if (error) {
+          stop();
+          return {
+            status: DataStatus.InvalidData,
+            errors: { _errors: [error.message] },
+          };
+        }
+
+        router.replace('/');
+
+        return { status: DataStatus.Success };
+      } catch (error) {
+        stop();
+        return {
+          status: DataStatus.Unexpected,
+          errors: { _errors: ['An unexpected error occurred'] },
+        };
+      }
     },
     {
-      status: 'idle',
+      status: DataStatus.Success,
     },
   );
 
@@ -54,6 +83,11 @@ export default function Page() {
           </p>
         </div>
         <AuthForm action={handleSubmit} defaultEmail={email}>
+          {errors._errors && (
+            <span className="text-sm text-destructive">
+              {errors._errors.join(', ')}
+            </span>
+          )}
           <SubmitButton>Sign in</SubmitButton>
           <p className="text-center text-sm text-gray-600 mt-2 dark:text-zinc-400">
             <Link

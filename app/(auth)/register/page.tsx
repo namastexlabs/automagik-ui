@@ -2,14 +2,14 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useActionState, useState } from 'react';
+import { useActionState, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useProgress } from '@bprogress/next';
 
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
-
-import { register, type RegisterActionState } from '../actions';
+import { createBrowserClient } from '@/lib/supabase/client';
+import { DataStatus } from '@/lib/data';
 
 export default function Page() {
   const router = useRouter();
@@ -17,42 +17,55 @@ export default function Page() {
 
   const [email, setEmail] = useState('');
 
-  const [, formAction] = useActionState<RegisterActionState, FormData>(
-    async (state, formData) => {
-      const newState = await register(state, formData);
+  useEffect(() => {
+    const checkSession = async () => {
+      const supabase = createBrowserClient();
+      const {
+        data: { user },
+      } = await supabase.auth.getUser();
 
-      if (newState.status !== 'success') {
+      if (user) {
+        router.replace('/');
+      }
+    };
+
+    checkSession();
+  }, [router]);
+
+  const [{ errors = {} }, formAction] = useActionState<
+    { status: DataStatus; errors?: { _errors?: string[] } },
+    FormData
+  >(
+    async (_, formData) => {
+      const supabase = createBrowserClient();
+      try {
+        const { error } = await supabase.auth.signUp({
+          email: formData.get('email') as string,
+          password: formData.get('password') as string,
+        });
+
+        if (error) {
+          stop();
+          return {
+            status: DataStatus.InvalidData,
+            errors: { _errors: [error.message] },
+          };
+        }
+
+        toast.success('Check your email to confirm your account');
+        router.replace('/');
+
+        return { status: DataStatus.Success };
+      } catch (error) {
         stop();
-        router.refresh();
+        return {
+          status: DataStatus.Unexpected,
+          errors: { _errors: ['An unexpected error occurred'] },
+        };
       }
-      switch (newState.status) {
-        case 'user_exists':
-          toast.error('An account with this email already exists');
-          break;
-        case 'invalid_email':
-          toast.error('Please enter a valid email address');
-          break;
-        case 'weak_password':
-          toast.error(
-            'Password is too weak. It should be at least 6 characters long',
-          );
-          break;
-        case 'failed':
-          toast.error('Failed to create account. Please try again');
-          break;
-        case 'invalid_data':
-          toast.error('Please check your input and try again');
-          break;
-        case 'success':
-          toast.success('Check your email to confirm your account');
-          router.push('/login');
-          break;
-      }
-
-      return newState;
     },
     {
-      status: 'idle',
+      status: DataStatus.Success,
     },
   );
 
@@ -77,6 +90,11 @@ export default function Page() {
           </p>
         </div>
         <AuthForm action={handleSubmit} defaultEmail={email}>
+          {errors._errors && (
+            <span className="text-sm text-destructive">
+              {errors._errors.join(', ')}
+            </span>
+          )}
           <SubmitButton>Sign Up</SubmitButton>
           <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
             {'Already have an account? '}

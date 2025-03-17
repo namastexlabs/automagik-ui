@@ -51,7 +51,6 @@ export function AgentFormDialog({
   const { mutate } = useSWRConfig();
   const [isCloseAttempt, setCloseAttempt] = useState(false);
   const [openPromptTemplate, setOpenPromptTemplate] = useState(false);
-  const [errors, setErrors] = useState<{ [key: string]: string[] }>({});
   const [name, setName] = useState(agent?.name || '');
   const [template, setTemplate] = useState(agent?.systemPrompt || '');
   const [visibility, setVisibility] = useState(agent?.visibility ?? 'private');
@@ -59,12 +58,11 @@ export function AgentFormDialog({
     agent?.tools.map((tool) => tool.id) || [],
   );
 
-  const [, formAction] = useActionState<
+  const [{ errors = {} }, formAction] = useActionState<
     Awaited<ReturnType<typeof saveAgentAction>>,
     FormData
   >(
     async (state, formData) => {
-      setErrors({});
       const newState = await saveAgentAction(state, formData);
 
       if (newState.status === DataStatus.Success && newState.data) {
@@ -87,17 +85,6 @@ export function AgentFormDialog({
 
         setOpen(false);
         onSuccess(newState.data);
-
-        return newState;
-      }
-
-      if (newState.errors) {
-        const { _errors, ...errors } = newState.errors;
-        setErrors(errors);
-
-        if (_errors) {
-          toast.error(_errors[0]);
-        }
       }
 
       return newState;
@@ -107,7 +94,6 @@ export function AgentFormDialog({
 
   useEffect(() => {
     if (isOpen) {
-      setErrors({});
       setName(agent?.name || '');
       setSelected(agent?.tools.map((tool) => tool.id) || []);
       setVisibility(agent?.visibility ?? 'private');

@@ -175,19 +175,19 @@ export function SidebarHistory() {
 
   const handleDelete = async () => {
     const loadingToastId = toast.loading('Deleting chat...');
-    const response = await deleteChatAction(deleteId as string);
+    setShowDeleteDialog(false);
+    const { errors } = await deleteChatAction(deleteId as string);
 
     toast.dismiss(loadingToastId);
 
-    if (response.errors) {
-      toast.error(response.errors?._errors?.[0] || 'Failed to delete chat');
+    if (errors) {
+      toast.error(errors?._errors?.[0] || 'Failed to delete chat');
       return;
     }
 
     toast.success('Chat deleted successfully');
 
     mutate((history = []) => history.filter((chat) => chat.id !== deleteId));
-    setShowDeleteDialog(false);
     if (deleteId === id) {
       router.push('/');
     }

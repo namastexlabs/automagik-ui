@@ -8,11 +8,7 @@ import {
   DEFAULT_PROVIDER,
   isModelValid,
 } from '@/lib/ai/models';
-import { SidebarInset, SidebarProvider } from '@/components/ui/sidebar';
-import { AppSidebar } from '@/components/app-sidebar';
-import { AgentTabsProvider } from '@/components/agent-tabs-provider';
 import { AGENT_COOKIE_KEY } from '@/lib/agents/cookies';
-import { UserProvider } from '@/components/user-provider';
 import { MODEL_COOKIE_KEY, PROVIDER_COOKIE_KEY } from '@/lib/ai/cookies';
 import { getInitialAgents } from '@/lib/data/agent';
 
@@ -26,7 +22,6 @@ export default async function Page() {
     throw new Error(JSON.stringify(agentsData.errors));
   }
 
-  const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
   const tabCookie = cookieStore.get(AGENT_COOKIE_KEY)?.value;
   const providerFromCookie = cookieStore.get(PROVIDER_COOKIE_KEY)
     ?.value as keyof ChatModel;
@@ -43,30 +38,15 @@ export default async function Page() {
       : [DEFAULT_PROVIDER, DEFAULT_CHAT_MODEL];
 
   return (
-    <UserProvider
-      user={{
-        id: session.user.id,
-        email: session.user.email,
-      }}
-    >
-      <AgentTabsProvider initialTab={tabCookie === '' ? undefined : tabCookie}>
-        <SidebarProvider defaultOpen={!isCollapsed}>
-          <AppSidebar />
-          <SidebarInset>
-            <Chat
-              initialMessages={[]}
-              initialAgents={agentsData.data}
-              modelId={modelId}
-              provider={provider}
-              selectedVisibilityType="private"
-              isReadonly={
-                agent?.visibility === 'private' &&
-                agent?.userId !== session.user.id
-              }
-            />
-          </SidebarInset>
-        </SidebarProvider>
-      </AgentTabsProvider>
-    </UserProvider>
+    <Chat
+      initialMessages={[]}
+      initialAgents={agentsData.data}
+      modelId={modelId}
+      provider={provider}
+      selectedVisibilityType="private"
+      isReadonly={
+        agent?.visibility === 'private' && agent?.userId !== session.user.id
+      }
+    />
   );
 }

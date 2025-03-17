@@ -34,7 +34,7 @@ export async function deleteChatAction(id: string) {
 export async function saveAgentAction(
   _: Awaited<ReturnType<typeof saveAgent>>,
   formData: FormData,
-): Promise<Awaited<ReturnType<typeof saveAgent>>> {
+): ReturnType<typeof saveAgent> {
   const data = {
     name: formData.get('name'),
     systemPrompt: formData.get('systemPrompt'),
@@ -60,7 +60,7 @@ export async function deleteAgentAction(id: string) {
 export async function saveFlowToolAction(
   _: Awaited<ReturnType<typeof saveFlowTool>>,
   formData: FormData,
-): Promise<Awaited<ReturnType<typeof saveFlowTool>>> {
+): ReturnType<typeof saveFlowTool> {
   const id = formData.get('id') as string;
   const validatedData = {
     name: formData.get('name'),

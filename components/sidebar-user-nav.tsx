@@ -34,7 +34,7 @@ export function SidebarUserNav() {
         console.error('Error signing out:', error);
         return;
       }
-      router.refresh();
+
       router.push('/login');
     } catch (error) {
       console.error('Error during sign out:', error);

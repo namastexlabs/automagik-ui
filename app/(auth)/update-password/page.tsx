@@ -2,6 +2,7 @@
 
 import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
+import { useActionState, useEffect } from 'react';
 import Form from 'next/form';
 import { useProgress } from '@bprogress/next';
 
@@ -9,49 +10,80 @@ import { createBrowserClient } from '@/lib/supabase/client';
 import { SubmitButton } from '@/components/submit-button';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
+import { DataStatus } from '@/lib/data';
 
 export default function Page() {
   const router = useRouter();
   const { set, stop } = useProgress();
 
-  const handleSubmit = async (formData: FormData) => {
-    const password = formData.get('password') as string;
-    const confirmPassword = formData.get('confirmPassword') as string;
-
-    if (password !== confirmPassword) {
-      toast.error('Passwords do not match');
-      return;
-    }
-
-    set(0.4);
-    try {
+  useEffect(() => {
+    const checkSession = async () => {
       const supabase = createBrowserClient();
-
       const {
         data: { user },
       } = await supabase.auth.getUser();
-      if (!user) {
-        toast.error('User not found');
-        stop();
-        return;
-      }
-      const { error } = await supabase.auth.updateUser({
-        password: password,
-      });
 
-      if (error) {
-        toast.error('Failed to update password');
-        stop();
-        return;
+      if (user) {
+        router.replace('/');
+      }
+    };
+
+    checkSession();
+  }, [router]);
+
+  const [{ errors = {} }, formAction] = useActionState<
+    { status: DataStatus; errors?: { _errors?: string[] } },
+    FormData
+  >(
+    async (_, formData: FormData) => {
+      const password = formData.get('password') as string;
+      const confirmPassword = formData.get('confirmPassword') as string;
+
+      if (password !== confirmPassword) {
+        return {
+          status: DataStatus.InvalidData,
+          errors: { _errors: ['Passwords do not match'] },
+        };
       }
 
-      toast.success('Password updated successfully');
-      router.replace('/');
-    } catch (error) {
-      toast.error('An unexpected error occurred');
-    }
-    stop();
-  };
+      set(0.4);
+      try {
+        const supabase = createBrowserClient();
+
+        const {
+          data: { user },
+        } = await supabase.auth.getUser();
+        if (!user) {
+          stop();
+          return {
+            status: DataStatus.InvalidData,
+            errors: { _errors: ['User not found'] },
+          };
+        }
+
+        const { error } = await supabase.auth.updateUser({ password });
+        if (error) {
+          stop();
+          return {
+            status: DataStatus.Unexpected,
+            errors: { _errors: ['Failed to update password'] },
+          };
+        }
+
+        toast.success('Password updated successfully');
+        router.replace('/');
+
+        return { status: DataStatus.Success };
+      } catch (error) {
+        stop();
+        return {
+          status: DataStatus.Unexpected,
+          errors: { _errors: ['An unexpected error occurred'] },
+        };
+      }
+    },
+    { status: DataStatus.Success },
+  );
 
   return (
     <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-background">
@@ -64,10 +96,7 @@ export default function Page() {
             Enter your new password
           </p>
         </div>
-        <Form
-          action={handleSubmit}
-          className="flex flex-col gap-4 px-4 sm:px-16"
-        >
+        <Form action={formAction} className="flex flex-col gap-4 px-4 sm:px-16">
           <div className="flex flex-col gap-2">
             <Label
               htmlFor="password"
@@ -100,7 +129,11 @@ export default function Page() {
               required
             />
           </div>
-
+          {errors._errors && (
+            <span className="text-sm text-destructive">
+              {errors._errors.join(', ')}
+            </span>
+          )}
           <SubmitButton>Update Password</SubmitButton>
         </Form>
       </div>
