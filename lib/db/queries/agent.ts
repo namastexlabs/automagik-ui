@@ -124,6 +124,7 @@ export async function createAgent(data: {
   systemPrompt: string;
   userId: string | null;
   visibility?: 'private' | 'public';
+  avatarUrl?: string | null;
 }) {
   try {
     const [createdAgent] = await db
@@ -145,6 +146,7 @@ export async function updateAgent({
   id: string;
   name?: string;
   systemPrompt?: string;
+  avatarUrl?: string | null;
   visibility?: 'private' | 'public';
 }) {
   try {
@@ -246,6 +248,7 @@ export async function createAgentTransaction(data: {
   visibility?: 'private' | 'public';
   tools?: string[];
   dynamicBlocks?: string[];
+  avatarUrl?: string | null;
 }) {
   return await db.transaction(async () => {
     const agent = await createAgent({
@@ -253,6 +256,7 @@ export async function createAgentTransaction(data: {
       systemPrompt: data.systemPrompt,
       userId: data.userId,
       visibility: data.visibility,
+      avatarUrl: data.avatarUrl,
     });
 
     if (data.tools && data.tools.length > 0) {
@@ -282,6 +286,7 @@ export async function updateAgentTransaction(data: {
   name?: string;
   systemPrompt?: string;
   visibility?: 'private' | 'public';
+  avatarUrl?: string | null;
   newTools?: string[];
   newDynamicBlocks?: string[];
   removedTools?: string[];

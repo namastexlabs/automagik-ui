@@ -4,11 +4,7 @@ import type { Message } from 'ai';
 
 import type { VisibilityType } from '@/components/visibility-selector';
 import { saveAgent, duplicateAgent, deleteAgent } from '@/lib/data/agent';
-import {
-  createChat,
-  deleteChat,
-  updateChatVisibility,
-} from '@/lib/data/chat';
+import { createChat, deleteChat, updateChatVisibility } from '@/lib/data/chat';
 import { saveFlowTool } from '@/lib/data/tool';
 import { deleteTrailingMessages } from '@/lib/data/message';
 
@@ -40,6 +36,9 @@ export async function saveAgentAction(
     systemPrompt: formData.get('systemPrompt'),
     tools: formData.getAll('tools'),
     visibility: formData.get('visibility'),
+    avatarFile: formData.has('avatarFile')
+      ? formData.get('avatarFile')
+      : undefined,
     dynamicBlocks: formData
       .getAll('dynamicBlocks')
       .map((item) => JSON.parse(item as string)),

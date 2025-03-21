@@ -83,14 +83,15 @@ export type Tool = InferSelectModel<typeof tool>;
 export const agent = pgTable(
   'agent',
   {
-    id: uuid().primaryKey().notNull().defaultRandom(),
-    name: text().notNull(),
+    id: uuid('id').primaryKey().notNull().defaultRandom(),
+    name: text('name').notNull(),
     systemPrompt: text('system_prompt').notNull(),
     createdAt: timestamp('created_at').notNull().defaultNow(),
     visibility: varchar('visibility', { enum: ['public', 'private'] })
       .notNull()
       .default('private'),
     userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    avatarUrl: text('avatar_url'),
   },
   (table) => [
     unique('agent_unique_user_name').on(table.name, table.userId),

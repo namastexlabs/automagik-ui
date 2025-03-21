@@ -42,15 +42,43 @@ export function getMessageKey(name: string, chatId?: string) {
   )}`;
 }
 
+export function getAgentKey(id: string) {
+  return `agents/${id}`;
+}
+
+export async function saveAgentAvatar(id: string, buffer: Buffer) {
+  try {
+    const key = getAgentKey(id);
+    await getMinioClient().putObject(
+      S3_STORAGE_BUCKET_NAME,
+    key,
+    buffer,
+    buffer.length,
+  );
+
+    return key;
+  } catch (e) {
+    console.log(`Failed to save agent avatar ${e}`);
+    throw e;
+  }
+}
+
+export async function deleteAgentAvatar(id: string) {
+  try {
+    const key = getAgentKey(id);
+    await getMinioClient().removeObject(S3_STORAGE_BUCKET_NAME, key);
+  } catch (e) {
+    console.log(`Failed to delete agent avatar ${e}`);
+    throw e;
+  }
+}
+
 export function createMessageKey(
   name: string,
   source: ImageSource = 'input',
   chatId?: string,
 ) {
-  return getMessageKey(
-    `${source}-${name}`,
-    chatId,
-  );
+  return getMessageKey(`${source}-${name}`, chatId);
 }
 
 export function isKeyWithChatId(key: string) {

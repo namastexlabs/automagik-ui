@@ -33,6 +33,16 @@ const agentSchema = z.object({
   name: z.string().trim(),
   systemPrompt: z.string(),
   visibility: z.enum(['public', 'private']).default('private'),
+  avatarFile: z
+    .instanceof(Blob)
+    .optional()
+    .nullable()
+    .refine((file) => file && file.size <= 10 * 1024 * 1024, {
+      message: 'File size should be less than 10MB',
+    })
+    .refine((file) => file && ['image/jpeg', 'image/png'].includes(file.type), {
+      message: 'File type should be JPEG or PNG',
+    }),
   tools: z.array(z.string()).default([]),
   dynamicBlocks: z
     .array(
@@ -55,6 +65,7 @@ export function toAgentWithMessagesDTO({
   name,
   userId,
   visibility,
+  avatarUrl,
   recentMessage,
   chat,
 }: AgentWithMessages) {
@@ -63,6 +74,7 @@ export function toAgentWithMessagesDTO({
     name,
     userId,
     visibility,
+    avatarUrl,
     recentMessage,
     chat,
   };
@@ -80,6 +92,7 @@ export function toAgentDTO(
     systemPrompt,
     tools,
     dynamicBlocks,
+    avatarUrl,
   }: AgentData,
 ) {
   return {
@@ -87,6 +100,7 @@ export function toAgentDTO(
     name,
     userId,
     visibility,
+    avatarUrl,
     systemPrompt: userId !== authUserId ? undefined : systemPrompt,
     tools: tools.map(
       ({ tool: { id, name, verboseName, visibility, data, source } }) => ({

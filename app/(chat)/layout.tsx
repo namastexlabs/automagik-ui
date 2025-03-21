@@ -29,7 +29,7 @@ export default async function Layout({
       }}
     >
       <AgentTabsProvider initialTab={tabCookie === '' ? undefined : tabCookie}>
-        <SidebarProvider defaultOpen={!isCollapsed}>
+        <SidebarProvider defaultOpen={true}>
           <AppSidebar initialAgents={agents.data} />
           <SidebarInset>{children}</SidebarInset>
         </SidebarProvider>

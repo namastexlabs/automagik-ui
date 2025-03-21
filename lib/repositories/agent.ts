@@ -14,6 +14,12 @@ import {
 } from '@/lib/db/queries/agent';
 import { getDiffRelation } from '@/lib/utils.server';
 import { ConflictError, NotFoundError, UnauthorizedError } from '@/lib/errors';
+import {
+  getAgentKey,
+  saveAgentAvatar,
+  deleteAgentAvatar,
+} from '@/lib/services/minio';
+
 import { isUniqueConstraintError } from '../db/queries';
 import { getToolsByIds } from './tool';
 import { getOrCreateDynamicBlocks } from './dynamic-block';
@@ -74,12 +80,14 @@ export async function createAgent({
   visibility = 'private',
   tools = [],
   dynamicBlocks = [],
+  avatarFile,
 }: {
   name: string;
   systemPrompt: string;
   userId: string;
   visibility?: 'private' | 'public';
   tools?: string[];
+  avatarFile?: Blob | null;
   dynamicBlocks?: { name: string; visibility: 'private' | 'public' }[];
 }): Promise<AgentData> {
   const agentTools = await getToolsByIds(tools, userId);
@@ -97,6 +105,18 @@ export async function createAgent({
       tools: agentTools.map((tool) => tool.id),
       dynamicBlocks: agentDynamicBlocks.map((block) => block.id),
     });
+    if (avatarFile) {
+      await saveAgentAvatar(
+        agent.id,
+        Buffer.from(await avatarFile.arrayBuffer()),
+      );
+
+      const avatarUrl = getAgentKey(agent.id);
+      await updateAgentTransaction({
+        id: agent.id,
+        avatarUrl,
+      });
+    }
 
     return {
       ...agent,
@@ -120,10 +140,11 @@ export async function updateAgent({
   ...data
 }: {
   id: string;
-  userId: string;
-  name: string;
-  systemPrompt: string;
-  visibility: 'private' | 'public';
+  userId?: string;
+  name?: string;
+  systemPrompt?: string;
+  visibility?: 'private' | 'public';
+  avatarFile?: Blob | null;
   tools?: string[];
   dynamicBlocks?: { name: string; visibility: 'private' | 'public' }[];
 }): Promise<AgentData> {
@@ -133,6 +154,19 @@ export async function updateAgent({
   }
   if (agent.userId !== data.userId) {
     throw new UnauthorizedError('Not authorized to update this agent');
+  }
+
+  let avatarUrl: string | null = null;
+  if (data.avatarFile) {
+    await saveAgentAvatar(
+      agent.id,
+      Buffer.from(await data.avatarFile.arrayBuffer()),
+    );
+    avatarUrl = getAgentKey(agent.id);
+  } else if (data.avatarFile === null && agent.avatarUrl) {
+    await deleteAgentAvatar(agent.id);
+  } else {
+    avatarUrl = agent.avatarUrl;
   }
 
   const formTools =
@@ -160,6 +194,7 @@ export async function updateAgent({
   try {
     await updateAgentTransaction({
       ...data,
+      avatarUrl,
       newTools: newTools?.map((tool) => tool),
       newDynamicBlocks: newDynamicBlocks?.map((block) => block),
       removedTools: removedTools?.map((tool) => tool.id),
@@ -167,7 +202,9 @@ export async function updateAgent({
     });
 
     return {
+      ...agent,
       ...data,
+      avatarUrl,
       createdAt: agent.createdAt,
       tools: tools ? formTools.map((tool) => ({ tool })) : [],
       dynamicBlocks: dynamicBlocks
