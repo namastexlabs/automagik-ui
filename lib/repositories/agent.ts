@@ -1,6 +1,6 @@
 import 'server-only';
 
-import type { Agent } from '@/lib/db/schema';
+import type { Agent, Message, Chat } from '@/lib/db/schema';
 import {
   getDefaultAgents,
   getAvailableAgents,
@@ -10,6 +10,7 @@ import {
   createAgentTransaction,
   updateAgentTransaction,
   type AgentData,
+  getLatestAgentMessages,
 } from '@/lib/db/queries/agent';
 import { getDiffRelation } from '@/lib/utils.server';
 import { ConflictError, NotFoundError, UnauthorizedError } from '@/lib/errors';
@@ -17,8 +18,27 @@ import { isUniqueConstraintError } from '../db/queries';
 import { getToolsByIds } from './tool';
 import { getOrCreateDynamicBlocks } from './dynamic-block';
 
+export type AgentWithMessages = Agent & {
+  recentMessage: Message;
+  chat: Chat;
+};
+
 export async function getSystemAgents(): Promise<AgentData[]> {
   return await getDefaultAgents();
+}
+
+export async function getMostRecentAgents(
+  userId: string,
+): Promise<AgentWithMessages[]> {
+  const data = await getLatestAgentMessages(userId, 10);
+
+  const agents = data.map(({ chat, agent, message }) => ({
+    ...agent,
+    recentMessage: message,
+    chat,
+  }));
+
+  return agents;
 }
 
 export async function getUserAgents(userId: string): Promise<AgentData[]> {

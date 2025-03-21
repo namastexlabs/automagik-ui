@@ -194,6 +194,13 @@ export const chat = pgTable('chat', {
 
 export type Chat = InferSelectModel<typeof chat>;
 
+export const chatRelations = relations(chat, ({ one }) => ({
+  agent: one(agent, {
+    fields: [chat.agentId],
+    references: [agent.id],
+  }),
+}));
+
 export const message = pgTable('message', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   chatId: uuid('chat_id')

@@ -15,6 +15,8 @@ import {
   createAgent,
   duplicateAgent as duplicateAgentRepository,
   removeAgent as removeAgentRepository,
+  getMostRecentAgents as getMostRecentAgentsRepository,
+  type AgentWithMessages,
 } from '@/lib/repositories/agent';
 import { getUser } from '@/lib/auth';
 import { ApplicationError } from '@/lib/errors';
@@ -47,6 +49,26 @@ const agentSchema = z.object({
 });
 
 export type AgentSchema = typeof agentSchema;
+
+export function toAgentWithMessagesDTO({
+  id,
+  name,
+  userId,
+  visibility,
+  recentMessage,
+  chat,
+}: AgentWithMessages) {
+  return {
+    id,
+    name,
+    userId,
+    visibility,
+    recentMessage,
+    chat,
+  };
+}
+
+export type AgentWithMessagesDTO = ReturnType<typeof toAgentWithMessagesDTO>;
 
 export function toAgentDTO(
   authUserId: string,
@@ -87,6 +109,22 @@ export function toAgentDTO(
 
 export type AgentDTO = ReturnType<typeof toAgentDTO>;
 
+export async function getMostRecentAgents(): Promise<
+  DataResponse<AgentWithMessagesDTO[], any>
+> {
+  try {
+    const session = await getUser();
+
+    const agents = await getMostRecentAgentsRepository(session.user.id);
+    return {
+      status: DataStatus.Success,
+      data: agents.map((agent) => toAgentWithMessagesDTO(agent)),
+    };
+  } catch (error) {
+    return handleDataError(error, []);
+  }
+}
+
 export async function getInitialAgents(): Promise<
   DataResponse<AgentDTO[], any>
 > {
@@ -109,7 +147,6 @@ export async function saveAgent(
 ): Promise<DataResponse<AgentDTO | null, z.infer<AgentSchema>>> {
   try {
     const validatedData = agentSchema.parse(values);
-
     const session = await getUser();
 
     const data = {

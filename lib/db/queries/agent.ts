@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 
 import * as schema from '../schema';
 import { db } from './index';
@@ -46,6 +46,40 @@ export async function getAvailableAgents({ userId }: { userId: string }) {
 }
 
 export type AgentData = Awaited<ReturnType<typeof getAvailableAgents>>[number];
+
+export async function getLatestAgentMessages(
+  userId: string,
+  limit?: number,
+  offset?: number,
+) {
+  try {
+    const query = db
+      .selectDistinctOn([schema.agent.id])
+      .from(schema.agent)
+      .innerJoin(
+        schema.chat,
+        and(
+          eq(schema.agent.id, schema.chat.agentId),
+          eq(schema.chat.userId, userId),
+        ),
+      )
+      .innerJoin(schema.message, eq(schema.chat.id, schema.message.chatId))
+      .orderBy(schema.agent.id, desc(schema.message.createdAt));
+
+    if (limit) {
+      query.limit(limit);
+    }
+
+    if (offset) {
+      query.offset(offset);
+    }
+
+    return await query;
+  } catch (error) {
+    console.error('Failed to get latest agent messages in database');
+    throw error;
+  }
+}
 
 export async function getAgentById({
   id,

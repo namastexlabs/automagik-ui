@@ -1,12 +1,13 @@
 import Script from 'next/script';
 import { cookies } from 'next/headers';
-import { getUser } from '@/lib/auth';
 
+import { getUser } from '@/lib/auth';
 import { SidebarProvider, SidebarInset } from '@/components/ui/sidebar';
 import { AgentTabsProvider } from '@/components/agent-tabs-provider';
 import { UserProvider } from '@/components/user-provider';
 import { AppSidebar } from '@/components/app-sidebar';
 import { AGENT_COOKIE_KEY } from '@/lib/agents/cookies';
+import { getMostRecentAgents } from '@/lib/data/agent';
 
 export default async function Layout({
   children,
@@ -15,6 +16,7 @@ export default async function Layout({
 }) {
   const session = await getUser();
   const cookieStore = await cookies();
+  const agents = await getMostRecentAgents();
 
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
   const tabCookie = cookieStore.get(AGENT_COOKIE_KEY)?.value;
@@ -28,7 +30,7 @@ export default async function Layout({
     >
       <AgentTabsProvider initialTab={tabCookie === '' ? undefined : tabCookie}>
         <SidebarProvider defaultOpen={!isCollapsed}>
-          <AppSidebar />
+          <AppSidebar initialAgents={agents.data} />
           <SidebarInset>{children}</SidebarInset>
         </SidebarProvider>
       </AgentTabsProvider>
