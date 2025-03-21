@@ -280,9 +280,10 @@ export function SidebarAgentItem({ agent, onDelete }: AgentItemProps) {
         </SidebarGroup>
       )}
       {false &&
-        history.length > 0 &&
+        history &&
+        (history as Chat[]).length > 0 &&
         (() => {
-          const groupedChats = groupChatsByDate(history);
+          const groupedChats = groupChatsByDate(history as Chat[]);
 
           return (
             <>

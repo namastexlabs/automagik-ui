@@ -43,12 +43,12 @@ export default function WelcomePage() {
   }, [loadingPhrases.length]);
 
   return (
-    <div className="flex min-h-screen bg-background">
+    <div className="flex min-h-screen bg-accent bg-gradient-to-tl from-accent to-light-gray/10">
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="max-w-3xl w-full">
           <div className="mb-6">
             <h1 className="text-4xl font-bold text-gradient w-fit">
-              Namastê, {user?.name}
+              Namastê,
             </h1>
             <p className="text-foreground mt-2">
               We have a special message for you before you get started!

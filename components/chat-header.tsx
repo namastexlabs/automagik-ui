@@ -1,7 +1,8 @@
 'use client';
 
+import { FileText, Settings } from 'lucide-react';
+
 import { ModelSelector } from '@/components/model-selector';
-import { SidebarToggle } from '@/components/sidebar-toggle';
 import { AgentTabs } from '@/components/agent-tabs';
 import {
   VisibilitySelector,
@@ -10,6 +11,7 @@ import {
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useChat, useChatHandlers } from '@/contexts/chat';
 import type { AgentDTO } from '@/lib/data/agent';
+import { Button } from '@/components/ui/button';
 
 export function ChatHeader({
   agents,
@@ -42,32 +44,29 @@ export function ChatHeader({
   });
 
   return (
-    <header className="flex sticky top-0 bg-background py-1.5 items-center px-2 md:px-2 gap-2">
-      <SidebarToggle />
+    <header className="flex sticky top-0 py-1.5 items-center px-2 md:px-2 gap-2">
       {!isReadOnly && (
         <ModelSelector
           selectedModelId={modelId}
           selectedProvider={provider}
           onChangeModelId={setModelId}
           onChangeProvider={setProvider}
-          className="order-1 md:order-2"
         />
       )}
+
+      <div className="flex items-center gap-1 bg-dark-gray rounded-lg h-full px-3 py-1.5 text-sm">
+        <FileText size={20} />
+        <span>0 tokens</span>
+      </div>
+      <Button variant="secondary" className="rounded-full h-auto p-3">
+        <Settings size={20} />
+      </Button>
       {!isReadOnly && !!chat?.id && (
         <VisibilitySelector
           selectedVisibilityType={visibilityType}
           onChange={setVisibilityType}
-          className="order-1 md:order-3"
         />
       )}
-      <AgentTabs
-        agents={agents}
-        agentDialog={agentDialog}
-        changeAgentDialog={changeAgentDialog}
-        onSubmit={handleSubmit}
-        openAgentListDialog={openAgentListDialog}
-        changeAgentListDialog={changeAgentListDialog}
-      />
     </header>
   );
 }

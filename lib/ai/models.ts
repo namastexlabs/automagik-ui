@@ -137,6 +137,15 @@ export const chatModels = {
   },
 } as const;
 
+const modelIcons = {
+  openai: '/images/openai.svg',
+  anthropic: '/images/anthropic.png',
+  google: '/images/google.png',
+  groq: '/images/groq.svg',
+  togetherai: null,
+  mistral: '/images/mistral.png',
+} as const;
+
 export const imageModels = {
   openai: {
     'dall-e-3': { name: 'DALL-E 3' },
@@ -181,6 +190,10 @@ export const getModelData = (provider: string, modelId: string) => {
   const modelIdString = modelId as string;
   const models = chatModels[provider as keyof ChatModel];
   return models[modelIdString as keyof typeof models] as ModelData;
+};
+
+export const getModelIcon = (provider: string) => {
+  return modelIcons[provider as keyof typeof modelIcons];
 };
 
 export const accessModel = <T extends keyof ChatModel>(

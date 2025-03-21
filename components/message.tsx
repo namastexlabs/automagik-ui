@@ -25,6 +25,7 @@ import { ToolInvocation } from './internal-tool-invocation';
 import { Badge } from './ui/badge';
 import { Skeleton } from './ui/skeleton';
 import { MessageReasoning } from './message-reasoning';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 export function PreviewMessage({
   chatId,
@@ -32,17 +33,23 @@ export function PreviewMessage({
   vote,
   isLoading,
   isReadonly,
+  agentId,
 }: {
   chatId?: string;
   message: Message;
   vote: Vote | undefined;
   isLoading: boolean;
   isReadonly: boolean;
+  agentId: string | null;
 }) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
-  const { data: agents = [], isLoading: isAgentsLoading } = useSWR<
-    AgentDTO[]
-  >('/api/agents', fetcher, { revalidateOnMount: false });
+  const { data: agents = [], isLoading: isAgentsLoading } = useSWR<AgentDTO[]>(
+    '/api/agents',
+    fetcher,
+    { revalidateOnMount: false },
+  );
+
+  const agent = agents.find((agent) => agent.id === agentId);
 
   const tools = useMemo(() => {
     return agents.flatMap((agent) => agent.tools);
@@ -102,7 +109,15 @@ export function PreviewMessage({
           {message.role === 'assistant' && (
             <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background">
               <div className="translate-y-px">
-                <SparklesIcon size={14} />
+                <Avatar className="size-9 text-md font-bold">
+                  <AvatarImage
+                    src={agent?.avatarUrl || undefined}
+                    alt={agent?.name || ''}
+                  />
+                  <AvatarFallback className="bg-white text-black">
+                    {agent?.name.slice(0, 2).toUpperCase() || ''}
+                  </AvatarFallback>
+                </Avatar>
               </div>
             </div>
           )}
@@ -135,7 +150,7 @@ export function PreviewMessage({
                         className={cn(
                           'flex flex-col max-w-full gap-4 break-words',
                           {
-                            'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
+                            'bg-white text-black px-3 py-2 rounded-xl':
                               message.role === 'user',
                           },
                         )}

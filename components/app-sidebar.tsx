@@ -45,7 +45,7 @@ export function AppSidebar({
                   variant="ghost"
                   type="button"
                   className="p-2 mt-1 h-fit"
-                  disabled={pathname === '/welcome'}
+                  disabled
                   onClick={() => {
                     toggleSidebar();
                   }}

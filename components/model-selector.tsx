@@ -1,9 +1,10 @@
 'use client';
 
 import { memo, useEffect, useRef, useState } from 'react';
+import Image from 'next/image';
 
 import { Button } from '@/components/ui/button';
-import { chatModels, getModelData } from '@/lib/ai/models';
+import { chatModels, getModelData, getModelIcon } from '@/lib/ai/models';
 import { cn } from '@/lib/utils';
 import {
   Popover,
@@ -19,8 +20,9 @@ import {
   CommandList,
 } from '@/components/ui/command';
 
-import { CheckCircleFillIcon, ChevronDownIcon } from './icons';
+import { CheckCircleFillIcon } from './icons';
 import { setModelCookie } from '@/lib/ai/cookies';
+import { ChevronRightIcon } from 'lucide-react';
 
 function PureModelSelector({
   selectedModelId,
@@ -38,6 +40,7 @@ function PureModelSelector({
   const currentModelRef = useRef<HTMLDivElement>(null);
 
   const modelData = getModelData(selectedProvider, selectedModelId);
+  const modelIcon = getModelIcon(selectedProvider);
 
   useEffect(() => {
     if (open) {
@@ -56,12 +59,34 @@ function PureModelSelector({
           className,
         )}
       >
-        <Button variant="outline" className="md:px-2 md:h-[34px]">
-          {modelData?.name}
-          <ChevronDownIcon />
+        <Button
+          variant="ghost"
+          className="group/model-selector flex items-center h-full gap-2 bg-dark-gray py-1.5 px-3 rounded-xl text-start"
+        >
+          {modelIcon && (
+            <div className="size-7 shrink-0 rounded-full bg-white flex items-center justify-center">
+              <Image
+                src={modelIcon}
+                alt={selectedProvider}
+                width={24}
+                height={24}
+              />
+            </div>
+          )}
+          <div className="flex flex-col">
+            <span className="text-xs capitalize text-muted-foreground">
+              {selectedProvider}
+            </span>
+            <span className="text-xs font-bold text-foreground">{modelData?.name}</span>
+          </div>
+          <ChevronRightIcon size={24} className="ml-2 text-muted-foreground" />
         </Button>
       </PopoverTrigger>
-      <PopoverContent align="start" className={`p-0 ${open ? '' : 'hidden'}`} forceMount>
+      <PopoverContent
+        align="start"
+        className={`p-0 ${open ? '' : 'hidden'}`}
+        forceMount
+      >
         <Command>
           <CommandInput placeholder="Search models..." />
           <CommandEmpty>No models found</CommandEmpty>
@@ -69,7 +94,21 @@ function PureModelSelector({
             {Object.entries(chatModels).map(([provider, models]) => (
               <CommandGroup
                 key={provider}
-                heading={provider}
+                heading={
+                  <div className="flex items-center gap-1">
+                    {getModelIcon(provider) && (
+                      <div className="size-5 shrink-0 rounded-full bg-white flex items-center justify-center">
+                        <Image
+                          src={getModelIcon(provider) as string}
+                          alt={provider}
+                          width={16}
+                          height={16}
+                        />
+                      </div>
+                    )}
+                    <span className="text-xs">{provider}</span>
+                  </div>
+                }
                 className="capitalize"
               >
                 {Object.entries(models).map(([modelId, model]) => (
