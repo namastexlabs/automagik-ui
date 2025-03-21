@@ -24,7 +24,7 @@ export default function Page() {
       } = await supabase.auth.getUser();
 
       if (user) {
-        router.replace('/');
+        router.replace('/welcome');
       }
     };
 
@@ -71,7 +71,7 @@ export default function Page() {
         }
 
         toast.success('Password updated successfully');
-        router.replace('/');
+        router.replace('/welcome');
 
         return { status: DataStatus.Success };
       } catch (error) {

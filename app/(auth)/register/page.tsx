@@ -42,6 +42,9 @@ export default function Page() {
         const { error } = await supabase.auth.signUp({
           email: formData.get('email') as string,
           password: formData.get('password') as string,
+          options: {
+            emailRedirectTo: `${window.location.origin}/welcome`,
+          },
         });
 
         if (error) {

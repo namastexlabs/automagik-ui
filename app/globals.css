@@ -196,3 +196,14 @@
     @apply bg-background text-foreground;
     }
 }
+
+@layer components {
+  .text-gradient {
+    background: linear-gradient(90deg, hsl(var(--accent-magenta)) 0%, hsl(var(--accent-cyan)) 100%);
+    color: transparent;
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    text-fill-color: transparent;
+  }
+}
