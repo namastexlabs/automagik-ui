@@ -4,10 +4,18 @@ import type { PropsWithChildren } from 'react';
 import { useFormStatus } from 'react-dom';
 
 import { LoaderIcon } from '@/components/icons';
+import { cn } from '@/lib/utils';
 
-import { Button } from './ui/button';
+import { Button, type ButtonProps } from './ui/button';
 
-export function SubmitButton({ children }: PropsWithChildren) {
+export function SubmitButton({
+  children,
+  className,
+  variant,
+}: PropsWithChildren<{
+  className?: string;
+  variant?: ButtonProps['variant'];
+}>) {
   const { pending } = useFormStatus();
 
   return (
@@ -15,7 +23,8 @@ export function SubmitButton({ children }: PropsWithChildren) {
       type={pending ? 'button' : 'submit'}
       aria-disabled={pending}
       disabled={pending}
-      className="relative"
+      className={cn('relative', className)}
+      variant={variant}
     >
       {children}
 

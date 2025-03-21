@@ -1,7 +1,8 @@
 import Form from 'next/form';
 
-import { Input } from './ui/input';
-import { Label } from './ui/label';
+import { FloatingLabelInput } from './ui/floating-input';
+import { useState } from 'react';
+import { EyeClosedIcon, EyeOpenIcon } from '@radix-ui/react-icons';
 
 export function AuthForm({
   action,
@@ -16,48 +17,44 @@ export function AuthForm({
   defaultEmail?: string;
   hidePassword?: boolean;
 }) {
+  const [showPassword, setShowPassword] = useState(false);
+
   return (
     <Form action={action} className="flex flex-col gap-4 px-4 sm:px-16">
-      <div className="flex flex-col gap-2">
-        <Label
-          htmlFor="email"
-          className="text-zinc-600 font-normal dark:text-zinc-400"
-        >
-          Email Address
-        </Label>
-
-        <Input
+      <div className="flex flex-col gap-8">
+        <FloatingLabelInput
           id="email"
           name="email"
-          className="bg-muted text-md md:text-sm"
-          type="email"
-          placeholder="user@acme.com"
+          label="Email"
           autoComplete="email"
           required
           autoFocus
           defaultValue={defaultEmail}
         />
+
+        {!hidePassword && (
+          <div className="relative">
+            <FloatingLabelInput
+              type={showPassword ? 'text' : 'password'}
+              name="password"
+              id="password"
+              label="Password"
+            />
+            <button
+              type="button"
+              className="absolute right-4 top-1/2 -translate-y-1/2 text-muted-foreground"
+              aria-label="Toggle password visibility"
+              onClick={() => setShowPassword(!showPassword)}
+            >
+              {showPassword ? (
+                <EyeOpenIcon className="size-5" />
+              ) : (
+                <EyeClosedIcon className="size-5" />
+              )}
+            </button>
+          </div>
+        )}
       </div>
-
-      {!hidePassword && (
-        <div className="flex flex-col gap-2">
-          <Label
-            htmlFor="password"
-            className="text-zinc-600 font-normal dark:text-zinc-400"
-          >
-            Password
-          </Label>
-
-          <Input
-            id="password"
-            name="password"
-            className="bg-muted text-md md:text-sm"
-            type="password"
-            required
-          />
-        </div>
-      )}
-
       {children}
     </Form>
   );
