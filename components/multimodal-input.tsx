@@ -14,7 +14,6 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 import { useWindowSize } from 'usehooks-ts';
-import { Lightbulb } from 'lucide-react';
 
 import {
   useChat,
@@ -31,8 +30,8 @@ import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { Toggle } from './ui/toggle';
 import { ModelParameters } from './model-parameters';
+import { Switch } from './ui/switch';
 
 export function MultimodalInput({
   className,
@@ -221,7 +220,7 @@ export function MultimodalInput({
           value={input}
           onChange={handleInput}
           className={cx(
-            'resize-none mb-10 px-4 mt-3 pt-0 min-h-[56px] !text-base outline-none bg-transparent border-none focus-visible:!ring-offset-transparent focus-visible:!ring-transparent',
+            'resize-none mb-12 px-4 mt-3 pt-0 min-h-[56px] !text-base outline-none bg-transparent border-none focus-visible:!ring-offset-transparent focus-visible:!ring-transparent',
             className,
           )}
           rows={1}
@@ -241,7 +240,7 @@ export function MultimodalInput({
           }}
         />
 
-        <div className="absolute w-full bottom-0 p-2 pl-4 pb-1 gap-2 flex flex-row justify-start items-center">
+        <div className="absolute w-full bottom-0 p-2 pl-4 pb-1 gap-1.5 flex flex-row justify-start items-center">
           <Tooltip>
             <TooltipTrigger asChild>
               <AttachmentsButton
@@ -257,15 +256,13 @@ export function MultimodalInput({
           </Tooltip>
           <ModelParameters />
           {isExtendedThinkingAllowed(getModelData(provider, modelId)) && (
-            <Toggle
-              className="data-[state=on]:bg-black data-[state=on]:text-white"
-              variant="outline"
-              size="sm"
-              pressed={isExtendedThinking}
-              onPressedChange={toggleExtendedThinking}
-            >
-              <Lightbulb /> Reasoning
-            </Toggle>
+            <div className="flex flex-row gap-2 items-center bg-secondary rounded-md ml-3.5 p-2">
+              <p className="text-sm">Reasoning</p>
+              <Switch
+                checked={isExtendedThinking}
+                onCheckedChange={toggleExtendedThinking}
+              />
+            </div>
           )}
           <div className="ml-auto">
             {isLoading ? (

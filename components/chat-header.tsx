@@ -22,7 +22,7 @@ export function ChatHeader({
   });
 
   return (
-    <header className="flex sticky top-0 py-1.5 items-center px-2 md:px-2 gap-2">
+    <header className="flex sticky top-0 py-1.5 items-center px-5 gap-2">
       {!isReadOnly && (
         <ModelSelector
           selectedModelId={modelId}
@@ -36,7 +36,7 @@ export function ChatHeader({
         <FileText size={20} />
         <span>0 tokens</span>
       </div>
-      <Button variant="secondary" className="rounded-full h-auto p-3">
+      <Button variant="secondary" className="rounded-full h-auto p-3 ml-3">
         <Settings size={20} />
       </Button>
       {!isReadOnly && !!chat?.id && (
