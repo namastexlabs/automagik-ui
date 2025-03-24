@@ -37,10 +37,10 @@ const agentSchema = z.object({
     .instanceof(Blob)
     .optional()
     .nullable()
-    .refine((file) => file && file.size <= 10 * 1024 * 1024, {
+    .refine((file) => !file || file.size <= 10 * 1024 * 1024, {
       message: 'File size should be less than 10MB',
     })
-    .refine((file) => file && ['image/jpeg', 'image/png'].includes(file.type), {
+    .refine((file) => !file || ['image/jpeg', 'image/png'].includes(file.type), {
       message: 'File type should be JPEG or PNG',
     }),
   tools: z.array(z.string()).default([]),

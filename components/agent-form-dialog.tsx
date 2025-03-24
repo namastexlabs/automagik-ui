@@ -54,6 +54,7 @@ export function AgentFormDialog({
   const [name, setName] = useState(agent?.name || '');
   const [template, setTemplate] = useState(agent?.systemPrompt || '');
   const [visibility, setVisibility] = useState(agent?.visibility ?? 'private');
+  const [isAvatarChanged, setIsAvatarChanged] = useState(false);
   const [selected, setSelected] = useState<string[]>(
     agent?.tools.map((tool) => tool.id) || [],
   );
@@ -63,6 +64,11 @@ export function AgentFormDialog({
     FormData
   >(
     async (state, formData) => {
+      if (!isAvatarChanged) {
+        formData.delete('avatarFile');
+      }
+
+      setIsAvatarChanged(false);
       const newState = await saveAgentAction(state, formData);
 
       if (newState.status === DataStatus.Success && newState.data) {
@@ -187,6 +193,9 @@ export function AgentFormDialog({
                   name="avatarFile"
                   type="file"
                   className="bg-muted text-md md:text-sm"
+                  onChange={() => {
+                    setIsAvatarChanged(true);
+                  }}
                 />
               </div>
               <div className="flex flex-col gap-2">
