@@ -1,10 +1,13 @@
 'use client';
 
+import { cn } from '@/lib/utils';
 import { useCallback, useState } from 'react';
-import { CodeIcon, LoaderIcon, PlayIcon, PythonIcon } from './icons';
+import { toast } from 'sonner';
+import { useCopyToClipboard } from 'usehooks-ts';
+
+import { CodeIcon, LoaderIcon, PlayIcon, PythonIcon, CopyIcon } from './icons';
 import { Button } from './ui/button';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { cn } from '@/lib/utils';
 
 interface CodeBlockProps {
   node: any;
@@ -22,6 +25,7 @@ export function CodeBlock({
 }: CodeBlockProps) {
   const [output, setOutput] = useState<string | null>(null);
   const [pyodide, setPyodide] = useState<any>(null);
+  const [_, copyToClipboard] = useCopyToClipboard();
   const match = /language-(\w+)/.exec(className || '');
   const isPython = match && match[1] === 'python';
   const codeContent = String(children).replace(/\n$/, '');
@@ -29,7 +33,7 @@ export function CodeBlock({
 
   if (!inline) {
     return (
-      <div className="not-prose flex flex-col">
+      <div className="not-prose flex flex-col relative">
         {tab === 'code' && (
           <pre
             {...props}
@@ -44,6 +48,21 @@ export function CodeBlock({
             <code>{output}</code>
           </div>
         )}
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button
+              className="absolute py-1 px-2 right-3 top-3 size-fit text-muted-foreground"
+              variant="outline"
+              onClick={async () => {
+                await copyToClipboard(codeContent);
+                toast.success('Copied to clipboard!');
+              }}
+            >
+              <CopyIcon />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>Copy</TooltipContent>
+        </Tooltip>
       </div>
     );
   } else {

@@ -11,7 +11,7 @@ import { cn } from '@/lib/utils';
 import { getToolName, getToolSource } from '@/lib/agents/client';
 
 import { Markdown } from './markdown';
-import { PencilEditIcon, SparklesIcon } from './icons';
+import { PencilEditIcon } from './icons';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
@@ -200,7 +200,13 @@ export function PreviewMessage({
   );
 }
 
-export const ThinkingMessage = () => {
+export const ThinkingMessage = ({
+  agentAvatarUrl,
+  agentName,
+}: {
+  agentAvatarUrl?: string | null;
+  agentName?: string | null;
+}) => {
   const role = 'assistant';
 
   return (
@@ -218,8 +224,16 @@ export const ThinkingMessage = () => {
           },
         )}
       >
-        <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border">
-          <SparklesIcon size={14} />
+        <div className="size-8 flex items-center rounded-full justify-center shrink-0">
+          <Avatar className="size-9 text-md font-bold">
+            <AvatarImage
+              src={agentAvatarUrl || undefined}
+              alt={agentName || ''}
+            />
+            <AvatarFallback className="bg-white text-black">
+              {agentName?.slice(0, 2).toUpperCase() || ''}
+            </AvatarFallback>
+          </Avatar>
         </div>
 
         <div className="flex flex-col gap-2 w-full">
