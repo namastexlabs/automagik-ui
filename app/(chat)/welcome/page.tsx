@@ -4,11 +4,9 @@ import { useState, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
 import { AnimatePresence, motion } from 'framer-motion';
-import { useUser } from '@/contexts/user';
 import { LoaderIcon } from 'lucide-react';
 
 export default function WelcomePage() {
-  const { user } = useUser();
   const [currentPhrase, setCurrentPhrase] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
 
@@ -43,7 +41,7 @@ export default function WelcomePage() {
   }, [loadingPhrases.length]);
 
   return (
-    <div className="flex min-h-screen bg-accent bg-gradient-to-tl from-accent to-light-gray/10">
+    <div className="flex min-h-screen bg-accent bg-gradient-to-tl from-accent from-40% to-white/15">
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="max-w-3xl w-full">
           <div className="mb-6">

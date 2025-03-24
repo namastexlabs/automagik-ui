@@ -86,7 +86,7 @@ export default function Page() {
   );
 
   return (
-    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-accent bg-gradient-to-tl from-accent to-light-gray/10">
+    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-accent bg-gradient-to-tl from-accent from-40% to-white/15">
       <div className="w-full max-w-md overflow-hidden rounded-2xl flex flex-col gap-12">
         <Image
           src="/images/automagik-logo-white.svg"
