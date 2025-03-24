@@ -3,41 +3,19 @@
 import { FileText, Settings } from 'lucide-react';
 
 import { ModelSelector } from '@/components/model-selector';
-import { AgentTabs } from '@/components/agent-tabs';
 import {
   VisibilitySelector,
   type VisibilityType,
 } from '@/components/visibility-selector';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import { useChat, useChatHandlers } from '@/contexts/chat';
-import type { AgentDTO } from '@/lib/data/agent';
 import { Button } from '@/components/ui/button';
 
 export function ChatHeader({
-  agents,
   selectedVisibilityType,
-  agentDialog,
-  changeAgentDialog,
-  openAgentListDialog,
-  changeAgentListDialog,
-}: {
-  agents: AgentDTO[];
-  selectedVisibilityType: VisibilityType;
-  openAgentListDialog: boolean;
-  agentDialog: {
-    agentId: string | null;
-    isOpen: boolean;
-    isSubmitting: boolean;
-  };
-  changeAgentDialog: (
-    isOpen: boolean,
-    agentId?: string,
-    isSubmitting?: boolean,
-  ) => void;
-  changeAgentListDialog: (isOpen: boolean) => void;
-}) {
+}: { selectedVisibilityType: VisibilityType }) {
   const { chat, isReadOnly, modelId, provider } = useChat();
-  const { setModelId, setProvider, handleSubmit } = useChatHandlers();
+  const { setModelId, setProvider } = useChatHandlers();
   const { visibilityType, setVisibilityType } = useChatVisibility({
     chatId: chat?.id,
     initialVisibility: selectedVisibilityType,

@@ -22,7 +22,6 @@ import {
   useChatInput,
   useChatMessages,
 } from '@/contexts/chat';
-import type { AgentDTO } from '@/lib/data/agent';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { throttle } from '@/lib/utils';
 import { getModelData, isExtendedThinkingAllowed } from '@/lib/ai/models';
@@ -36,9 +35,7 @@ import { Toggle } from './ui/toggle';
 
 export function MultimodalInput({
   className,
-  agents,
 }: {
-  agents: AgentDTO[];
   className?: string;
 }) {
   const { width, height } = useWindowSize({ initializeWithValue: false });
@@ -108,13 +105,13 @@ export function MultimodalInput({
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
   const submitForm = useCallback(() => {
-    handleSubmit(input, attachments, currentTab as string, agents, tabs);
+    handleSubmit(input, attachments, currentTab as string, tabs);
     resetHeight();
 
     if (width && width > 768) {
       textareaRef.current?.focus();
     }
-  }, [input, handleSubmit, attachments, currentTab, agents, tabs, width]);
+  }, [input, handleSubmit, attachments, currentTab, tabs, width]);
 
   const uploadFile = async (file: File, chatId?: string) => {
     const formData = new FormData();
@@ -127,12 +124,12 @@ export function MultimodalInput({
         body: formData,
       });
 
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
         return data;
       }
-      const { error } = await response.json();
-      toast.error(error);
+
+      toast.error(data.error);
     } catch (error) {
       toast.error('Failed to upload file, please try again!');
     }

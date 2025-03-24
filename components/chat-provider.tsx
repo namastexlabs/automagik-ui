@@ -10,7 +10,7 @@ import {
   type PropsWithChildren,
 } from 'react';
 import type { Attachment } from 'ai';
-import useSWR, { useSWRConfig } from 'swr';
+import { useSWRConfig } from 'swr';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useLocalStorage } from 'usehooks-ts';
@@ -22,14 +22,14 @@ import {
   ChatMessagesContext,
   ChatHandlersContext,
 } from '@/contexts/chat';
-import type { AgentDTO } from '@/lib/data/agent';
-import type { Chat } from '@/lib/db/schema';
 import { createChatAction } from '@/app/(chat)/actions';
 import { generateUUID } from '@/lib/utils';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { getModelData, isImagesAllowed } from '@/lib/ai/models';
 
 import { DataStreamHandler } from './data-stream-handler';
+import { useSidebar } from './ui/sidebar';
+import type { ChatDTO } from '@/lib/data/chat';
 
 export function ChatProvider({
   chat,
@@ -38,22 +38,15 @@ export function ChatProvider({
   modelId,
   provider,
   isReadOnly,
-  setOpenAgentListDialog,
-  setAgentDialogState,
 }: PropsWithChildren<{
-  chat?: Chat;
+  chat?: ChatDTO;
   initialMessages: Message[];
   modelId: string;
   provider: string;
   isReadOnly: boolean;
-  setOpenAgentListDialog: (isOpen: boolean) => void;
-  setAgentDialogState: (state: {
-    agentId: string | null;
-    isOpen: boolean;
-    isSubmitting: boolean;
-  }) => void;
 }>) {
   const searchParams = useSearchParams();
+  const { openAgentListDialog } = useSidebar();
   const [attachments, setAttachments] = useLocalStorage<Array<Attachment>>(
     'input-attachments',
     [],
@@ -70,7 +63,6 @@ export function ChatProvider({
 
   const { currentTab } = useCurrentAgentTab();
   const { tabs } = useAgentTabs();
-  const { data: agents = [] } = useSWR<AgentDTO[]>('/api/agents', null);
 
   const getLocalStorageInput = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -93,6 +85,7 @@ export function ChatProvider({
   } = useChat({
     id: chat?.id,
     initialMessages,
+    generateId: generateUUID,
     initialInput: getLocalStorageInput(),
     sendExtraMessageFields: true,
     experimental_throttle: 100,
@@ -193,24 +186,14 @@ export function ChatProvider({
       content: string,
       newAttachments: Array<Attachment>,
       currentAgent: string | null,
-      currentAgents: AgentDTO[],
       currentTabs: string[],
     ) => {
       if (content.trim().length === 0) {
         return;
       }
 
-      if (currentAgents.length === 0) {
-        setAgentDialogState({
-          agentId: null,
-          isOpen: true,
-          isSubmitting: true,
-        });
-        return;
-      }
-
       if (currentTabs.length === 0 || !currentAgent) {
-        setOpenAgentListDialog(true);
+        openAgentListDialog(true);
         return;
       }
 
@@ -269,8 +252,7 @@ export function ChatProvider({
       selectedProvider,
       chat,
       shouldSubmit,
-      setAgentDialogState,
-      setOpenAgentListDialog,
+      openAgentListDialog,
       setMessages,
       router,
     ],
@@ -289,9 +271,9 @@ export function ChatProvider({
 
     if (shouldSubmit && currentTab && tabs.length > 0) {
       isAutoSubmitting.current = true;
-      onSubmit(input, attachments, currentTab, agents, tabs);
+      onSubmit(input, attachments, currentTab, tabs);
     }
-  }, [shouldSubmit, onSubmit, input, attachments, currentTab, agents, tabs]);
+  }, [shouldSubmit, onSubmit, input, attachments, currentTab, tabs]);
 
   const isLoading = status === 'submitted' || status === 'streaming';
   const chatContextValue = useMemo(() => {

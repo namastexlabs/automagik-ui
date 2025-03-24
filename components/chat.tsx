@@ -1,15 +1,13 @@
 'use client';
 
 import type { Message } from 'ai';
-import { useCallback, useEffect, useState } from 'react';
-import useSWR, { SWRConfig, useSWRConfig } from 'swr';
-import { useParams, useRouter } from 'next/navigation';
+import useSWR, { SWRConfig } from 'swr';
+import { useEffect } from 'react';
 
 import type { AgentDTO } from '@/lib/data/agent';
-import type { Chat as ChatType, Vote } from '@/lib/db/schema';
+import type { Vote } from '@/lib/db/schema';
 import { ChatHeader } from '@/components/chat-header';
 import { fetcher } from '@/lib/utils';
-import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { useBlockSelector } from '@/hooks/use-block';
 
 import type { VisibilityType } from './visibility-selector';
@@ -17,6 +15,9 @@ import { Block } from './block';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import { ChatProvider } from './chat-provider';
+import { AgentTabs } from './agent-tabs';
+import { useSidebar } from './ui/sidebar';
+import type { ChatDTO } from '@/lib/data/chat';
 
 export function Chat({
   chat,
@@ -27,7 +28,7 @@ export function Chat({
   modelId,
   provider,
 }: {
-  chat?: ChatType;
+  chat?: ChatDTO;
   initialMessages: Array<Message>;
   initialAgents: AgentDTO[];
   selectedVisibilityType: VisibilityType;
@@ -35,13 +36,6 @@ export function Chat({
   provider: string;
   isReadonly: boolean;
 }) {
-  const { mutate } = useSWRConfig();
-  const { id } = useParams();
-  const router = useRouter();
-
-  const { addTab, tabs } = useAgentTabs();
-  const { currentTab, setTab } = useCurrentAgentTab();
-
   const { data: votes } = useSWR<Array<Vote>>(
     chat?.id ? `/api/vote?chatId=${chat.id}` : null,
     fetcher,
@@ -50,65 +44,31 @@ export function Chat({
       revalidateIfStale: false,
     },
   );
-  const { data: agents = [] } = useSWR<AgentDTO[]>('/api/agents', fetcher, {
-    revalidateOnMount: false,
-  });
 
-  const isBlockVisible = useBlockSelector((state) => state.isVisible);
-  const [openAgentListDialog, setOpenAgentListDialog] = useState(false);
-  const [agentDialogState, setAgentDialogState] = useState<{
-    agentId: string | null;
-    isOpen: boolean;
-    isSubmitting: boolean;
-  }>({ isOpen: false, agentId: null, isSubmitting: false });
+  const {
+    openAgentDialog,
+    openAgentListDialog,
+    agentDialog,
+    isAgentListDialogOpen,
+  } = useSidebar();
 
-  const changeAgentDialog = useCallback(
-    (isOpen: boolean, agentId: string | null = null, isSubmitting = false) => {
-      setAgentDialogState({
-        agentId,
-        isOpen,
-        isSubmitting,
-      });
+  const { data: agents = [], mutate } = useSWR<AgentDTO[]>(
+    '/api/agents',
+    fetcher,
+    {
+      revalidateOnMount: false,
     },
-    [],
   );
 
   useEffect(() => {
     if (initialAgents.length > 0) {
-      mutate('/api/agents', initialAgents, {
+      mutate(initialAgents, {
         revalidate: false,
       });
     }
   }, [initialAgents, mutate]);
 
-  useEffect(() => {
-    if (agents.length === 0 || (!chat && tabs.length === 0)) {
-      return;
-    }
-    if (currentTab) {
-      if (!tabs.includes(currentTab)) {
-        setTab(null);
-      }
-
-      return;
-    }
-
-    if (isReadonly) {
-      return;
-    }
-
-    const hasAgentForChat =
-      !!id && agents.some((agent) => agent.id === chat?.agentId);
-    if (chat && hasAgentForChat) {
-      if (!tabs.includes(chat.agentId)) {
-        addTab(chat.agentId);
-      }
-      setTab(chat.agentId);
-    } else {
-      router.push('/');
-      setTab(tabs[0] || null);
-    }
-  }, [tabs, router, currentTab, setTab, addTab, chat, id, agents, isReadonly]);
+  const isBlockVisible = useBlockSelector((state) => state.isVisible);
 
   return (
     <SWRConfig
@@ -124,16 +84,22 @@ export function Chat({
         modelId={modelId}
         provider={provider}
         isReadOnly={isReadonly}
-        setOpenAgentListDialog={setOpenAgentListDialog}
-        setAgentDialogState={setAgentDialogState}
       >
         <div className="flex flex-col min-w-0 h-dvh bg-accent bg-gradient-to-tl from-accent from-40% to-white/15">
+          <ChatHeader selectedVisibilityType={selectedVisibilityType} />
           <Messages isBlockVisible={isBlockVisible} votes={votes} />
           <form className="flex mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
-            {!isReadonly && <MultimodalInput agents={agents} />}
+            {!isReadonly && <MultimodalInput />}
           </form>
         </div>
-        <Block agents={agents} votes={votes} />
+        <Block votes={votes} />
+        <AgentTabs
+          agents={agents}
+          openAgentListDialog={isAgentListDialogOpen}
+          changeAgentListDialog={openAgentListDialog}
+          changeAgentDialog={openAgentDialog}
+          agentDialog={agentDialog}
+        />
       </ChatProvider>
     </SWRConfig>
   );

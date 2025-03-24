@@ -35,6 +35,18 @@ type SidebarContext = {
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
+  openAgentListDialog: (isOpen: boolean) => void;
+  openAgentDialog: (
+    isOpen: boolean,
+    agentId?: string,
+    isSubmitting?: boolean,
+  ) => void;
+  agentDialog: {
+    agentId: string | null;
+    isOpen: boolean;
+    isSubmitting: boolean;
+  };
+  isAgentListDialogOpen: boolean;
 };
 
 const SidebarContext = React.createContext<SidebarContext | null>(null);
@@ -69,6 +81,14 @@ const SidebarProvider = React.forwardRef<
     ref,
   ) => {
     const isMobile = useIsMobile();
+
+    const [openAgentListDialog, setOpenAgentListDialog] = React.useState(false);
+    const [agentDialogState, setAgentDialogState] = React.useState<{
+      agentId: string | null;
+      isOpen: boolean;
+      isSubmitting: boolean;
+    }>({ isOpen: false, agentId: null, isSubmitting: false });
+
     const [openMobile, setOpenMobile] = React.useState(false);
 
     // This is the internal state of the sidebar.
@@ -96,6 +116,21 @@ const SidebarProvider = React.forwardRef<
         ? setOpenMobile((open) => !open)
         : setOpen((open) => !open);
     }, [isMobile, setOpen, setOpenMobile]);
+
+    const changeAgentDialog = React.useCallback(
+      (
+        isOpen: boolean,
+        agentId: string | null = null,
+        isSubmitting = false,
+      ) => {
+        setAgentDialogState({
+          agentId,
+          isOpen,
+          isSubmitting,
+        });
+      },
+      [],
+    );
 
     // Adds a keyboard shortcut to toggle the sidebar.
     React.useEffect(() => {
@@ -126,6 +161,10 @@ const SidebarProvider = React.forwardRef<
         openMobile,
         setOpenMobile,
         toggleSidebar,
+        agentDialog: agentDialogState,
+        isAgentListDialogOpen: openAgentListDialog,
+        openAgentDialog: changeAgentDialog,
+        openAgentListDialog: setOpenAgentListDialog,
       }),
       [
         state,
@@ -135,6 +174,9 @@ const SidebarProvider = React.forwardRef<
         openMobile,
         setOpenMobile,
         toggleSidebar,
+        openAgentListDialog,
+        changeAgentDialog,
+        agentDialogState,
       ],
     );
 
@@ -144,7 +186,10 @@ const SidebarProvider = React.forwardRef<
           <div
             style={
               {
-                '--sidebar-width': state === 'collapsed' ? SIDEBAR_WIDTH_COLLAPSED : SIDEBAR_WIDTH,
+                '--sidebar-width':
+                  state === 'collapsed'
+                    ? SIDEBAR_WIDTH_COLLAPSED
+                    : SIDEBAR_WIDTH,
                 '--sidebar-width-icon': SIDEBAR_WIDTH_ICON,
                 ...style,
               } as React.CSSProperties

@@ -31,7 +31,6 @@ import {
 } from '@/components/ui/tooltip';
 import { useChat, useChatHandlers, useChatMessages } from '@/contexts/chat';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
-import type { AgentDTO } from '@/lib/data/agent';
 
 import { ArrowUpIcon, StopIcon, SummarizeIcon } from './icons';
 import { blockDefinitions, type BlockKind } from './block';
@@ -305,12 +304,10 @@ const PureToolbar = ({
   isToolbarVisible,
   setIsToolbarVisible,
   blockKind,
-  agents,
 }: {
   isToolbarVisible: boolean;
   setIsToolbarVisible: Dispatch<SetStateAction<boolean>>;
   blockKind: BlockKind;
-  agents: AgentDTO[];
 }) => {
   const { isLoading } = useChat();
   const { messages } = useChatMessages();
@@ -324,7 +321,7 @@ const PureToolbar = ({
   const { currentTab } = useCurrentAgentTab();
 
   const onSubmit = (content: string, attachments?: Attachment[]) => {
-    handleSubmit(content, attachments || [], currentTab as string, agents, tabs);
+    handleSubmit(content, attachments || [], currentTab as string, tabs);
   }
 
   useOnClickOutside(toolbarRef as RefObject<HTMLDivElement>, () => {

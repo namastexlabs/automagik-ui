@@ -98,7 +98,7 @@ export function SidebarHistory({
                   onDelete={onDeleteThread}
                 />
               ) : (
-                <Link href={`chat/${agent.chat.id}`} key={agent.id}>
+                <Link href={`/chat/${agent.chat.id}`} key={agent.id}>
                   <SidebarAgentItem agent={agent} onDelete={onDeleteThread} />
                 </Link>
               ),

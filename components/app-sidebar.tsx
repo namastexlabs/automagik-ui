@@ -32,7 +32,8 @@ export function AppSidebar({
 }) {
   const colorMode = useResolvedTheme();
   const pathname = usePathname();
-  const { setOpenMobile, open, toggleSidebar } = useSidebar();
+  const { setOpenMobile, open, toggleSidebar, openAgentListDialog } =
+    useSidebar();
 
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
@@ -102,6 +103,9 @@ export function AppSidebar({
           type="button"
           variant="ghost"
           className="group/explore-button flex justify-start gap-2 hover:bg-transparent p-0"
+          onClick={() => {
+            openAgentListDialog(true);
+          }}
         >
           <div className="rounded-full border-dark-gray border p-[0.35rem] flex items-center justify-center group-hover/explore-button:border-accent-foreground">
             <ShapesIcon size={26} />
