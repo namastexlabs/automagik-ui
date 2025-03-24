@@ -1,3 +1,4 @@
+import 'server-only';
 import type { Tool as ToolSDK } from 'ai';
 import { dezerialize } from 'zodex';
 import dedent from 'dedent';
@@ -6,6 +7,7 @@ import { z } from 'zod';
 import type { Tool } from '@/lib/db/schema';
 import { runWorkflow } from '@/lib/services/automagik';
 
+import { toCamelCase } from '../utils';
 import type { ExecutionResult, ToolRequestContext } from './types';
 import {
   castToolType,
@@ -29,6 +31,18 @@ export const getToolDefinitionBySource = (tool: Tool) => {
   }
 };
 
+export const getToolName = (tool: Tool) => {
+  return `${tool.source}-${tool.name}`;
+};
+
+export const sanitizeVerboseName = (verboseName: string) => {
+  return verboseName.replace(/-/g, ' ');
+};
+
+export const normalizeVerboseName = (verboseName: string) => {
+  return toCamelCase(sanitizeVerboseName(verboseName));
+};
+
 export const toCoreTools = (
   tools: Tool[],
   context: ToolRequestContext,
@@ -36,7 +50,8 @@ export const toCoreTools = (
   return tools.reduce<Record<string, ToolSDK>>((tools, tool) => {
     const toolDefinition = getToolDefinitionBySource(tool);
 
-    tools[tool.name] = {
+    const toolName = getToolName(tool);
+    tools[toolName] = {
       description: dedent`
         ${tool.description}
 
@@ -59,7 +74,7 @@ export const toCoreTools = (
           }
         }
 
-        console.warn(`No tool ${tool.name} found for execute, skipping...`);
+        console.warn(`No tool ${toolName} found for execute, skipping...`);
         return 'No execution';
       },
     };

@@ -3,16 +3,12 @@
 import type { Message, ToolInvocation as AIToolInvocation } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import useSWR from 'swr';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 
-import {
-  castToolType,
-  type InternalToolInvocationPayload,
-} from '@/lib/agents/tool-declarations/client';
+import type { InternalToolInvocationPayload } from '@/lib/agents/tool-declarations/client';
 import type { Vote } from '@/lib/db/schema';
-import { cn, fetcher } from '@/lib/utils';
-import type { AgentDTO } from '@/lib/data/agent';
+import { cn } from '@/lib/utils';
+import { getToolName, getToolSource } from '@/lib/agents/client';
 
 import { Markdown } from './markdown';
 import { PencilEditIcon, SparklesIcon } from './icons';
@@ -23,7 +19,6 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { ToolInvocation } from './internal-tool-invocation';
 import { Badge } from './ui/badge';
-import { Skeleton } from './ui/skeleton';
 import { MessageReasoning } from './message-reasoning';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
@@ -43,45 +38,29 @@ export function PreviewMessage({
   agentId: string | null;
 }) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
-  const { data: agents = [], isLoading: isAgentsLoading } = useSWR<AgentDTO[]>(
-    '/api/agents',
-    fetcher,
-    { revalidateOnMount: false },
-  );
-
-  const agent = agents.find((agent) => agent.id === agentId);
-
-  const tools = useMemo(() => {
-    return agents.flatMap((agent) => agent.tools);
-  }, [agents]);
 
   const renderToolInvocation = (toolInvocation: AIToolInvocation) => {
-    if (isAgentsLoading) {
-      return <Skeleton key={toolInvocation.toolCallId} className="h-6" />;
-    }
+    const source = getToolSource(toolInvocation.toolName);
 
-    const userTool = tools.find(
-      (tool) => tool.name === toolInvocation.toolName,
-    );
-
-    if (!userTool) {
-      return null;
-    }
-
-    switch (true) {
-      case castToolType('automagik', userTool):
+    switch (source) {
+      case 'automagik':
         return (
           <div key={`${toolInvocation.toolCallId} ${toolInvocation.state}`}>
             <Badge variant="secondary" className="text-md">
-              Running Flow #{userTool.data.flowId.slice(0, 8)}...
+              Running Flow...
             </Badge>
           </div>
         );
-      case castToolType('internal', userTool):
+      case 'internal':
         return (
           <ToolInvocation
             key={`${toolInvocation.toolCallId} ${toolInvocation.state}`}
-            toolInvocation={toolInvocation as InternalToolInvocationPayload}
+            toolInvocation={
+              {
+                ...toolInvocation,
+                toolName: getToolName(toolInvocation.toolName),
+              } as InternalToolInvocationPayload
+            }
             isReadonly={isReadonly}
           />
         );

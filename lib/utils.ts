@@ -31,6 +31,10 @@ export function getLocalStorage(key: string) {
   return [];
 }
 
+export const toCamelCase = (str: string) => {
+  return str.replace(/\s([a-z])/g, (_, char) => char.toUpperCase());
+};
+
 export function generateUUID(): string {
   return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g, (c) => {
     const r = (Math.random() * 16) | 0;

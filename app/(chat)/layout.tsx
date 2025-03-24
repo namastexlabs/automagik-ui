@@ -1,4 +1,5 @@
 import Script from 'next/script';
+import type { ReactNode } from 'react';
 import { cookies } from 'next/headers';
 
 import { getUser } from '@/lib/auth';
@@ -11,12 +12,14 @@ import { getMostRecentAgents } from '@/lib/data/agent';
 
 export default async function Layout({
   children,
-}: {
-  children: React.ReactNode;
-}) {
+}: { children: ReactNode }) {
   const session = await getUser();
   const cookieStore = await cookies();
   const agents = await getMostRecentAgents();
+
+  if (agents.errors) {
+    throw new Error(JSON.stringify(agents.errors));
+  }
 
   const isCollapsed = cookieStore.get('sidebar:state')?.value !== 'true';
   const tabCookie = cookieStore.get(AGENT_COOKIE_KEY)?.value;

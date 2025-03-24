@@ -62,7 +62,6 @@ export async function saveFlowToolAction(
 ): ReturnType<typeof saveFlowTool> {
   const id = formData.get('id') as string;
   const validatedData = {
-    name: formData.get('name'),
     verboseName: formData.get('verboseName'),
     description: formData.get('description'),
     flowId: formData.get('flowId'),
