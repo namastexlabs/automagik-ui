@@ -88,7 +88,7 @@ export function PreviewMessage({
           )}
         >
           {message.role === 'assistant' && (
-            <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background">
+            <div className="size-8 flex items-center rounded-full justify-center shrink-0">
               <div className="translate-y-px">
                 <Avatar className="size-9 text-md font-bold">
                   <AvatarImage

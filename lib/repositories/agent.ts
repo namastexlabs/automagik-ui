@@ -18,6 +18,8 @@ import {
   getAgentKey,
   saveAgentAvatar,
   deleteAgentAvatar,
+  getFilenameFromKey,
+  getUrlFromKey,
 } from '@/lib/services/minio';
 
 import { isUniqueConstraintError } from '../db/queries';
@@ -105,13 +107,16 @@ export async function createAgent({
       tools: agentTools.map((tool) => tool.id),
       dynamicBlocks: agentDynamicBlocks.map((block) => block.id),
     });
+
     if (avatarFile) {
+      const filename = (avatarFile as File).name;
       await saveAgentAvatar(
         agent.id,
+        filename,
         Buffer.from(await avatarFile.arrayBuffer()),
       );
 
-      const avatarUrl = getAgentKey(agent.id);
+      const avatarUrl = getAgentKey(agent.id, filename);
       await updateAgentTransaction({
         id: agent.id,
         avatarUrl,
@@ -158,13 +163,18 @@ export async function updateAgent({
 
   let avatarUrl: string | null = null;
   if (data.avatarFile) {
+    const filename = (data.avatarFile as File).name;
+    if (agent.avatarUrl) {
+      await deleteAgentAvatar(agent.id, getFilenameFromKey(agent.avatarUrl));
+    }
     await saveAgentAvatar(
       agent.id,
+      filename,
       Buffer.from(await data.avatarFile.arrayBuffer()),
     );
-    avatarUrl = getAgentKey(agent.id);
+    avatarUrl = getUrlFromKey(getAgentKey(agent.id, filename));
   } else if (data.avatarFile === null && agent.avatarUrl) {
-    await deleteAgentAvatar(agent.id);
+    await deleteAgentAvatar(agent.id, getFilenameFromKey(agent.avatarUrl));
   } else {
     avatarUrl = agent.avatarUrl;
   }

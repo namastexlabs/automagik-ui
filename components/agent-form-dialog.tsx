@@ -176,6 +176,20 @@ export function AgentFormDialog({
                 )}
               </div>
               <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor={`${formId}-avatar`}
+                  className="text-zinc-600 font-normal dark:text-zinc-400"
+                >
+                  Avatar
+                </Label>
+                <Input
+                  id={`${formId}-avatar`}
+                  name="avatarFile"
+                  type="file"
+                  className="bg-muted text-md md:text-sm"
+                />
+              </div>
+              <div className="flex flex-col gap-2">
                 <div className="flex gap-2 items-center">
                   <Label
                     htmlFor={`${formId}-system-prompt`}

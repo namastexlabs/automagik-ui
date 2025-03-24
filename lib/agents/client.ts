@@ -16,5 +16,11 @@ export const getToolSource = (toolName: string) => {
 };
 
 export const getToolName = (toolName: string) => {
-  return toolName.split('-')[1];
+  const name = toolName.split('-')[1];
+
+  if (!name) {
+    return toolName;
+  }
+
+  return name;
 };

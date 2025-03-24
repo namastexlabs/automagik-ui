@@ -241,7 +241,7 @@ export function SidebarAgentItem({ agent, onDelete }: AgentItemProps) {
     >
       <div className="rounded-full shrink-0">
         <Avatar className="size-9 text-md font-bold">
-          <AvatarImage src={agent.avatarUrl || undefined} alt={agent.name} />
+          <AvatarImage src={agent.avatarUrl || undefined} alt={agent.name} className="object-contain" />
           <AvatarFallback className={randomColor}>
             {agent.name.slice(0, 2).toUpperCase()}
           </AvatarFallback>
