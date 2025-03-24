@@ -33,8 +33,9 @@ export function Messages({ votes }: MessagesProps) {
           <PreviewMessage
             key={message.id}
             chatId={chat?.id}
-            agentId={chat?.agentId || null}
             message={message}
+            agentName={chat?.agent?.name}
+            agentAvatarUrl={chat?.agent?.avatarUrl}
             isLoading={isLoading && messages.length - 1 === index}
             vote={
               votes

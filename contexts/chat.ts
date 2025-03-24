@@ -1,11 +1,10 @@
 import { createContext, use } from 'react';
 import type { Attachment, Message } from 'ai';
 
-import type { AgentDTO } from '@/lib/data/agent';
-import type { Chat } from '@/lib/db/schema';
+import type { ChatDTO } from '@/lib/data/chat';
 
 export type ChatContextValue = {
-  chat?: Chat;
+  chat?: ChatDTO;
   modelId: string;
   provider: string;
   isLoading: boolean;
@@ -39,7 +38,6 @@ export type ChatHandlersContextValue = {
     content: string,
     attachments: Attachment[],
     agentId: string,
-    agents: AgentDTO[],
     tabs: string[],
   ) => void;
 };

@@ -25,9 +25,10 @@ export function BlockMessages({ votes }: BlockMessagesProps) {
       {messages.map((message, index) => (
         <PreviewMessage
           chatId={chat?.id}
-          agentId={chat?.agentId || null}
           key={message.id}
           message={message}
+          agentName={chat?.agent?.name}
+          agentAvatarUrl={chat?.agent?.avatarUrl}
           isLoading={isLoading && index === messages.length - 1}
           vote={
             votes

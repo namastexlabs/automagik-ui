@@ -28,14 +28,16 @@ export function PreviewMessage({
   vote,
   isLoading,
   isReadonly,
-  agentId,
+  agentName,
+  agentAvatarUrl,
 }: {
   chatId?: string;
+  agentName?: string | null;
+  agentAvatarUrl?: string | null;
   message: Message;
   vote: Vote | undefined;
   isLoading: boolean;
   isReadonly: boolean;
-  agentId: string | null;
 }) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
 
@@ -90,11 +92,11 @@ export function PreviewMessage({
               <div className="translate-y-px">
                 <Avatar className="size-9 text-md font-bold">
                   <AvatarImage
-                    src={agent?.avatarUrl || undefined}
-                    alt={agent?.name || ''}
+                    src={agentAvatarUrl || undefined}
+                    alt={agentName || ''}
                   />
                   <AvatarFallback className="bg-white text-black">
-                    {agent?.name.slice(0, 2).toUpperCase() || ''}
+                    {agentName?.slice(0, 2).toUpperCase() || ''}
                   </AvatarFallback>
                 </Avatar>
               </div>

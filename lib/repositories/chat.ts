@@ -4,7 +4,6 @@ import { convertToCoreMessages, type Message } from 'ai';
 
 import { generateTitleFromUserMessage } from '@/lib/ai/generate-title';
 import { getMostRecentUserMessage } from '@/lib/utils.server';
-import { generateUUID } from '@/lib/utils';
 import type { Chat } from '@/lib/db/schema';
 import {
   saveChat,
@@ -26,7 +25,7 @@ export function verifyChatWritePermission(chat: Chat, userId: string) {
   }
 }
 
-export async function getChat(id: string, userId: string): Promise<Chat> {
+export async function getChat(id: string, userId: string) {
   const chat = await getChatById({ id });
   if (!chat) {
     throw new NotFoundError('Chat not found');
@@ -77,7 +76,6 @@ export async function createChat({
   }
 
   return await saveChat({
-    id: generateUUID(),
     userId,
     agentId,
     title: await generateTitleFromUserMessage({ message: userMessage }),
