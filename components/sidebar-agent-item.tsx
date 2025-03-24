@@ -249,14 +249,14 @@ export function SidebarAgentItem({ agent, onDelete }: AgentItemProps) {
       </div>
       <div className="flex flex-col flex-1 min-w-0 gap-1">
         <div className="flex justify-between items-center">
-          <p className="text-foreground font-bold text-sm max-w-[7.8rem] truncate">
+          <p className="text-foreground font-bold text-sm max-w-40 truncate">
             {agent.name}
           </p>
           <span className="text-[0.7rem] text-muted-foreground">
             {getMessageDateLabel(agent.recentMessage)}
           </span>
         </div>
-        <p className="text-xs text-muted-foreground truncate w-[70%]">
+        <p className="text-xs text-muted-foreground truncate w-4/5">
           {agent.recentMessage.content.content}
         </p>
       </div>

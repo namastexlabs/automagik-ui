@@ -1,8 +1,6 @@
 'use client';
 
-import type {
-  Attachment,
-} from 'ai';
+import type { Attachment } from 'ai';
 import cx from 'classnames';
 import {
   AnimatePresence,
@@ -29,7 +27,12 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
-import { useChat, useChatHandlers, useChatMessages } from '@/contexts/chat';
+import {
+  useChat,
+  useChatHandlers,
+  useChatInput,
+  useChatMessages,
+} from '@/contexts/chat';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 
 import { ArrowUpIcon, StopIcon, SummarizeIcon } from './icons';
@@ -37,7 +40,7 @@ import { blockDefinitions, type BlockKind } from './block';
 import type { BlockToolbarItem } from './create-block';
 
 type ToolProps = {
-  description: string;  
+  description: string;
   icon: ReactNode;
   selectedTool: string | null;
   setSelectedTool: Dispatch<SetStateAction<string | null>>;
@@ -143,10 +146,7 @@ const ReadingLevelSelector = ({
 }: {
   setSelectedTool: Dispatch<SetStateAction<string | null>>;
   isAnimating: boolean;
-  handleSubmit: (
-    content: string,
-    attachments?: Attachment[],
-  ) => void;
+  handleSubmit: (content: string, attachments?: Attachment[]) => void;
 }) => {
   const LEVELS = [
     'Elementary',
@@ -319,10 +319,17 @@ const PureToolbar = ({
   const [isAnimating, setIsAnimating] = useState(false);
   const { tabs } = useAgentTabs();
   const { currentTab } = useCurrentAgentTab();
+  const { temperature, topP, presencePenalty, frequencyPenalty } =
+    useChatInput();
 
   const onSubmit = (content: string, attachments?: Attachment[]) => {
-    handleSubmit(content, attachments || [], currentTab as string, tabs);
-  }
+    handleSubmit(content, attachments || [], currentTab as string, tabs, {
+      temperature,
+      topP,
+      presencePenalty,
+      frequencyPenalty,
+    });
+  };
 
   useOnClickOutside(toolbarRef as RefObject<HTMLDivElement>, () => {
     setIsToolbarVisible(false);

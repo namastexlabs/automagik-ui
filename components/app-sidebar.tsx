@@ -37,7 +37,7 @@ export function AppSidebar({
 
   return (
     <Sidebar className="group-data-[side=left]:border-r-0">
-      <SidebarHeader className="px-4">
+      <SidebarHeader className="px-2">
         <SidebarMenu>
           <div className="flex flex-row items-center mt-2">
             <Tooltip>
@@ -87,7 +87,7 @@ export function AppSidebar({
           asChild
           variant="ghost"
           type="button"
-          className="group/thread-button justify-start gap-2 ml-4 my-4 p-0 hover:bg-transparent h-fit"
+          className="group/thread-button justify-start gap-2 ml-2 my-4 p-0 hover:bg-transparent h-fit"
         >
           <Link href="/">
             <div className="rounded-full border-dark-gray border p-[0.35rem] flex items-center justify-center group-hover/thread-button:border-accent-foreground">

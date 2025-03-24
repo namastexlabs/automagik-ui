@@ -75,7 +75,7 @@ export function SidebarHistory({
 
   return (
     <>
-      <SidebarGroup>
+      <SidebarGroup className="p-0">
         <SidebarGroupContent>
           <SidebarMenu className="px-2">
             <h2 className="text-sm font-medium mb-2">Recent Threads</h2>

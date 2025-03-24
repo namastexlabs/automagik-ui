@@ -37,12 +37,10 @@ import { Button } from './ui/button';
 import { Tooltip, TooltipTrigger } from './ui/tooltip';
 
 export function AgentFormDialog({
-  onSuccess,
   agent,
   isOpen,
   setOpen,
 }: {
-  onSuccess: (agent: AgentDTO) => void;
   agent?: AgentDTO | null;
   isOpen: boolean;
   setOpen: (isOpen: boolean) => void;
@@ -90,7 +88,6 @@ export function AgentFormDialog({
         });
 
         setOpen(false);
-        onSuccess(newState.data);
       }
 
       return newState;

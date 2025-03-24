@@ -64,6 +64,11 @@ export function ChatProvider({
   const { currentTab } = useCurrentAgentTab();
   const { tabs } = useAgentTabs();
 
+  const [temperature, setTemperature] = useState(0.7);
+  const [topP, setTopP] = useState(0.9);
+  const [presencePenalty, setPresencePenalty] = useState(0);
+  const [frequencyPenalty, setFrequencyPenalty] = useState(0);
+
   const getLocalStorageInput = useCallback(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('input') || '';
@@ -91,6 +96,12 @@ export function ChatProvider({
     experimental_throttle: 100,
     body: {
       isExtendedThinking,
+      modelId: selectedModelId,
+      provider: selectedProvider,
+      temperature,
+      topP,
+      presencePenalty,
+      frequencyPenalty,
     },
   });
 
@@ -162,14 +173,8 @@ export function ChatProvider({
   );
 
   const reloadMessage = useCallback(() => {
-    return reload({
-      body: {
-        id: chat?.id,
-        modelId: selectedModelId,
-        provider: selectedProvider,
-      },
-    });
-  }, [reload, chat?.id, selectedModelId, selectedProvider]);
+    return reload();
+  }, [reload]);
 
   // Really weird error when a stream overflows or something like that
   const isStreamInputError =
@@ -226,11 +231,7 @@ export function ChatProvider({
         }
 
         await append(message, {
-          body: {
-            id: data.id,
-            modelId: selectedModelId,
-            provider: selectedProvider,
-          },
+          body: { id: data.id },
           experimental_attachments: newAttachments,
         });
 
@@ -248,8 +249,6 @@ export function ChatProvider({
       setAttachments,
       shouldRemoveLastMessage,
       append,
-      selectedModelId,
-      selectedProvider,
       chat,
       shouldSubmit,
       openAgentListDialog,
@@ -273,7 +272,14 @@ export function ChatProvider({
       isAutoSubmitting.current = true;
       onSubmit(input, attachments, currentTab, tabs);
     }
-  }, [shouldSubmit, onSubmit, input, attachments, currentTab, tabs]);
+  }, [
+    shouldSubmit,
+    onSubmit,
+    input,
+    attachments,
+    currentTab,
+    tabs,
+  ]);
 
   const isLoading = status === 'submitted' || status === 'streaming';
   const chatContextValue = useMemo(() => {
@@ -310,8 +316,19 @@ export function ChatProvider({
     return {
       input: _input,
       attachments,
+      temperature,
+      topP,
+      presencePenalty,
+      frequencyPenalty,
     };
-  }, [_input, attachments]);
+  }, [
+    _input,
+    attachments,
+    temperature,
+    topP,
+    presencePenalty,
+    frequencyPenalty,
+  ]);
 
   const chatHandlersContextValue = useMemo(() => {
     return {
@@ -320,6 +337,10 @@ export function ChatProvider({
       setInput,
       setAttachments,
       setMessages,
+      setTemperature,
+      setTopP,
+      setPresencePenalty,
+      setFrequencyPenalty,
       stop,
       append,
       toggleExtendedThinking: () => setIsExtendedThinking((state) => !state),
