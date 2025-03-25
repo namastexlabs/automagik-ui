@@ -238,7 +238,7 @@ export function MultimodalInput({
           }}
         />
 
-        <div className="absolute w-full bottom-0 p-2 pl-4 pb-1 gap-1.5 flex flex-row justify-start items-center">
+        <div className="absolute w-full bottom-0 p-2 pl-4 pb-1.5 gap-1.5 flex flex-row justify-start items-center">
           <Tooltip>
             <TooltipTrigger asChild>
               <AttachmentsButton

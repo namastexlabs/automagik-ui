@@ -121,27 +121,73 @@ export async function convertCoreMessageAttachments(
   userMessage: CoreUserMessage,
   chatId: string,
 ) {
-  return Array.isArray(userMessage.content)
-    ? {
-        ...userMessage,
-        content: await Promise.all(
-          userMessage.content.map(async (content) => {
-            if (content.type === 'image' && content.image instanceof URL) {
-              const name = content.image.pathname.split('/').pop() as string;
-              return {
-                ...content,
-                mimeType: `image/${name.split('.').pop() as string}`,
-                image: isKeyWithChatId(content.image.pathname)
-                  ? content.image
-                  : new URL(await moveAttachmentToChat(name, chatId)),
-              };
-            }
+  if (!Array.isArray(userMessage.content)) {
+    return userMessage;
+  }
 
-            return content;
-          }),
-        ),
+  return {
+    ...userMessage,
+    content: await Promise.all(
+      userMessage.content.map(async (content) => {
+        if (content.type === 'image' && content.image instanceof URL) {
+          const name = content.image.pathname.split('/').pop() as string;
+          return {
+            ...content,
+            mimeType: `image/${name.split('.').pop() as string}`,
+            image: isKeyWithChatId(content.image.pathname)
+              ? isSignedUrlExpired(content.image.href)
+                ? new URL(await moveAttachmentToChat(name, chatId))
+                : content.image
+              : new URL(await moveAttachmentToChat(name, chatId)),
+          };
+        }
+
+        return content;
+      }),
+    ),
+  };
+}
+
+/*
+ * Claude has thinking XML tags and Extended thinking which conflicts on AI SDK
+ * This function removes the reasoning messages from the array back to XML thiking tags
+ */
+export function handleClaudeReasoningMessages(
+  messages: CoreMessage[],
+  provider: string,
+  modelId: string,
+): CoreMessage[] {
+  if (provider === 'anthropic' && !modelId.includes('claude-3-7-sonnet')) {
+    return messages.map((message) => {
+      if (message.role === 'assistant' && Array.isArray(message.content)) {
+        const reasoningParts = message.content.filter(
+          (content) => content.type === 'reasoning',
+        );
+
+        return {
+          ...message,
+          content: message.content
+            .filter((content) => content.type !== 'reasoning')
+            .map((part) => {
+              if (part.type === 'text') {
+                const text = reasoningParts
+                  .map((part) => `<thinking>${part.text}</thinking>`)
+                  .join('\n');
+                return {
+                  text,
+                  type: 'text' as const,
+                };
+              }
+
+              return part;
+            }),
+        };
       }
-    : userMessage;
+
+      return message;
+    });
+  }
+  return messages;
 }
 
 export function getDiffRelation<PREVIOUS, CURRENT>(
