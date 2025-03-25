@@ -19,7 +19,7 @@ export default function WelcomePage() {
   ];
 
   useEffect(() => {
-    const duration = 10000;
+    const duration = 20000;
     const updateInterval = duration / loadingPhrases.length;
     let currentStep = 0;
 
@@ -45,9 +45,7 @@ export default function WelcomePage() {
       <div className="flex-1 flex items-center justify-center p-8">
         <div className="max-w-3xl w-full">
           <div className="mb-6">
-            <h1 className="text-4xl font-bold text-gradient w-fit">
-              Namastê,
-            </h1>
+            <h1 className="text-4xl font-bold text-gradient w-fit">Namastê,</h1>
             <p className="text-foreground mt-2">
               We have a special message for you before you get started!
             </p>
@@ -55,9 +53,16 @@ export default function WelcomePage() {
           <div className="relative p-[2px] rounded-lg bg-gradient-to-r from-accent-magenta to-accent-cyan">
             <div className="relative bg-background rounded-lg aspect-video">
               <div className="absolute inset-0 flex items-center justify-center">
-                <div className="text-foreground text-lg">
-                  Video Message Placeholder
-                </div>
+                <iframe
+                  width="560"
+                  height="315"
+                  src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1"
+                  title="Welcome to Namastex"
+                  frameBorder="0"
+                  allow="autoplay"
+                  referrerPolicy="strict-origin-when-cross-origin"
+                  className="size-full p-1"
+                />
               </div>
             </div>
           </div>

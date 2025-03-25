@@ -4,9 +4,34 @@ import { motion } from 'framer-motion';
 import Image from 'next/image';
 
 import { useResolvedTheme } from '@/hooks/use-resolved-theme';
+import { useCurrentAgent } from '@/hooks/use-current-agent';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 export const Overview = () => {
   const colorMode = useResolvedTheme();
+  const { agent } = useCurrentAgent();
+
+  if (agent) {
+    return (
+      <motion.div
+        className="motion max-w-3xl mx-auto md:mt-20"
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.98 }}
+        transition={{ delay: 0.5 }}
+      >
+        <div className="rounded-xl p-6 flex items-center gap-6">
+          <Avatar className="size-[100px] text-4xl font-bold">
+            <AvatarImage src={agent.avatarUrl || '/default-avatar.png'} />
+            <AvatarFallback>
+              {agent.name.slice(0, 2).toUpperCase()}
+            </AvatarFallback>
+          </Avatar>
+          <h1 className="text-4xl font-bold">Hello there!</h1>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div

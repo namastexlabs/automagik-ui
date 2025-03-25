@@ -24,8 +24,11 @@ import { DataStatus } from '.';
 
 export type ChatDTO = Chat & {
   agent: {
+    id: string; 
     name: string;
     avatarUrl: string | null;
+    visibility: VisibilityType;
+    userId: string | null;
   };
 };
 
@@ -33,8 +36,11 @@ const toChatDTO = (chat: Chat & { agent: Agent }): ChatDTO => {
   return {
     ...chat,
     agent: {
+      id: chat.agent.id,
       name: chat.agent.name,
       avatarUrl: chat.agent.avatarUrl,
+      visibility: chat.agent.visibility,
+      userId: chat.agent.userId,
     },
   };
 };

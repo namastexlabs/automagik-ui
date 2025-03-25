@@ -25,6 +25,7 @@ import {
   hasAttachment,
   sanitizeResponseMessages,
   convertCoreMessageAttachments,
+  handleClaudeReasoningMessages,
 } from '@/lib/utils.server';
 import { generateUUID } from '@/lib/utils';
 import { toCoreTools } from '@/lib/agents/tool';
@@ -93,7 +94,11 @@ export async function POST(request: NextRequest) {
           parts: message.parts?.filter((part) => part.type !== 'reasoning'),
         }));
 
-    const coreMessages = convertToCoreMessages(sanitizedMessages);
+    const coreMessages = handleClaudeReasoningMessages(
+      convertToCoreMessages(sanitizedMessages),
+      provider,
+      modelId,
+    );
     const lastMessage = messages.at(-1);
     const userMessage = getMostRecentUserMessage(coreMessages);
 

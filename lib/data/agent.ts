@@ -13,6 +13,7 @@ import {
   getUserAgents,
   updateAgent,
   createAgent,
+  getAgent as getAgentRepository,
   duplicateAgent as duplicateAgentRepository,
   removeAgent as removeAgentRepository,
   getMostRecentAgents as getMostRecentAgentsRepository,
@@ -122,6 +123,19 @@ export function toAgentDTO(
 }
 
 export type AgentDTO = ReturnType<typeof toAgentDTO>;
+
+export async function getAgent(id: string): Promise<DataResponse<AgentDTO, any>> {
+  try {
+    const session = await getUser();
+    const agent = await getAgentRepository(id, session.user.id);
+    return {
+      status: DataStatus.Success,
+      data: toAgentDTO(session.user.id, agent),
+    };
+  } catch (error) {
+    return handleDataError(error);
+  }
+}
 
 export async function getMostRecentAgents(): Promise<
   DataResponse<AgentWithMessagesDTO[], any>

@@ -283,7 +283,7 @@ function PureBlock({
 
               {block.isVisible && (
                 <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
-                  <MultimodalInput className="bg-background dark:bg-muted" />
+                  <MultimodalInput />
                 </form>
               )}
             </div>

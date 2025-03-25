@@ -21,7 +21,6 @@ import {
   useChatInput,
   useChatMessages,
 } from '@/contexts/chat';
-import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { throttle } from '@/lib/utils';
 import { getModelData, isExtendedThinkingAllowed } from '@/lib/ai/models';
 
@@ -32,6 +31,7 @@ import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { ModelParameters } from './model-parameters';
 import { Switch } from './ui/switch';
+import { useCurrentAgent } from '@/hooks/use-current-agent';
 
 export function MultimodalInput({
   className,
@@ -64,8 +64,7 @@ export function MultimodalInput({
     stop,
     toggleExtendedThinking,
   } = useChatHandlers();
-  const { tabs } = useAgentTabs();
-  const { currentTab } = useCurrentAgentTab();
+  const { agent: currentAgent } = useCurrentAgent();
 
   const textareaRef = useRef<HTMLTextAreaElement>(null);
 
@@ -112,7 +111,7 @@ export function MultimodalInput({
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
   const submitForm = useCallback(() => {
-    handleSubmit(input, attachments, currentTab as string, tabs, {
+    handleSubmit(input, attachments, currentAgent?.id, {
       temperature,
       topP,
       presencePenalty,
@@ -127,8 +126,7 @@ export function MultimodalInput({
     input,
     handleSubmit,
     attachments,
-    currentTab,
-    tabs,
+    currentAgent,
     width,
     temperature,
     topP,
@@ -240,7 +238,7 @@ export function MultimodalInput({
           }}
         />
 
-        <div className="absolute w-full bottom-0 p-2 pl-4 pb-1 gap-1.5 flex flex-row justify-start items-center">
+        <div className="absolute w-full bottom-0 p-2 pl-4 pb-1.5 gap-1.5 flex flex-row justify-start items-center">
           <Tooltip>
             <TooltipTrigger asChild>
               <AttachmentsButton

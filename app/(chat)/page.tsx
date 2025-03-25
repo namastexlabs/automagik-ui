@@ -1,6 +1,5 @@
 import { cookies } from 'next/headers';
 
-import { getUser } from '@/lib/auth';
 import { Chat } from '@/components/chat';
 import {
   type ChatModel,
@@ -8,27 +7,25 @@ import {
   DEFAULT_PROVIDER,
   isModelValid,
 } from '@/lib/ai/models';
-import { AGENT_COOKIE_KEY } from '@/lib/agents/cookies';
 import { MODEL_COOKIE_KEY, PROVIDER_COOKIE_KEY } from '@/lib/ai/cookies';
-import { getInitialAgents } from '@/lib/data/agent';
+import { getAgent } from '@/lib/data/agent';
 
-export default async function Page() {
-  const session = await getUser();
+export default async function Page({
+  searchParams,
+}: { searchParams: Promise<{ agent?: string }> }) {
+  const { agent: agentId } = await searchParams;
+  const agentData = agentId ? await getAgent(agentId) : null;
 
-  const cookieStore = await cookies();
-  const agentsData = await getInitialAgents();
-
-  if (agentsData.errors) {
-    throw new Error(JSON.stringify(agentsData.errors));
+  if (agentData?.errors) {
+    throw new Error(JSON.stringify(agentData.errors));
   }
 
-  const tabCookie = cookieStore.get(AGENT_COOKIE_KEY)?.value;
+  const agent = agentData?.data || null;
+  const cookieStore = await cookies();
   const providerFromCookie = cookieStore.get(PROVIDER_COOKIE_KEY)
     ?.value as keyof ChatModel;
   const modelIdFromCookie = cookieStore.get(MODEL_COOKIE_KEY)
     ?.value as keyof ChatModel[typeof providerFromCookie];
-
-  const agent = agentsData.data.find((agent) => agent.id === tabCookie);
 
   const [provider, modelId] =
     providerFromCookie &&
@@ -40,13 +37,11 @@ export default async function Page() {
   return (
     <Chat
       initialMessages={[]}
-      initialAgents={agentsData.data}
+      initialAgent={agent}
       modelId={modelId}
       provider={provider}
       selectedVisibilityType="private"
-      isReadonly={
-        agent?.visibility === 'private' && agent?.userId !== session.user.id
-      }
+      isReadonly={false}
     />
   );
 }

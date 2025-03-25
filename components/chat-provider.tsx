@@ -24,12 +24,12 @@ import {
 } from '@/contexts/chat';
 import { createChatAction } from '@/app/(chat)/actions';
 import { generateUUID } from '@/lib/utils';
-import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { getModelData, isImagesAllowed } from '@/lib/ai/models';
 
 import { DataStreamHandler } from './data-stream-handler';
 import { useSidebar } from './ui/sidebar';
 import type { ChatDTO } from '@/lib/data/chat';
+import { useCurrentAgent } from '@/hooks/use-current-agent';
 
 export function ChatProvider({
   chat,
@@ -60,9 +60,6 @@ export function ChatProvider({
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isExtendedThinking, setIsExtendedThinking] = useState(false);
   const { set: setProgress, stop: stopProgress } = useProgress();
-
-  const { currentTab } = useCurrentAgentTab();
-  const { tabs } = useAgentTabs();
 
   const [temperature, setTemperature] = useState(0.7);
   const [topP, setTopP] = useState(0.9);
@@ -107,6 +104,7 @@ export function ChatProvider({
 
   const { mutate } = useSWRConfig();
   const router = useRouter();
+  const { agent: currentAgent } = useCurrentAgent();
 
   const shouldSubmit = !!searchParams.get('submit');
   const _input = isMounted.current ? input : '';
@@ -145,10 +143,10 @@ export function ChatProvider({
   }, [modelId]);
 
   const getOrCreateChat = useCallback(
-    async (messages: Message[], tab: string) => {
+    async (messages: Message[], agentId: string) => {
       if (!chat) {
         setProgress(0.1);
-        const { errors, data } = await createChatAction(tab, messages);
+        const { errors, data } = await createChatAction(agentId, messages);
 
         if (errors) {
           stopProgress();
@@ -156,7 +154,7 @@ export function ChatProvider({
         }
 
         if (data) {
-          mutate(`/api/history?agentId=${tab}`, data, {
+          mutate(`/api/history?agentId=${agentId}`, data, {
             revalidate: false,
             populateCache: (data, history = []) => {
               return [data, ...history];
@@ -190,14 +188,13 @@ export function ChatProvider({
     async (
       content: string,
       newAttachments: Array<Attachment>,
-      currentAgent: string | null,
-      currentTabs: string[],
+      agentId: string | undefined,
     ) => {
       if (content.trim().length === 0) {
         return;
       }
 
-      if (currentTabs.length === 0 || !currentAgent) {
+      if (!agentId) {
         openAgentListDialog(true);
         return;
       }
@@ -212,7 +209,7 @@ export function ChatProvider({
 
       setIsSubmitting(true);
       try {
-        const data = await getOrCreateChat([message], currentAgent);
+        const data = await getOrCreateChat([message], agentId);
         if (!data) {
           setIsSubmitting(false);
           return;
@@ -268,17 +265,16 @@ export function ChatProvider({
       return;
     }
 
-    if (shouldSubmit && currentTab && tabs.length > 0) {
+    if (shouldSubmit && currentAgent) {
       isAutoSubmitting.current = true;
-      onSubmit(input, attachments, currentTab, tabs);
+      onSubmit(input, attachments, currentAgent.id);
     }
   }, [
     shouldSubmit,
     onSubmit,
     input,
     attachments,
-    currentTab,
-    tabs,
+    currentAgent,
   ]);
 
   const isLoading = status === 'submitted' || status === 'streaming';
