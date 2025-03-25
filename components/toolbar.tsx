@@ -33,7 +33,7 @@ import {
   useChatInput,
   useChatMessages,
 } from '@/contexts/chat';
-import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
+import { useCurrentAgent } from '@/hooks/use-current-agent';
 
 import { ArrowUpIcon, StopIcon, SummarizeIcon } from './icons';
 import { blockDefinitions, type BlockKind } from './block';
@@ -317,13 +317,12 @@ const PureToolbar = ({
 
   const [selectedTool, setSelectedTool] = useState<string | null>(null);
   const [isAnimating, setIsAnimating] = useState(false);
-  const { tabs } = useAgentTabs();
-  const { currentTab } = useCurrentAgentTab();
+  const { agent: currentAgent } = useCurrentAgent();
   const { temperature, topP, presencePenalty, frequencyPenalty } =
     useChatInput();
 
   const onSubmit = (content: string, attachments?: Attachment[]) => {
-    handleSubmit(content, attachments || [], currentTab as string, tabs, {
+    handleSubmit(content, attachments || [], currentAgent?.id, {
       temperature,
       topP,
       presencePenalty,

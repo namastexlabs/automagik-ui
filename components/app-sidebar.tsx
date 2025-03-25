@@ -24,6 +24,7 @@ import {
 } from '@/components/ui/tooltip';
 import { useResolvedTheme } from '@/hooks/use-resolved-theme';
 import type { AgentWithMessagesDTO } from '@/lib/data/agent';
+import { useCurrentAgent } from '@/hooks/use-current-agent';
 
 export function AppSidebar({
   initialAgents,
@@ -32,6 +33,7 @@ export function AppSidebar({
 }) {
   const colorMode = useResolvedTheme();
   const pathname = usePathname();
+  const { agent: currentAgent } = useCurrentAgent();
   const { setOpenMobile, open, toggleSidebar, openAgentListDialog } =
     useSidebar();
 
@@ -89,7 +91,7 @@ export function AppSidebar({
           type="button"
           className="group/thread-button justify-start gap-2 ml-2 my-4 p-0 hover:bg-transparent h-fit"
         >
-          <Link href="/">
+          <Link href={currentAgent ? `/?agent=${currentAgent.id}` : '/'}>
             <div className="rounded-full border-dark-gray border p-[0.35rem] flex items-center justify-center group-hover/thread-button:border-accent-foreground">
               <Plus size={26} />
             </div>

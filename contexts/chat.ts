@@ -45,8 +45,7 @@ export type ChatHandlersContextValue = {
   handleSubmit: (
     content: string,
     attachments: Attachment[],
-    agentId: string,
-    tabs: string[],
+    agentId: string | undefined,
     parameters: {
       temperature: number;
       topP: number;

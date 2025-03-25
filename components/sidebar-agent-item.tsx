@@ -25,7 +25,6 @@ import type { Chat, Message } from '@/lib/db/schema';
 import { useUser } from '@/contexts/user';
 import type { AgentWithMessagesDTO } from '@/lib/data/agent';
 import { cn, fetcher } from '@/lib/utils';
-import { useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import {
@@ -48,6 +47,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { CheckCircleFillIcon } from '@/components/icons';
 import { Input } from '@/components/ui/input';
+import { useCurrentAgent } from '@/hooks/use-current-agent';
 
 type GroupedChats = {
   today: Chat[];
@@ -179,13 +179,13 @@ const ChatItem = ({
 };
 
 export function SidebarAgentItem({ agent, onDelete }: AgentItemProps) {
-  const { currentTab } = useCurrentAgentTab();
+  const { agent: currentAgent } = useCurrentAgent();
   const { user } = useUser();
   const { setOpenMobile } = useSidebar();
   const { id } = useParams();
   const [randomColor, setRandomColor] = useState<string>();
   const { data: history, isLoading } = useSWR<Array<Chat>>(
-    user && currentTab === agent.id ? `/api/history?agentId=${agent.id}` : null,
+    user && currentAgent?.id === agent.id ? `/api/history?agentId=${agent.id}` : null,
     fetcher,
     {
       fallbackData: [],
