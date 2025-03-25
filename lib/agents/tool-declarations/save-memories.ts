@@ -31,7 +31,7 @@ export const saveMemoriesTool = createToolDefinition({
     ),
   }),
   execute: async ({ memories }, context) => {
-    if (context.abortSignal.aborted) {
+    if (!context.abortSignal.aborted) {
       const result = await updateMemories(memories, context.agent);
       return { result, content: 'Memory Updated' };
     }
