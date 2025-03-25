@@ -1,8 +1,10 @@
 'use client';
 
+import type { PropsWithChildren } from 'react';
+
 import { ThemeProvider as NextThemesProvider } from 'next-themes';
 import { ProgressProvider } from '@bprogress/next/app';
-import type { PropsWithChildren } from 'react';
+import { TooltipProvider } from '@/components/ui/tooltip';
 
 export function Providers({ children }: PropsWithChildren) {
   return (
@@ -12,14 +14,16 @@ export function Providers({ children }: PropsWithChildren) {
       enableSystem
       disableTransitionOnChange
     >
-      <ProgressProvider
-        height="4px"
-        color="#00FFFF"
-        options={{ showSpinner: false }}
-        shallowRouting
-      >
-        {children}
-      </ProgressProvider>
+      <TooltipProvider delayDuration={0}>
+        <ProgressProvider
+          height="4px"
+          color="#00FFFF"
+          options={{ showSpinner: false }}
+          shallowRouting
+        >
+          {children}
+        </ProgressProvider>
+      </TooltipProvider>
     </NextThemesProvider>
   );
 }

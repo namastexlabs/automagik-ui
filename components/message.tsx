@@ -21,7 +21,6 @@ import { ToolInvocation } from './internal-tool-invocation';
 import { Badge } from './ui/badge';
 import { MessageReasoning } from './message-reasoning';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
-
 export function PreviewMessage({
   chatId,
   message,
@@ -238,7 +237,7 @@ export const ThinkingMessage = ({
 
         <div className="flex flex-col gap-2 w-full">
           <div className="flex flex-col gap-4 text-muted-foreground">
-            Thinking...
+            {agentName} is typing...
           </div>
         </div>
       </div>

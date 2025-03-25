@@ -7,7 +7,12 @@ import { useCopyToClipboard } from 'usehooks-ts';
 
 import { CodeIcon, LoaderIcon, PlayIcon, PythonIcon, CopyIcon } from './icons';
 import { Button } from './ui/button';
-import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from './ui/tooltip';
 
 interface CodeBlockProps {
   node: any;
@@ -48,21 +53,23 @@ export function CodeBlock({
             <code>{output}</code>
           </div>
         )}
-        <Tooltip>
-          <TooltipTrigger asChild>
-            <Button
-              className="absolute py-1 px-2 right-3 top-3 size-fit text-muted-foreground"
-              variant="outline"
-              onClick={async () => {
-                await copyToClipboard(codeContent);
-                toast.success('Copied to clipboard!');
-              }}
-            >
-              <CopyIcon />
-            </Button>
-          </TooltipTrigger>
-          <TooltipContent>Copy</TooltipContent>
-        </Tooltip>
+        <TooltipProvider delayDuration={0}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <Button
+                className="absolute py-1 px-2 right-3 top-3 size-fit text-muted-foreground"
+                variant="outline"
+                onClick={async () => {
+                  await copyToClipboard(codeContent);
+                  toast.success('Copied to clipboard!');
+                }}
+              >
+                <CopyIcon />
+              </Button>
+            </TooltipTrigger>
+            <TooltipContent>Copy</TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
       </div>
     );
   } else {

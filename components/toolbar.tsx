@@ -24,7 +24,6 @@ import { nanoid } from 'nanoid';
 import {
   Tooltip,
   TooltipContent,
-  TooltipProvider,
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import {
@@ -189,56 +188,54 @@ const ReadingLevelSelector = ({
         </motion.div>
       ))}
 
-      <TooltipProvider>
-        <Tooltip open={!isAnimating}>
-          <TooltipTrigger asChild>
-            <motion.div
-              className={cx(
-                'motion absolute bg-background p-3 border rounded-full flex flex-row items-center',
-                {
-                  'bg-primary text-primary-foreground': currentLevel !== 2,
-                  'bg-background text-foreground': currentLevel === 2,
-                },
-              )}
-              style={{ y }}
-              drag="y"
-              dragElastic={0}
-              dragMomentum={false}
-              whileHover={{ scale: 1.05 }}
-              whileTap={{ scale: 0.95 }}
-              transition={{ duration: 0.1 }}
-              dragConstraints={{ top: -dragConstraints, bottom: 0 }}
-              onDragStart={() => {
-                setHasUserSelectedLevel(false);
-              }}
-              onDragEnd={() => {
-                if (currentLevel === 2) {
-                  setSelectedTool(null);
-                } else {
-                  setHasUserSelectedLevel(true);
-                }
-              }}
-              onClick={() => {
-                if (currentLevel !== 2 && hasUserSelectedLevel) {
-                  handleSubmit(
-                    `Please adjust the reading level to ${LEVELS[currentLevel]} level.`,
-                  );
-                  setSelectedTool(null);
-                }
-              }}
-            >
-              {currentLevel === 2 ? <SummarizeIcon /> : <ArrowUpIcon />}
-            </motion.div>
-          </TooltipTrigger>
-          <TooltipContent
-            side="left"
-            sideOffset={16}
-            className="bg-foreground text-background text-sm rounded-2xl p-3 px-4"
+      <Tooltip open={!isAnimating}>
+        <TooltipTrigger asChild>
+          <motion.div
+            className={cx(
+              'motion absolute bg-background p-3 border rounded-full flex flex-row items-center',
+              {
+                'bg-primary text-primary-foreground': currentLevel !== 2,
+                'bg-background text-foreground': currentLevel === 2,
+              },
+            )}
+            style={{ y }}
+            drag="y"
+            dragElastic={0}
+            dragMomentum={false}
+            whileHover={{ scale: 1.05 }}
+            whileTap={{ scale: 0.95 }}
+            transition={{ duration: 0.1 }}
+            dragConstraints={{ top: -dragConstraints, bottom: 0 }}
+            onDragStart={() => {
+              setHasUserSelectedLevel(false);
+            }}
+            onDragEnd={() => {
+              if (currentLevel === 2) {
+                setSelectedTool(null);
+              } else {
+                setHasUserSelectedLevel(true);
+              }
+            }}
+            onClick={() => {
+              if (currentLevel !== 2 && hasUserSelectedLevel) {
+                handleSubmit(
+                  `Please adjust the reading level to ${LEVELS[currentLevel]} level.`,
+                );
+                setSelectedTool(null);
+              }
+            }}
           >
-            {LEVELS[currentLevel]}
-          </TooltipContent>
-        </Tooltip>
-      </TooltipProvider>
+            {currentLevel === 2 ? <SummarizeIcon /> : <ArrowUpIcon />}
+          </motion.div>
+        </TooltipTrigger>
+        <TooltipContent
+          side="left"
+          sideOffset={16}
+          className="bg-foreground text-background text-sm rounded-2xl p-3 px-4"
+        >
+          {LEVELS[currentLevel]}
+        </TooltipContent>
+      </Tooltip>
     </div>
   );
 };
@@ -381,85 +378,83 @@ const PureToolbar = ({
   }
 
   return (
-    <TooltipProvider delayDuration={0}>
-      <motion.div
-        className="motion cursor-pointer absolute right-6 bottom-6 p-1.5 border rounded-full shadow-lg bg-background flex flex-col justify-end"
-        initial={{ opacity: 0, y: -20, scale: 1 }}
-        animate={
-          isToolbarVisible
-            ? selectedTool === 'adjust-reading-level'
-              ? {
-                  opacity: 1,
-                  y: 0,
-                  height: 6 * 43,
-                  transition: { delay: 0 },
-                  scale: 0.95,
-                }
-              : {
-                  opacity: 1,
-                  y: 0,
-                  height: toolsByBlockKind.length * 50,
-                  transition: { delay: 0 },
-                  scale: 1,
-                }
-            : { opacity: 1, y: 0, height: 54, transition: { delay: 0 } }
-        }
-        exit={{ opacity: 0, y: -20, transition: { duration: 0.1 } }}
-        transition={{ type: 'spring', stiffness: 300, damping: 25 }}
-        onHoverStart={() => {
-          if (isLoading) return;
+    <motion.div
+      className="motion cursor-pointer absolute right-6 bottom-6 p-1.5 border rounded-full shadow-lg bg-background flex flex-col justify-end"
+      initial={{ opacity: 0, y: -20, scale: 1 }}
+      animate={
+        isToolbarVisible
+          ? selectedTool === 'adjust-reading-level'
+            ? {
+                opacity: 1,
+                y: 0,
+                height: 6 * 43,
+                transition: { delay: 0 },
+                scale: 0.95,
+              }
+            : {
+                opacity: 1,
+                y: 0,
+                height: toolsByBlockKind.length * 50,
+                transition: { delay: 0 },
+                scale: 1,
+              }
+          : { opacity: 1, y: 0, height: 54, transition: { delay: 0 } }
+      }
+      exit={{ opacity: 0, y: -20, transition: { duration: 0.1 } }}
+      transition={{ type: 'spring', stiffness: 300, damping: 25 }}
+      onHoverStart={() => {
+        if (isLoading) return;
 
-          cancelCloseTimer();
-          setIsToolbarVisible(true);
-        }}
-        onHoverEnd={() => {
-          if (isLoading) return;
+        cancelCloseTimer();
+        setIsToolbarVisible(true);
+      }}
+      onHoverEnd={() => {
+        if (isLoading) return;
 
-          startCloseTimer();
-        }}
-        onAnimationStart={() => {
-          setIsAnimating(true);
-        }}
-        onAnimationComplete={() => {
-          setIsAnimating(false);
-        }}
-        ref={toolbarRef}
-      >
-        {isLoading ? (
-          <motion.div
-            key="stop-icon"
-            initial={{ scale: 1 }}
-            animate={{ scale: 1.4 }}
-            exit={{ scale: 1 }}
-            className="motion p-3"
-            onClick={() => {
-              stop();
-              setMessages(messages);
-            }}
-          >
-            <StopIcon />
-          </motion.div>
-        ) : selectedTool === 'adjust-reading-level' ? (
-          <ReadingLevelSelector
-            key="reading-level-selector"
-            handleSubmit={onSubmit}
-            setSelectedTool={setSelectedTool}
-            isAnimating={isAnimating}
-          />
-        ) : (
-          <Tools
-            key="tools"
-            handleSubmit={onSubmit}
-            isAnimating={isAnimating}
-            isToolbarVisible={isToolbarVisible}
-            selectedTool={selectedTool}
-            setIsToolbarVisible={setIsToolbarVisible}
-            setSelectedTool={setSelectedTool}
-            tools={toolsByBlockKind}
-          />
-        )}
-      </motion.div>
-    </TooltipProvider>
+        startCloseTimer();
+      }}
+      onAnimationStart={() => {
+        setIsAnimating(true);
+      }}
+      onAnimationComplete={() => {
+        setIsAnimating(false);
+      }}
+      ref={toolbarRef}
+    >
+      {isLoading ? (
+        <motion.div
+          key="stop-icon"
+          initial={{ scale: 1 }}
+          animate={{ scale: 1.4 }}
+          exit={{ scale: 1 }}
+          className="motion p-3"
+          onClick={() => {
+            stop();
+            setMessages(messages);
+          }}
+        >
+          <StopIcon />
+        </motion.div>
+      ) : selectedTool === 'adjust-reading-level' ? (
+        <ReadingLevelSelector
+          key="reading-level-selector"
+          handleSubmit={onSubmit}
+          setSelectedTool={setSelectedTool}
+          isAnimating={isAnimating}
+        />
+      ) : (
+        <Tools
+          key="tools"
+          handleSubmit={onSubmit}
+          isAnimating={isAnimating}
+          isToolbarVisible={isToolbarVisible}
+          selectedTool={selectedTool}
+          setIsToolbarVisible={setIsToolbarVisible}
+          setSelectedTool={setSelectedTool}
+          tools={toolsByBlockKind}
+        />
+      )}
+    </motion.div>
   );
 };
 
