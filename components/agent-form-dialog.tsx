@@ -37,12 +37,10 @@ import { Button } from './ui/button';
 import { Tooltip, TooltipTrigger } from './ui/tooltip';
 
 export function AgentFormDialog({
-  onSuccess,
   agent,
   isOpen,
   setOpen,
 }: {
-  onSuccess: (agent: AgentDTO) => void;
   agent?: AgentDTO | null;
   isOpen: boolean;
   setOpen: (isOpen: boolean) => void;
@@ -54,6 +52,7 @@ export function AgentFormDialog({
   const [name, setName] = useState(agent?.name || '');
   const [template, setTemplate] = useState(agent?.systemPrompt || '');
   const [visibility, setVisibility] = useState(agent?.visibility ?? 'private');
+  const [isAvatarChanged, setIsAvatarChanged] = useState(false);
   const [selected, setSelected] = useState<string[]>(
     agent?.tools.map((tool) => tool.id) || [],
   );
@@ -63,6 +62,11 @@ export function AgentFormDialog({
     FormData
   >(
     async (state, formData) => {
+      if (!isAvatarChanged) {
+        formData.delete('avatarFile');
+      }
+
+      setIsAvatarChanged(false);
       const newState = await saveAgentAction(state, formData);
 
       if (newState.status === DataStatus.Success && newState.data) {
@@ -84,7 +88,6 @@ export function AgentFormDialog({
         });
 
         setOpen(false);
-        onSuccess(newState.data);
       }
 
       return newState;
@@ -174,6 +177,23 @@ export function AgentFormDialog({
                     {errors.name.join(', ')}
                   </span>
                 )}
+              </div>
+              <div className="flex flex-col gap-2">
+                <Label
+                  htmlFor={`${formId}-avatar`}
+                  className="text-zinc-600 font-normal dark:text-zinc-400"
+                >
+                  Avatar
+                </Label>
+                <Input
+                  id={`${formId}-avatar`}
+                  name="avatarFile"
+                  type="file"
+                  className="bg-muted text-md md:text-sm"
+                  onChange={() => {
+                    setIsAvatarChanged(true);
+                  }}
+                />
               </div>
               <div className="flex flex-col gap-2">
                 <div className="flex gap-2 items-center">

@@ -111,4 +111,3 @@ export async function deleteToolById({ id }: { id: string }) {
     throw error;
   }
 }
- 

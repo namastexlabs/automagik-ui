@@ -3,13 +3,7 @@
 import equal from 'fast-deep-equal';
 import { formatDistance } from 'date-fns';
 import { AnimatePresence, motion } from 'framer-motion';
-import {
-  memo,
-  useCallback,
-  useDeferredValue,
-  useEffect,
-  useState,
-} from 'react';
+import { memo, useCallback, useEffect, useState } from 'react';
 import useSWR, { useSWRConfig } from 'swr';
 import { useDebounceCallback, useWindowSize } from 'usehooks-ts';
 
@@ -20,7 +14,6 @@ import { textBlock } from '@/blocks/text';
 import { imageBlock } from '@/blocks/image';
 import { codeBlock } from '@/blocks/code';
 import { sheetBlock } from '@/blocks/sheet';
-import type { AgentDTO } from '@/lib/data/agent';
 
 import { MultimodalInput } from './multimodal-input';
 import { Toolbar } from './toolbar';
@@ -50,14 +43,10 @@ export interface UIBlock {
 
 function PureBlock({
   votes,
-  agents,
 }: {
   votes: Array<Vote> | undefined;
-  agents: Array<AgentDTO>;
 }) {
   const { block, setBlock, metadata, setMetadata } = useBlock();
-
-  const defferedBlock = useDeferredValue(block);
 
   const {
     data: documents,
@@ -93,7 +82,7 @@ function PureBlock({
 
   useEffect(() => {
     mutateDocuments();
-  }, [defferedBlock.status, mutateDocuments]);
+  }, [block.status, mutateDocuments]);
 
   const { mutate } = useSWRConfig();
   const [isContentDirty, setIsContentDirty] = useState(false);
@@ -294,10 +283,7 @@ function PureBlock({
 
               {block.isVisible && (
                 <form className="flex flex-row gap-2 relative items-end w-full px-4 pb-4">
-                  <MultimodalInput
-                    agents={agents}
-                    className="bg-background dark:bg-muted"
-                  />
+                  <MultimodalInput className="bg-background dark:bg-muted" />
                 </form>
               )}
             </div>
@@ -402,7 +388,7 @@ function PureBlock({
             </div>
 
             <BlockActions
-              block={defferedBlock}
+              block={block}
               currentVersionIndex={currentVersionIndex}
               handleVersionChange={handleVersionChange}
               isCurrentVersion={isCurrentVersion}
@@ -425,7 +411,7 @@ function PureBlock({
               title={block.title}
               content={
                 isCurrentVersion
-                  ? defferedBlock.content
+                  ? block.content
                   : getDocumentContentById(currentVersionIndex)
               }
               mode={mode}
@@ -444,7 +430,6 @@ function PureBlock({
             <AnimatePresence>
               {isCurrentVersion && (
                 <Toolbar
-                  agents={agents}
                   isToolbarVisible={isToolbarVisible}
                   setIsToolbarVisible={setIsToolbarVisible}
                   blockKind={block.kind}
@@ -470,7 +455,6 @@ function PureBlock({
 
 export const Block = memo(PureBlock, (prevProps, nextProps) => {
   if (!equal(prevProps.votes, nextProps.votes)) return false;
-  if (!equal(prevProps.agents, nextProps.agents)) return false;
 
   return true;
 });

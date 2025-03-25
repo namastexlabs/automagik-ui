@@ -14,7 +14,6 @@ import {
 } from 'react';
 import { toast } from 'sonner';
 import { useWindowSize } from 'usehooks-ts';
-import { ImageIcon, Lightbulb } from 'lucide-react';
 
 import {
   useChat,
@@ -22,23 +21,21 @@ import {
   useChatInput,
   useChatMessages,
 } from '@/contexts/chat';
-import type { AgentDTO } from '@/lib/data/agent';
 import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { throttle } from '@/lib/utils';
 import { getModelData, isExtendedThinkingAllowed } from '@/lib/ai/models';
 
-import { ArrowUpIcon, StopIcon } from './icons';
+import { ArrowUpIcon, PaperclipIcon, StopIcon } from './icons';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
-import { Toggle } from './ui/toggle';
+import { ModelParameters } from './model-parameters';
+import { Switch } from './ui/switch';
 
 export function MultimodalInput({
   className,
-  agents,
 }: {
-  agents: AgentDTO[];
   className?: string;
 }) {
   const { width, height } = useWindowSize({ initializeWithValue: false });
@@ -51,7 +48,14 @@ export function MultimodalInput({
     isExtendedThinking,
     isSubmitting,
   } = useChat();
-  const { input, attachments } = useChatInput();
+  const {
+    input,
+    attachments,
+    temperature,
+    topP,
+    presencePenalty,
+    frequencyPenalty,
+  } = useChatInput();
   const {
     setMessages,
     handleSubmit,
@@ -108,13 +112,29 @@ export function MultimodalInput({
   const [uploadQueue, setUploadQueue] = useState<Array<string>>([]);
 
   const submitForm = useCallback(() => {
-    handleSubmit(input, attachments, currentTab as string, agents, tabs);
+    handleSubmit(input, attachments, currentTab as string, tabs, {
+      temperature,
+      topP,
+      presencePenalty,
+      frequencyPenalty,
+    });
     resetHeight();
 
     if (width && width > 768) {
       textareaRef.current?.focus();
     }
-  }, [input, handleSubmit, attachments, currentTab, agents, tabs, width]);
+  }, [
+    input,
+    handleSubmit,
+    attachments,
+    currentTab,
+    tabs,
+    width,
+    temperature,
+    topP,
+    presencePenalty,
+    frequencyPenalty,
+  ]);
 
   const uploadFile = async (file: File, chatId?: string) => {
     const formData = new FormData();
@@ -127,12 +147,12 @@ export function MultimodalInput({
         body: formData,
       });
 
+      const data = await response.json();
       if (response.ok) {
-        const data = await response.json();
         return data;
       }
-      const { error } = await response.json();
-      toast.error(error);
+
+      toast.error(data.error);
     } catch (error) {
       toast.error('Failed to upload file, please try again!');
     }
@@ -193,7 +213,7 @@ export function MultimodalInput({
         </div>
       )}
 
-      <div className="relative w-full flex flex-col rounded-2xl gap-4 bg-muted border dark:border-zinc-700 max-h-[calc(33dvh)] has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background has-[:focus-visible]:ring-2">
+      <div className="relative w-full flex flex-col rounded-2xl gap-4 bg-accent border max-h-[calc(33dvh)] has-[:focus-visible]:ring-ring has-[:focus-visible]:ring-offset-2 has-[:focus-visible]:ring-offset-background has-[:focus-visible]:ring-2">
         <Textarea
           ref={textareaRef}
           placeholder="Send a message..."
@@ -220,7 +240,7 @@ export function MultimodalInput({
           }}
         />
 
-        <div className="absolute bottom-0 p-2 gap-2 w-fit flex flex-row justify-start items-center">
+        <div className="absolute w-full bottom-0 p-2 pl-4 pb-1 gap-1.5 flex flex-row justify-start items-center">
           <Tooltip>
             <TooltipTrigger asChild>
               <AttachmentsButton
@@ -230,34 +250,32 @@ export function MultimodalInput({
             </TooltipTrigger>
             <TooltipContent>
               {isImageAllowed
-                ? 'Attach an image'
-                : 'Images are not allowed for this model'}
+                ? 'Attach a file'
+                : 'Files are not allowed for this model'}
             </TooltipContent>
           </Tooltip>
+          <ModelParameters />
           {isExtendedThinkingAllowed(getModelData(provider, modelId)) && (
-            <Toggle
-              className="data-[state=on]:bg-black data-[state=on]:text-white"
-              variant="outline"
-              size="sm"
-              pressed={isExtendedThinking}
-              onPressedChange={toggleExtendedThinking}
-            >
-              <Lightbulb /> Reasoning
-            </Toggle>
+            <div className="flex flex-row gap-2 items-center bg-secondary rounded-md ml-3.5 p-2">
+              <p className="text-sm">Reasoning</p>
+              <Switch
+                checked={isExtendedThinking}
+                onCheckedChange={toggleExtendedThinking}
+              />
+            </div>
           )}
-        </div>
-
-        <div className="absolute bottom-0 right-0 p-2 w-fit flex flex-row justify-end">
-          {isLoading ? (
-            <StopButton stop={stop} setMessages={setMessages} />
-          ) : (
-            <SendButton
-              input={input}
-              submitForm={submitForm}
-              uploadQueue={uploadQueue}
-              isSubmitting={isSubmitting}
-            />
-          )}
+          <div className="ml-auto">
+            {isLoading ? (
+              <StopButton stop={stop} setMessages={setMessages} />
+            ) : (
+              <SendButton
+                input={input}
+                submitForm={submitForm}
+                uploadQueue={uploadQueue}
+                isSubmitting={isSubmitting}
+              />
+            )}
+          </div>
         </div>
       </div>
     </div>
@@ -274,14 +292,14 @@ function PureAttachmentsButton({
   return (
     <Button
       disabled={disabled}
-      className="rounded-md rounded-bl-lg p-[7px] h-fit dark:border-zinc-700 hover:dark:bg-zinc-900 hover:bg-zinc-200"
+      className="rounded-full p-2 size-8 bg-secondary"
       onClick={(event) => {
         event.preventDefault();
         fileInputRef.current?.click();
       }}
       variant="ghost"
     >
-      <ImageIcon />
+      <PaperclipIcon size={18} />
     </Button>
   );
 }
@@ -326,7 +344,7 @@ function SendButton({
 }) {
   return (
     <Button
-      className="rounded-full p-1.5 h-fit border dark:border-zinc-600"
+      className="h-fit"
       onClick={(event) => {
         event.preventDefault();
         if (isSubmitting) {
@@ -337,7 +355,7 @@ function SendButton({
       }}
       disabled={input.trim() === '' || uploadQueue.length > 0 || isSubmitting}
     >
-      <ArrowUpIcon size={14} />
+      <ArrowUpIcon size={20} />
     </Button>
   );
 }

@@ -1,5 +1,5 @@
 import 'server-only';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, inArray } from 'drizzle-orm';
 
 import * as schema from '../schema';
 import { db } from './index';
@@ -47,6 +47,40 @@ export async function getAvailableAgents({ userId }: { userId: string }) {
 
 export type AgentData = Awaited<ReturnType<typeof getAvailableAgents>>[number];
 
+export async function getLatestAgentMessages(
+  userId: string,
+  limit?: number,
+  offset?: number,
+) {
+  try {
+    const query = db
+      .selectDistinctOn([schema.agent.id])
+      .from(schema.agent)
+      .innerJoin(
+        schema.chat,
+        and(
+          eq(schema.agent.id, schema.chat.agentId),
+          eq(schema.chat.userId, userId),
+        ),
+      )
+      .innerJoin(schema.message, eq(schema.chat.id, schema.message.chatId))
+      .orderBy(schema.agent.id, desc(schema.message.createdAt));
+
+    if (limit) {
+      query.limit(limit);
+    }
+
+    if (offset) {
+      query.offset(offset);
+    }
+
+    return await query;
+  } catch (error) {
+    console.error('Failed to get latest agent messages in database');
+    throw error;
+  }
+}
+
 export async function getAgentById({
   id,
 }: { id: string }): Promise<AgentData | undefined> {
@@ -90,6 +124,7 @@ export async function createAgent(data: {
   systemPrompt: string;
   userId: string | null;
   visibility?: 'private' | 'public';
+  avatarUrl?: string | null;
 }) {
   try {
     const [createdAgent] = await db
@@ -111,6 +146,7 @@ export async function updateAgent({
   id: string;
   name?: string;
   systemPrompt?: string;
+  avatarUrl?: string | null;
   visibility?: 'private' | 'public';
 }) {
   try {
@@ -212,6 +248,7 @@ export async function createAgentTransaction(data: {
   visibility?: 'private' | 'public';
   tools?: string[];
   dynamicBlocks?: string[];
+  avatarUrl?: string | null;
 }) {
   return await db.transaction(async () => {
     const agent = await createAgent({
@@ -219,6 +256,7 @@ export async function createAgentTransaction(data: {
       systemPrompt: data.systemPrompt,
       userId: data.userId,
       visibility: data.visibility,
+      avatarUrl: data.avatarUrl,
     });
 
     if (data.tools && data.tools.length > 0) {
@@ -248,6 +286,7 @@ export async function updateAgentTransaction(data: {
   name?: string;
   systemPrompt?: string;
   visibility?: 'private' | 'public';
+  avatarUrl?: string | null;
   newTools?: string[];
   newDynamicBlocks?: string[];
   removedTools?: string[];

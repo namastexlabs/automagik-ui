@@ -29,13 +29,13 @@ const visibilities: Array<{
     id: 'private',
     label: 'Private',
     description: 'Only you can access',
-    icon: <LockIcon />,
+    icon: <LockIcon size={20} />,
   },
   {
     id: 'public',
     label: 'Public',
     description: 'Anyone signed up can access',
-    icon: <GlobeIcon />,
+    icon: <GlobeIcon size={20} />,
   },
 ];
 
@@ -59,17 +59,12 @@ export function VisibilitySelector({
       <DropdownMenuTrigger
         asChild
         className={cn(
-          'w-fit data-[state=open]:bg-accent data-[state=open]:text-accent-foreground',
+          'w-fit data-[state=open]:bg-accent data-[state=open]:text-white',
           className,
         )}
       >
-        <Button
-          variant="outline"
-          className="hidden md:flex md:px-2 md:h-[34px]"
-        >
+        <Button variant="secondary" className="rounded-full h-auto p-3">
           {selectedVisibility?.icon}
-          {selectedVisibility?.label}
-          <ChevronDownIcon />
         </Button>
       </DropdownMenuTrigger>
 

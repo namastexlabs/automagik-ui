@@ -1,6 +1,6 @@
 import 'server-only';
 
-import type { Agent } from '@/lib/db/schema';
+import type { Agent, Message, Chat } from '@/lib/db/schema';
 import {
   getDefaultAgents,
   getAvailableAgents,
@@ -10,15 +10,43 @@ import {
   createAgentTransaction,
   updateAgentTransaction,
   type AgentData,
+  getLatestAgentMessages,
 } from '@/lib/db/queries/agent';
 import { getDiffRelation } from '@/lib/utils.server';
 import { ConflictError, NotFoundError, UnauthorizedError } from '@/lib/errors';
+import {
+  getAgentKey,
+  saveAgentAvatar,
+  deleteAgentAvatar,
+  getFilenameFromKey,
+  getUrlFromKey,
+} from '@/lib/services/minio';
+
 import { isUniqueConstraintError } from '../db/queries';
 import { getToolsByIds } from './tool';
 import { getOrCreateDynamicBlocks } from './dynamic-block';
 
+export type AgentWithMessages = Agent & {
+  recentMessage: Message;
+  chat: Chat;
+};
+
 export async function getSystemAgents(): Promise<AgentData[]> {
   return await getDefaultAgents();
+}
+
+export async function getMostRecentAgents(
+  userId: string,
+): Promise<AgentWithMessages[]> {
+  const data = await getLatestAgentMessages(userId, 10);
+
+  const agents = data.map(({ chat, agent, message }) => ({
+    ...agent,
+    recentMessage: message,
+    chat,
+  }));
+
+  return agents;
 }
 
 export async function getUserAgents(userId: string): Promise<AgentData[]> {
@@ -54,12 +82,14 @@ export async function createAgent({
   visibility = 'private',
   tools = [],
   dynamicBlocks = [],
+  avatarFile,
 }: {
   name: string;
   systemPrompt: string;
   userId: string;
   visibility?: 'private' | 'public';
   tools?: string[];
+  avatarFile?: Blob | null;
   dynamicBlocks?: { name: string; visibility: 'private' | 'public' }[];
 }): Promise<AgentData> {
   const agentTools = await getToolsByIds(tools, userId);
@@ -77,6 +107,21 @@ export async function createAgent({
       tools: agentTools.map((tool) => tool.id),
       dynamicBlocks: agentDynamicBlocks.map((block) => block.id),
     });
+
+    if (avatarFile) {
+      const filename = (avatarFile as File).name;
+      await saveAgentAvatar(
+        agent.id,
+        filename,
+        Buffer.from(await avatarFile.arrayBuffer()),
+      );
+
+      const avatarUrl = getAgentKey(agent.id, filename);
+      await updateAgentTransaction({
+        id: agent.id,
+        avatarUrl,
+      });
+    }
 
     return {
       ...agent,
@@ -100,10 +145,11 @@ export async function updateAgent({
   ...data
 }: {
   id: string;
-  userId: string;
-  name: string;
-  systemPrompt: string;
-  visibility: 'private' | 'public';
+  userId?: string;
+  name?: string;
+  systemPrompt?: string;
+  visibility?: 'private' | 'public';
+  avatarFile?: Blob | null;
   tools?: string[];
   dynamicBlocks?: { name: string; visibility: 'private' | 'public' }[];
 }): Promise<AgentData> {
@@ -113,6 +159,24 @@ export async function updateAgent({
   }
   if (agent.userId !== data.userId) {
     throw new UnauthorizedError('Not authorized to update this agent');
+  }
+
+  let avatarUrl: string | null = null;
+  if (data.avatarFile) {
+    const filename = (data.avatarFile as File).name;
+    if (agent.avatarUrl) {
+      await deleteAgentAvatar(agent.id, getFilenameFromKey(agent.avatarUrl));
+    }
+    await saveAgentAvatar(
+      agent.id,
+      filename,
+      Buffer.from(await data.avatarFile.arrayBuffer()),
+    );
+    avatarUrl = getUrlFromKey(getAgentKey(agent.id, filename));
+  } else if (data.avatarFile === null && agent.avatarUrl) {
+    await deleteAgentAvatar(agent.id, getFilenameFromKey(agent.avatarUrl));
+  } else {
+    avatarUrl = agent.avatarUrl;
   }
 
   const formTools =
@@ -140,6 +204,7 @@ export async function updateAgent({
   try {
     await updateAgentTransaction({
       ...data,
+      avatarUrl,
       newTools: newTools?.map((tool) => tool),
       newDynamicBlocks: newDynamicBlocks?.map((block) => block),
       removedTools: removedTools?.map((tool) => tool.id),
@@ -147,7 +212,9 @@ export async function updateAgent({
     });
 
     return {
+      ...agent,
       ...data,
+      avatarUrl,
       createdAt: agent.createdAt,
       tools: tools ? formTools.map((tool) => ({ tool })) : [],
       dynamicBlocks: dynamicBlocks

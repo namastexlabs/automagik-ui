@@ -108,10 +108,6 @@ export function FlowFormDialog({
     { status: DataStatus.Success, data: null },
   );
 
-  const toCamelCase = (str: string) => {
-    return str.replace(/\s([a-z])/g, (_, char) => char.toUpperCase());
-  };
-
   const onChange = (id: string) => {
     setSelectedFlow(id);
   };
@@ -153,7 +149,6 @@ export function FlowFormDialog({
           </DialogHeader>
           <Form id={formId} action={formAction}>
             {tool ? <input type="hidden" name="id" value={tool.id} /> : null}
-            <input type="hidden" name="name" value={toCamelCase(name)} />
             <input type="hidden" name="visibility" value={visibility} />
             <div className="flex flex-col gap-5 py-3">
               <div className="flex flex-col gap-2">
@@ -173,11 +168,6 @@ export function FlowFormDialog({
                   value={name}
                   onChange={(e) => setName(e.target.value)}
                 />
-                {!!errors.name && (
-                  <span className="text-sm text-destructive">
-                    {errors.name.join(', ')}
-                  </span>
-                )}
               </div>
               <div className="flex flex-col gap-2">
                 <Label

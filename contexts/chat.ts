@@ -1,11 +1,10 @@
 import { createContext, use } from 'react';
 import type { Attachment, Message } from 'ai';
 
-import type { AgentDTO } from '@/lib/data/agent';
-import type { Chat } from '@/lib/db/schema';
+import type { ChatDTO } from '@/lib/data/chat';
 
 export type ChatContextValue = {
-  chat?: Chat;
+  chat?: ChatDTO;
   modelId: string;
   provider: string;
   isLoading: boolean;
@@ -14,11 +13,15 @@ export type ChatContextValue = {
   isExtendedThinking: boolean;
   error: string | null;
   isSubmitting: boolean;
-}
+};
 
 export type ChatInputContextValue = {
   input: string;
   attachments: Attachment[];
+  temperature: number;
+  topP: number;
+  presencePenalty: number;
+  frequencyPenalty: number;
 };
 
 export type ChatMessagesContextValue = {
@@ -32,6 +35,10 @@ export type ChatHandlersContextValue = {
   setInput: (input: string) => void;
   setAttachments: (attachments: Attachment[]) => void;
   setMessages: (messages: Message[]) => void;
+  setTemperature: (temperature: number) => void;
+  setTopP: (topP: number) => void;
+  setPresencePenalty: (presencePenalty: number) => void;
+  setFrequencyPenalty: (frequencyPenalty: number) => void;
   reload: () => void;
   stop: () => void;
   append: (message: Message) => void;
@@ -39,15 +46,24 @@ export type ChatHandlersContextValue = {
     content: string,
     attachments: Attachment[],
     agentId: string,
-    agents: AgentDTO[],
     tabs: string[],
+    parameters: {
+      temperature: number;
+      topP: number;
+      presencePenalty: number;
+      frequencyPenalty: number;
+    },
   ) => void;
 };
 
 export const ChatContext = createContext<ChatContextValue | null>(null);
-export const ChatInputContext = createContext<ChatInputContextValue | null>(null);
-export const ChatMessagesContext = createContext<ChatMessagesContextValue | null>(null);
-export const ChatHandlersContext = createContext<ChatHandlersContextValue | null>(null);
+export const ChatInputContext = createContext<ChatInputContextValue | null>(
+  null,
+);
+export const ChatMessagesContext =
+  createContext<ChatMessagesContextValue | null>(null);
+export const ChatHandlersContext =
+  createContext<ChatHandlersContextValue | null>(null);
 
 export const useChat = () => {
   const context = use(ChatContext);

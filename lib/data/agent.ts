@@ -15,6 +15,8 @@ import {
   createAgent,
   duplicateAgent as duplicateAgentRepository,
   removeAgent as removeAgentRepository,
+  getMostRecentAgents as getMostRecentAgentsRepository,
+  type AgentWithMessages,
 } from '@/lib/repositories/agent';
 import { getUser } from '@/lib/auth';
 import { ApplicationError } from '@/lib/errors';
@@ -31,6 +33,16 @@ const agentSchema = z.object({
   name: z.string().trim(),
   systemPrompt: z.string(),
   visibility: z.enum(['public', 'private']).default('private'),
+  avatarFile: z
+    .instanceof(Blob)
+    .optional()
+    .nullable()
+    .refine((file) => !file || file.size <= 10 * 1024 * 1024, {
+      message: 'File size should be less than 10MB',
+    })
+    .refine((file) => !file || ['image/jpeg', 'image/png'].includes(file.type), {
+      message: 'File type should be JPEG or PNG',
+    }),
   tools: z.array(z.string()).default([]),
   dynamicBlocks: z
     .array(
@@ -48,6 +60,28 @@ const agentSchema = z.object({
 
 export type AgentSchema = typeof agentSchema;
 
+export function toAgentWithMessagesDTO({
+  id,
+  name,
+  userId,
+  visibility,
+  avatarUrl,
+  recentMessage,
+  chat,
+}: AgentWithMessages) {
+  return {
+    id,
+    name,
+    userId,
+    visibility,
+    avatarUrl,
+    recentMessage,
+    chat,
+  };
+}
+
+export type AgentWithMessagesDTO = ReturnType<typeof toAgentWithMessagesDTO>;
+
 export function toAgentDTO(
   authUserId: string,
   {
@@ -58,6 +92,7 @@ export function toAgentDTO(
     systemPrompt,
     tools,
     dynamicBlocks,
+    avatarUrl,
   }: AgentData,
 ) {
   return {
@@ -65,6 +100,7 @@ export function toAgentDTO(
     name,
     userId,
     visibility,
+    avatarUrl,
     systemPrompt: userId !== authUserId ? undefined : systemPrompt,
     tools: tools.map(
       ({ tool: { id, name, verboseName, visibility, data, source } }) => ({
@@ -86,6 +122,22 @@ export function toAgentDTO(
 }
 
 export type AgentDTO = ReturnType<typeof toAgentDTO>;
+
+export async function getMostRecentAgents(): Promise<
+  DataResponse<AgentWithMessagesDTO[], any>
+> {
+  try {
+    const session = await getUser();
+
+    const agents = await getMostRecentAgentsRepository(session.user.id);
+    return {
+      status: DataStatus.Success,
+      data: agents.map((agent) => toAgentWithMessagesDTO(agent)),
+    };
+  } catch (error) {
+    return handleDataError(error, []);
+  }
+}
 
 export async function getInitialAgents(): Promise<
   DataResponse<AgentDTO[], any>
@@ -109,7 +161,6 @@ export async function saveAgent(
 ): Promise<DataResponse<AgentDTO | null, z.infer<AgentSchema>>> {
   try {
     const validatedData = agentSchema.parse(values);
-
     const session = await getUser();
 
     const data = {

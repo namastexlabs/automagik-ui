@@ -22,9 +22,7 @@ import {
   handleDataError,
 } from './index.server';
 import { DataStatus } from '.';
-
 const flowToolSchema = z.object({
-  name: z.string().trim(),
   verboseName: z.string().trim(),
   description: z.string(),
   flowId: z.string().trim(),
@@ -77,7 +75,10 @@ export async function saveFlowTool(
     const session = await getUser();
     const validatedData = flowToolSchema.parse(values);
 
-    const data = { ...validatedData, userId: session.user.id };
+    const data = {
+      ...validatedData,
+      userId: session.user.id,
+    };
     const tool = await (id
       ? updateFlowTool({ id, ...data })
       : createFlowTool(data));

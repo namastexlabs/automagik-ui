@@ -5,12 +5,12 @@ import { toast } from 'sonner';
 import { useActionState, useEffect } from 'react';
 import Form from 'next/form';
 import { useProgress } from '@bprogress/next';
+import Image from 'next/image';
 
 import { createBrowserClient } from '@/lib/supabase/client';
 import { SubmitButton } from '@/components/submit-button';
-import { Label } from '@/components/ui/label';
-import { Input } from '@/components/ui/input';
 import { DataStatus } from '@/lib/data';
+import { FloatingLabelInput } from '@/components/ui/floating-input';
 
 export default function Page() {
   const router = useRouter();
@@ -24,7 +24,7 @@ export default function Page() {
       } = await supabase.auth.getUser();
 
       if (user) {
-        router.replace('/');
+        router.replace('/welcome');
       }
     };
 
@@ -71,7 +71,7 @@ export default function Page() {
         }
 
         toast.success('Password updated successfully');
-        router.replace('/');
+        router.replace('/welcome');
 
         return { status: DataStatus.Success };
       } catch (error) {
@@ -86,46 +86,29 @@ export default function Page() {
   );
 
   return (
-    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-background">
+    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-accent bg-gradient-to-tl from-accent from-40% to-white/15">
       <div className="w-full max-w-md overflow-hidden rounded-2xl flex flex-col gap-12">
-        <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
-          <h3 className="text-xl font-semibold dark:text-zinc-50">
-            Update Password
-          </h3>
-          <p className="text-sm text-gray-500 dark:text-zinc-400">
-            Enter your new password
-          </p>
-        </div>
+        <Image
+          src="/images/automagik-logo-white.svg"
+          alt="Automagik"
+          width={540}
+          height={160}
+          className="z-10 aspect-[12/3] object-cover mb-10"
+        />
         <Form action={formAction} className="flex flex-col gap-4 px-4 sm:px-16">
-          <div className="flex flex-col gap-2">
-            <Label
-              htmlFor="password"
-              className="text-zinc-600 font-normal dark:text-zinc-400"
-            >
-              Password
-            </Label>
-
-            <Input
+          <div className="flex flex-col gap-8">
+            <FloatingLabelInput
               id="password"
               name="password"
-              className="bg-muted text-md md:text-sm"
               type="password"
+              label="Password"
               required
             />
-          </div>
-          <div className="flex flex-col gap-2">
-            <Label
-              htmlFor="confirmPassword"
-              className="text-zinc-600 font-normal dark:text-zinc-400"
-            >
-              Confirm Password
-            </Label>
-
-            <Input
+            <FloatingLabelInput
               id="confirmPassword"
               name="confirmPassword"
-              className="bg-muted text-md md:text-sm"
               type="password"
+              label="Confirm Password"
               required
             />
           </div>
@@ -134,7 +117,9 @@ export default function Page() {
               {errors._errors.join(', ')}
             </span>
           )}
-          <SubmitButton>Update Password</SubmitButton>
+          <SubmitButton variant="outline" className="rounded-full mt-4">
+            Update Password
+          </SubmitButton>
         </Form>
       </div>
     </div>

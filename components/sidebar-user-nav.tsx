@@ -1,6 +1,5 @@
 'use client';
 import { ChevronUp } from 'lucide-react';
-import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 
@@ -19,6 +18,7 @@ import {
 } from '@/components/ui/sidebar';
 import { useUser } from '@/contexts/user';
 import { useResolvedTheme } from '@/hooks/use-resolved-theme';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function SidebarUserNav() {
   const { setTheme } = useTheme();
@@ -46,14 +46,13 @@ export function SidebarUserNav() {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
-              <Image
-                src={`https://avatar.vercel.sh/${user.email}`}
-                alt={user.email ?? 'User Avatar'}
-                width={24}
-                height={24}
-                className="rounded-full"
-              />
+            <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-accent border border-dark-gray data-[state=open]:text-sidebar-accent-foreground h-12">
+              <Avatar className="size-8 font-bold">
+                <AvatarImage src="" alt="User Avatar" />
+                <AvatarFallback className="bg-red-500">
+                  {user?.email?.slice(0, 2).toUpperCase()}
+                </AvatarFallback>
+              </Avatar>
               <span className="truncate">{user?.email}</span>
               <ChevronUp className="ml-auto" />
             </SidebarMenuButton>

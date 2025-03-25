@@ -6,12 +6,10 @@ import * as schema from '../schema';
 import { db } from './index';
 
 export async function saveChat({
-  id,
   userId,
   title,
   agentId,
 }: {
-  id: string;
   userId: string;
   title: string;
   agentId: string;
@@ -20,7 +18,6 @@ export async function saveChat({
     const [createdChat] = await db
       .insert(schema.chat)
       .values({
-        id,
         createdAt: new Date(),
         userId,
         title,
@@ -73,6 +70,9 @@ export async function getChatById({ id }: { id: string }) {
   try {
     return await db.query.chat.findFirst({
       where: (chat, { eq }) => eq(chat.id, id),
+      with: {
+        agent: true,
+      },
     });
   } catch (error) {
     console.error('Failed to get chat by id from database');
