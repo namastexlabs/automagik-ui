@@ -91,7 +91,7 @@ export function AppSidebar({
           type="button"
           className="group/thread-button justify-start gap-2 ml-2 my-4 p-0 hover:bg-transparent h-fit"
         >
-          <Link href={currentAgent ? `/?agent=${currentAgent.id}` : '/'}>
+          <Link href={currentAgent ? `/chat?agent=${currentAgent.id}` : '/chat'}>
             <div className="rounded-full border-dark-gray border p-[0.35rem] flex items-center justify-center group-hover/thread-button:border-accent-foreground">
               <Plus size={26} />
             </div>

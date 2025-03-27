@@ -9,8 +9,9 @@ const config: Config = {
   ],
   theme: {
     fontFamily: {
-      sans: ['geist'],
+      sans: ['Inter'],
       mono: ['geist-mono'],
+      nunito: ['Nunito', 'sans-serif'],
     },
     extend: {
       borderRadius: {
@@ -67,6 +68,10 @@ const config: Config = {
           'accent-foreground': 'hsl(var(--sidebar-accent-foreground))',
           border: 'hsl(var(--sidebar-border))',
           ring: 'hsl(var(--sidebar-ring))',
+        },
+        backgroundImage: {
+          "gradient-radial": "radial-gradient(var(--tw-gradient-stops))",
+          "gradient-conic": "conic-gradient(from 180deg at 50% 50%, var(--tw-gradient-stops))",
         },
         keyframes: {
           'collapsible-down': {

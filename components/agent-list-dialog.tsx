@@ -102,7 +102,6 @@ export function AgentListDialog({
           const { data, errors } = response;
 
           if (errors) {
-            console.log(errors);
             toast.error(errors?._errors?.[0] || 'Failed to duplicate agent');
             return;
           }

@@ -11,6 +11,7 @@ import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
 import { createBrowserClient } from '@/lib/supabase/client';
 import { DataStatus } from '@/lib/data';
+
 export default function Page() {
   const router = useRouter();
   const { set, stop } = useProgress();
@@ -25,7 +26,7 @@ export default function Page() {
       } = await supabase.auth.getUser();
 
       if (user) {
-        router.replace('/');
+        router.replace('/chat');
       }
     };
 
@@ -43,7 +44,7 @@ export default function Page() {
           email: formData.get('email') as string,
           password: formData.get('password') as string,
           options: {
-            emailRedirectTo: `${window.location.origin}/welcome`,
+            emailRedirectTo: `${window.location.origin}/chat/welcome`,
           },
         });
 
@@ -56,7 +57,7 @@ export default function Page() {
         }
 
         toast.success('Check your email to confirm your account');
-        router.replace('/');
+        router.replace('/login');
 
         return { status: DataStatus.Success };
       } catch (error) {

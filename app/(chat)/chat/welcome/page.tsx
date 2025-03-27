@@ -82,7 +82,7 @@ export default function WelcomePage() {
                     size="pill"
                     className="font-medium text-lg w-full px-10 py-6"
                   >
-                    <Link href="/">LET&apos;S GET STARTED</Link>
+                    <Link href="/chat">LET&apos;S GET STARTED</Link>
                   </Button>
                 </motion.div>
               ) : (
@@ -98,7 +98,7 @@ export default function WelcomePage() {
                       <span className="animate-spin">
                         <LoaderIcon />
                       </span>
-                      <div className="h-6 flex w-[17rem]">
+                      <div className="h-6 flex w-72">
                         <AnimatePresence mode="wait">
                           <motion.span
                             key={currentPhrase}

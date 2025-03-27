@@ -22,9 +22,7 @@ export function AgentModals() {
     data: agents = [],
     mutate,
     isLoading,
-  } = useSWR<AgentDTO[]>('/api/agents', fetcher, {
-    revalidateOnMount: false,
-  });
+  } = useSWR<AgentDTO[]>('/api/agents', fetcher);
   const handleOpenAgentDialog = useCallback(
     (open: boolean, agentId?: string) =>
       open ? openAgentDialog(open, agentId) : openAgentDialog(false),
@@ -37,7 +35,7 @@ export function AgentModals() {
         const newAgents = agents.filter((agent) => agent.id !== agentId);
 
     if (newAgents.length === 0) {
-      router.push('/');
+      router.push('/chat');
       openAgentListDialog(false);
     }
 
