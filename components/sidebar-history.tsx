@@ -64,7 +64,7 @@ export function SidebarHistory({
 
     mutate((history = []) => history.filter((chat) => chat.id !== deleteId));
     if (deleteId === id) {
-      router.push('/');
+      router.push('/chat');
     }
   };
 

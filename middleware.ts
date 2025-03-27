@@ -20,6 +20,7 @@ export async function middleware(request: NextRequest) {
 
     const { data: { user } } = await supabase.auth.getUser();
 
+    const isHomePage = request.nextUrl.pathname === '/';
     const isUpdatePasswordPage =
       request.nextUrl.pathname.startsWith('/update-password');
     const isAuthPage =
@@ -27,12 +28,12 @@ export async function middleware(request: NextRequest) {
       request.nextUrl.pathname.startsWith('/register') ||
       request.nextUrl.pathname.startsWith('/reset-password');
 
-    if (isUpdatePasswordPage) {
+    if (isUpdatePasswordPage || isHomePage) {
       return response;
     }
 
     if (user && isAuthPage) {
-      return NextResponse.redirect(new URL('/', request.url));
+      return NextResponse.redirect(new URL('/chat', request.url));
     }
 
     if (!user && !isAuthPage) {

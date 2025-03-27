@@ -25,7 +25,7 @@ export default function Page() {
       } = await supabase.auth.getUser();
 
       if (user) {
-        router.replace('/welcome');
+        router.replace('chat/welcome');
       }
     };
 
@@ -52,7 +52,7 @@ export default function Page() {
           };
         }
 
-        router.replace('/welcome');
+        router.replace('/chat/welcome');
 
         return { status: DataStatus.Success };
       } catch (error) {

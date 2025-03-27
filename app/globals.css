@@ -111,12 +111,25 @@
     body {
         @apply bg-background text-foreground;
     }
-
     @font-face {
-        font-family: "geist";
-        font-style: normal;
-        font-weight: 100 900;
-        src: url(/fonts/geist.woff2) format("woff2");
+      font-family: 'Inter';
+      src: url('/fonts/Inter-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'Inter';
+      src: url('/fonts/Inter-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'Inter';
+      src: url('/fonts/Inter-Italic.ttf') format('truetype');
+      font-weight: 400;
+      font-style: italic;
     }
 
     @font-face {
@@ -125,6 +138,31 @@
         font-weight: 100 900;
         src: url(/fonts/geist-mono.woff2) format("woff2");
     }
+    
+    @font-face {
+      font-family: 'Nunito';
+      src: url('/fonts/Nunito-ExtraLight.ttf') format('truetype');
+      font-weight: 200;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'Nunito';
+      src: url('/fonts/Nunito-Regular.ttf') format('truetype');
+      font-weight: 400;
+      font-style: normal;
+    }
+    
+    @font-face {
+      font-family: 'Nunito';
+      src: url('/fonts/Nunito-Bold.ttf') format('truetype');
+      font-weight: 700;
+      font-style: normal;
+    }
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 .skeleton {
@@ -186,7 +224,31 @@
     @apply bg-blue-200 hover:bg-blue-300 dark:hover:bg-blue-400/50 dark:text-blue-50 dark:bg-blue-500/40;
 }
 
+.text-gradient {
+  @apply text-transparent bg-clip-text;
+  background-image: linear-gradient(to right, hsl(var(--accent-magenta)), hsl(var(--accent-cyan)));
+}
 
+.text-gradient-2 {
+  @apply text-transparent bg-clip-text;
+  background-image: linear-gradient(to right, hsl(var(--accent-magenta)) 36%, #649BFF 94%);
+}
+
+.bg-gradient {
+  background-image: linear-gradient(to right, hsl(var(--accent-magenta)), #59A6FF 80%, hsl(var(--accent-cyan)));
+}
+
+.bg-black-white-gradient {
+  @apply bg-accent bg-gradient-to-tl from-accent from-40% to-white/15;
+}
+
+.space-background {
+  background-color: #1e1e1e;
+  background-image: url("/images/space-background.png");
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
 
 @layer base {
   * {

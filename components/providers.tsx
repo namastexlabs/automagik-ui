@@ -10,8 +10,7 @@ export function Providers({ children }: PropsWithChildren) {
   return (
     <NextThemesProvider
       attribute="class"
-      defaultTheme="system"
-      enableSystem
+      forcedTheme="dark"
       disableTransitionOnChange
     >
       <TooltipProvider delayDuration={0}>
