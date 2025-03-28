@@ -40,8 +40,9 @@ export default function Page() {
     async (_, formData) => {
       const supabase = createBrowserClient();
       try {
+        const email = formData.get('email') as string;
         const { error } = await supabase.auth.signUp({
-          email: formData.get('email') as string,
+          email,
           password: formData.get('password') as string,
           options: {
             emailRedirectTo: `${window.location.origin}/chat/welcome`,
@@ -52,7 +53,13 @@ export default function Page() {
           stop();
           return {
             status: DataStatus.InvalidData,
-            errors: { _errors: [error.message] },
+            errors: {
+              _errors: [
+                email.includes('@automagik.ai')
+                  ? error.message
+                  : 'Invalid email',
+              ],
+            },
           };
         }
 
