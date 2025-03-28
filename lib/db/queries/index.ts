@@ -13,3 +13,5 @@ export const isUniqueConstraintError = (
   /** https://github.com/porsager/postgres/pull/901 */
   return (error as Error & { code?: string })?.code === '23505';
 };
+
+export { schema };

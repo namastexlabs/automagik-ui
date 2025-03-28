@@ -1,7 +1,6 @@
 import 'server-only';
 
-import * as schema from '../schema';
-import { db } from './index';
+import { db, schema } from './index';
 
 export async function saveSuggestions({
   suggestions,
