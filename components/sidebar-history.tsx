@@ -21,8 +21,9 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
+  useSidebar,
 } from '@/components/ui/sidebar';
-import { fetcher } from '@/lib/utils';
+import { cn, fetcher } from '@/lib/utils';
 import { deleteChatAction } from '@/app/(chat)/actions';
 import { SidebarAgentItem } from '@/components/sidebar-agent-item';
 import type { AgentWithMessagesDTO } from '@/lib/data/agent';
@@ -37,6 +38,7 @@ export function SidebarHistory({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const router = useRouter();
+  const { state } = useSidebar();
 
   const { data: agents, mutate } = useSWR<AgentWithMessagesDTO[]>(
     `/agents`,
@@ -77,19 +79,25 @@ export function SidebarHistory({
     <>
       <SidebarGroup className="p-0">
         <SidebarGroupContent>
-          <SidebarMenu className="px-2">
-            <h2 className="text-sm font-medium mb-2">Recent Threads</h2>
-            <div className="relative mb-4">
-              <Input
-                type="text"
-                placeholder="Search for agents"
-                className="pl-8"
-              />
-              <Search
-                size={16}
-                className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
-            </div>
+          <SidebarMenu
+            className={cn('px-2', { 'px-0 gap-4': state === 'collapsed' })}
+          >
+            {state === 'expanded' && (
+              <>
+                <h2 className="text-sm font-medium mb-2">Recent Threads</h2>
+                <div className="relative mb-4">
+                  <Input
+                    type="text"
+                    placeholder="Search for agents"
+                    className="pl-8"
+                  />
+                  <Search
+                    size={16}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  />
+                </div>
+              </>
+            )}
             {agents?.map((agent) =>
               agent.chat.id === id ? (
                 <SidebarAgentItem

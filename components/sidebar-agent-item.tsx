@@ -181,11 +181,13 @@ const ChatItem = ({
 export function SidebarAgentItem({ agent, onDelete }: AgentItemProps) {
   const { agent: currentAgent } = useCurrentAgent();
   const { user } = useUser();
-  const { setOpenMobile } = useSidebar();
+  const { setOpenMobile, state } = useSidebar();
   const { id } = useParams();
   const [randomColor, setRandomColor] = useState<string>();
   const { data: history, isLoading } = useSWR<Array<Chat>>(
-    user && currentAgent?.id === agent.id ? `/api/history?agentId=${agent.id}` : null,
+    user && currentAgent?.id === agent.id
+      ? `/api/history?agentId=${agent.id}`
+      : null,
     fetcher,
     {
       fallbackData: [],
@@ -236,30 +238,37 @@ export function SidebarAgentItem({ agent, onDelete }: AgentItemProps) {
         'flex items-center gap-2 p-2 rounded-md hover:bg-dark-gray transition-colors',
         {
           'bg-dark-gray': id === agent.chat.id,
+          '!bg-transparent p-0 justify-center': state === 'collapsed',
         },
       )}
     >
       <div className="rounded-full shrink-0">
         <Avatar className="size-9 text-md font-bold">
-          <AvatarImage src={agent.avatarUrl || undefined} alt={agent.name} className="object-contain" />
+          <AvatarImage
+            src={agent.avatarUrl || undefined}
+            alt={agent.name}
+            className="object-contain"
+          />
           <AvatarFallback className={randomColor}>
             {agent.name.slice(0, 2).toUpperCase()}
           </AvatarFallback>
         </Avatar>
       </div>
-      <div className="flex flex-col flex-1 min-w-0 gap-1">
-        <div className="flex justify-between items-center">
-          <p className="text-foreground font-bold text-sm max-w-40 truncate">
-            {agent.name}
+      {state === 'expanded' && (
+        <div className="flex flex-col flex-1 min-w-0 gap-1">
+          <div className="flex justify-between items-center">
+            <p className="text-foreground font-bold text-sm max-w-40 truncate">
+              {agent.name}
+            </p>
+            <span className="text-[0.7rem] text-muted-foreground">
+              {getMessageDateLabel(agent.recentMessage)}
+            </span>
+          </div>
+          <p className="text-xs text-muted-foreground truncate w-4/5">
+            {agent.recentMessage.content.content}
           </p>
-          <span className="text-[0.7rem] text-muted-foreground">
-            {getMessageDateLabel(agent.recentMessage)}
-          </span>
         </div>
-        <p className="text-xs text-muted-foreground truncate w-4/5">
-          {agent.recentMessage.content.content}
-        </p>
-      </div>
+      )}
       {false && (
         <SidebarGroup>
           <div className="px-2 py-1 text-xs text-sidebar-foreground/50">

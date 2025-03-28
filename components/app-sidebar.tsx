@@ -25,6 +25,7 @@ import {
 import { useResolvedTheme } from '@/hooks/use-resolved-theme';
 import type { AgentWithMessagesDTO } from '@/lib/data/agent';
 import { useCurrentAgent } from '@/hooks/use-current-agent';
+import { cn } from '@/lib/utils';
 
 export function AppSidebar({
   initialAgents,
@@ -34,7 +35,7 @@ export function AppSidebar({
   const colorMode = useResolvedTheme();
   const pathname = usePathname();
   const { agent: currentAgent } = useCurrentAgent();
-  const { setOpenMobile, open, toggleSidebar, openAgentListDialog } =
+  const { setOpenMobile, toggleSidebar, openAgentListDialog, state } =
     useSidebar();
 
   return (
@@ -47,18 +48,17 @@ export function AppSidebar({
                 <Button
                   variant="ghost"
                   type="button"
-                  className="p-2 mt-1 h-fit"
-                  disabled
-                  onClick={() => {
-                    toggleSidebar();
-                  }}
+                  className={cn('p-2 mt-1 h-fit rounded-full hover:bg-transparent', {
+                    'p-0 mb-3 mx-auto': state === 'collapsed',
+                  })}
+                  onClick={toggleSidebar}
                 >
                   <MenuIcon size={24} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent align="end">Toggle sidebar</TooltipContent>
             </Tooltip>
-            {open && (
+            {state === 'expanded' && (
               <Link
                 href="/"
                 onClick={() => {
@@ -89,13 +89,20 @@ export function AppSidebar({
           asChild
           variant="ghost"
           type="button"
-          className="group/thread-button justify-start gap-2 ml-2 my-4 p-0 hover:bg-transparent h-fit"
+          className={cn(
+            'group/thread-button justify-start gap-2 ml-2 my-4 p-0 hover:bg-transparent h-fit',
+            {
+              '!bg-transparent justify-center m-0 mb-5': state === 'collapsed',
+            },
+          )}
         >
-          <Link href={currentAgent ? `/chat?agent=${currentAgent.id}` : '/chat'}>
+          <Link
+            href={currentAgent ? `/chat?agent=${currentAgent.id}` : '/chat'}
+          >
             <div className="rounded-full border-dark-gray border p-[0.35rem] flex items-center justify-center group-hover/thread-button:border-accent-foreground">
               <Plus size={26} />
             </div>
-            New thread
+            {state === 'expanded' && 'New thread'}
           </Link>
         </Button>
         <SidebarHistory initialAgents={initialAgents} />
@@ -104,7 +111,12 @@ export function AppSidebar({
         <Button
           type="button"
           variant="ghost"
-          className="group/explore-button flex justify-start gap-2 hover:bg-transparent p-0"
+          className={cn(
+            'group/explore-button flex justify-start gap-2 hover:bg-transparent p-0',
+            {
+              '!bg-transparent justify-center': state === 'collapsed',
+            },
+          )}
           onClick={() => {
             openAgentListDialog(true);
           }}
@@ -112,7 +124,7 @@ export function AppSidebar({
           <div className="rounded-full border-dark-gray border p-[0.35rem] flex items-center justify-center group-hover/explore-button:border-accent-foreground">
             <ShapesIcon size={26} />
           </div>
-          <p className="text-sm">Explore Agents</p>
+          {state === 'expanded' && <p className="text-sm">Explore Agents</p>}
         </Button>
         <SidebarUserNav />
       </SidebarFooter>

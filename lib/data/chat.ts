@@ -24,7 +24,7 @@ import { DataStatus } from '.';
 
 export type ChatDTO = Chat & {
   agent: {
-    id: string; 
+    id: string;
     name: string;
     avatarUrl: string | null;
     visibility: VisibilityType;
