@@ -294,3 +294,18 @@ export const suggestion = pgTable(
 );
 
 export type Suggestion = InferSelectModel<typeof suggestion>;
+
+export const waitlist = pgTable('waitlist', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  isApproved: boolean('is_approved').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [
+    unique('waitlist_unique_email').on(table.email),
+  ],
+);
+
+export type Waitlist = InferSelectModel<typeof waitlist>;

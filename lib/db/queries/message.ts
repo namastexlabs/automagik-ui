@@ -3,8 +3,7 @@ import 'server-only';
 import { eq, asc, and, gte } from 'drizzle-orm';
 import type { Message } from 'ai';
 
-import * as schema from '../schema';
-import { db } from './index';
+import { db, schema } from './index';
 
 export async function saveMessages({
   messages,

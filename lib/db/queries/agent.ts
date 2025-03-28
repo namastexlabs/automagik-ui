@@ -1,8 +1,7 @@
 import 'server-only';
 import { and, desc, eq, inArray } from 'drizzle-orm';
 
-import * as schema from '../schema';
-import { db } from './index';
+import { db, schema } from './index';
 
 const AGENT_RELATION_QUERY = {
   dynamicBlocks: {

@@ -1,11 +1,9 @@
 import 'server-only';
-
 import { eq, asc, and, gt } from 'drizzle-orm';
 
 import type { BlockKind } from '@/components/block';
 
-import * as schema from '../schema';
-import { db } from './index';
+import { db, schema } from './index';
 
 export async function saveDocument({
   id,
