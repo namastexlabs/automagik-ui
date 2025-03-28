@@ -1,3 +1,4 @@
+import 'server-only';
 import type {
   CoreAssistantMessage,
   CoreMessage,
@@ -5,7 +6,6 @@ import type {
   CoreUserMessage,
   Message,
 } from 'ai';
-import 'server-only';
 
 import type { Message as DBMessage } from '@/lib/db/schema';
 
@@ -15,7 +15,7 @@ import {
   getMessageFile,
   isKeyWithChatId,
   isSignedUrlExpired,
-} from './services/minio';
+} from '@/lib/services/minio';
 
 export function convertToUIMessages(messages: Array<DBMessage>): Message[] {
   return messages.map((dbMessage): Message => {
@@ -136,7 +136,7 @@ export async function convertCoreMessageAttachments(
             mimeType: `image/${name.split('.').pop() as string}`,
             image: isKeyWithChatId(content.image.pathname)
               ? isSignedUrlExpired(content.image.href)
-                ? new URL(await moveAttachmentToChat(name, chatId))
+                ? new URL(await getMessageFile(name, chatId))
                 : content.image
               : new URL(await moveAttachmentToChat(name, chatId)),
           };
@@ -148,46 +148,90 @@ export async function convertCoreMessageAttachments(
   };
 }
 
-/*
- * Claude has thinking XML tags and Extended thinking which conflicts on AI SDK
- * This function removes the reasoning messages from the array back to XML thiking tags
- */
-export function handleClaudeReasoningMessages(
+export function sanitizeMessages(
   messages: CoreMessage[],
   provider: string,
   modelId: string,
 ): CoreMessage[] {
-  if (provider === 'anthropic' && !modelId.includes('claude-3-7-sonnet')) {
-    return messages.map((message) => {
-      if (message.role === 'assistant' && Array.isArray(message.content)) {
-        const reasoningParts = message.content.filter(
-          (content) => content.type === 'reasoning',
-        );
+  let result = messages;
+  if (provider === 'anthropic') {
+    /*
+     * Claude has thinking XML tags and Extended thinking which conflicts on AI SDK
+     * This function removes the reasoning messages from the array back to XML thiking tags
+     */
+    if (!modelId.includes('claude-3-7-sonnet')) {
+      result = messages.map((message) => {
+        if (message.role === 'assistant' && Array.isArray(message.content)) {
+          const reasoningParts = message.content.filter(
+            (content) => content.type === 'reasoning',
+          );
 
-        return {
-          ...message,
-          content: message.content
-            .filter((content) => content.type !== 'reasoning')
-            .map((part) => {
-              if (part.type === 'text') {
-                const text = reasoningParts
-                  .map((part) => `<thinking>${part.text}</thinking>`)
-                  .join('\n');
-                return {
-                  text,
-                  type: 'text' as const,
-                };
-              }
+          const textPartIndex = message.content.findIndex(
+            (content) => content.type === 'text',
+          );
 
-              return part;
-            }),
-        };
+          return {
+            ...message,
+            content: message.content
+              .filter((content) => content.type !== 'reasoning')
+              .map((part, index) => {
+                if (index === textPartIndex) {
+                  const text = reasoningParts
+                    .map((part) => `<thinking>${part.text}</thinking>`)
+                    .join('\n');
+                  return {
+                    text,
+                    type: 'text' as const,
+                  };
+                }
+
+                return part;
+              }),
+          };
+        }
+
+        return message;
+      });
+    }
+
+    // Anthropic doesn't allow empty content messages
+    result = result.reduce<CoreMessage[]>((acc, message) => {
+      switch (message.role) {
+        case 'system':
+        case 'tool': {
+          acc.push(message);
+          break;
+        }
+        case 'assistant':
+        case 'user': {
+          if (!Array.isArray(message.content)) {
+            if (message.content.trim().length > 0) {
+              acc.push(message);
+            }
+          } else {
+            // Filter out empty text/reasoning content
+            const filteredContent = message.content.filter(content => {
+              const isReasoningOrText = 
+                content.type === 'text' || content.type === 'reasoning';
+              
+              if (!isReasoningOrText) return true;
+              return content.text.trim().length > 0;
+            });
+
+            if (filteredContent.length > 0) {
+              acc.push({
+                ...message,
+                content: filteredContent,
+              } as CoreMessage);
+            }
+          }
+          break;
+        }
       }
-
-      return message;
-    });
+      return acc;
+    }, []);
   }
-  return messages;
+  return result;
 }
 
 export function getDiffRelation<PREVIOUS, CURRENT>(
