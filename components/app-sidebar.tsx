@@ -48,9 +48,12 @@ export function AppSidebar({
                 <Button
                   variant="ghost"
                   type="button"
-                  className={cn('p-2 mt-1 h-fit rounded-full hover:bg-transparent', {
-                    'p-0 mb-3 mx-auto': state === 'collapsed',
-                  })}
+                  className={cn(
+                    'p-2 mt-1 h-fit rounded-full hover:bg-transparent',
+                    {
+                      'p-0 mb-3 mx-auto': state === 'collapsed',
+                    },
+                  )}
                   onClick={toggleSidebar}
                 >
                   <MenuIcon size={24} />

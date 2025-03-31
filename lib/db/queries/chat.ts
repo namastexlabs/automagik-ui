@@ -33,9 +33,11 @@ export async function saveChat({
 export async function getChats({
   userId,
   agentId,
+  limit = 10,
 }: {
   userId: string;
   agentId?: string;
+  limit?: number;
 }) {
   try {
     return await db.query.chat.findMany({
@@ -45,6 +47,7 @@ export async function getChats({
           agentId ? eq(chat.agentId, agentId) : undefined,
         ),
       orderBy: (chat, { desc }) => [desc(chat.createdAt)],
+      limit,
     });
   } catch (error) {
     console.error('Failed to get chats by user from database');

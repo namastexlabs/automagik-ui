@@ -4,7 +4,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
-import Link from 'next/link';
 import { Search } from 'lucide-react';
 
 import {
@@ -28,6 +27,7 @@ import { deleteChatAction } from '@/app/(chat)/actions';
 import { SidebarAgentItem } from '@/components/sidebar-agent-item';
 import type { AgentWithMessagesDTO } from '@/lib/data/agent';
 import { Input } from '@/components/ui/input';
+import { Accordion } from './ui/accordion';
 
 export function SidebarHistory({
   initialAgents,
@@ -39,6 +39,8 @@ export function SidebarHistory({
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const router = useRouter();
   const { state } = useSidebar();
+
+  const [openHistories, setOpenHistories] = useState<string[]>([]);
 
   const { data: agents, mutate } = useSWR<AgentWithMessagesDTO[]>(
     `/agents`,
@@ -98,19 +100,21 @@ export function SidebarHistory({
                 </div>
               </>
             )}
-            {agents?.map((agent) =>
-              agent.chat.id === id ? (
+            <Accordion
+              type="multiple"
+              value={openHistories}
+              onValueChange={setOpenHistories}
+              className="space-y-2"
+            >
+              {agents?.map((agent) => (
                 <SidebarAgentItem
                   key={agent.id}
                   agent={agent}
+                  isOpen={openHistories.includes(agent.id)}
                   onDelete={onDeleteThread}
                 />
-              ) : (
-                <Link href={`/chat/${agent.chat.id}`} key={agent.id}>
-                  <SidebarAgentItem agent={agent} onDelete={onDeleteThread} />
-                </Link>
-              ),
-            )}
+              ))}
+            </Accordion>
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
