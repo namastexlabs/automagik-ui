@@ -8,46 +8,22 @@ import {
   isSameMonth,
   subWeeks,
   subMonths,
+  format,
 } from 'date-fns';
-import {
-  TrashIcon,
-  GlobeIcon,
-  LockIcon,
-  MoreHorizontalIcon,
-  ShareIcon,
-  SearchIcon,
-} from 'lucide-react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import type { Chat, Message } from '@/lib/db/schema';
-import { useUser } from '@/contexts/user';
 import type { AgentWithMessagesDTO } from '@/lib/data/agent';
 import { cn, fetcher } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { useChatVisibility } from '@/hooks/use-chat-visibility';
 import {
-  SidebarMenuAction,
-  SidebarMenuItem,
-  SidebarMenuButton,
-  useSidebar,
-  SidebarGroup,
-  SidebarGroupContent,
-} from '@/components/ui/sidebar';
-import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuSub,
-  DropdownMenuSubTrigger,
-  DropdownMenuPortal,
-  DropdownMenuSubContent,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import { CheckCircleFillIcon } from '@/components/icons';
-import { Input } from '@/components/ui/input';
-import { useCurrentAgent } from '@/hooks/use-current-agent';
+  AccordionContent,
+  AccordionItem,
+  AccordionTrigger,
+} from './ui/accordion';
+import { useSidebar } from './ui/sidebar';
 
 type GroupedChats = {
   today: Chat[];
@@ -59,6 +35,7 @@ type GroupedChats = {
 
 type AgentItemProps = {
   agent: AgentWithMessagesDTO;
+  isOpen: boolean;
   onDelete: (chatId: string) => void;
 };
 
@@ -92,106 +69,30 @@ const getMessageDateLabel = (message: Message) => {
   }
 };
 
-const ChatItem = ({
-  chat,
-  isActive,
-  onDelete,
-  setOpenMobile,
-}: {
-  chat: Chat;
-  isActive: boolean;
-  onDelete: (chatId: string) => void;
-  setOpenMobile: (open: boolean) => void;
-}) => {
-  const { visibilityType, setVisibilityType } = useChatVisibility({
-    chatId: chat.id,
-    initialVisibility: chat.visibility,
-  });
-
-  return (
-    <SidebarMenuItem>
-      <SidebarMenuButton asChild isActive={isActive}>
-        <Link href={`/chat/${chat.id}`} onClick={() => setOpenMobile(false)}>
-          <span>{chat.title}</span>
-        </Link>
-      </SidebarMenuButton>
-
-      <DropdownMenu modal={true}>
-        <DropdownMenuTrigger asChild>
-          <SidebarMenuAction
-            className="data-[state=open]:bg-sidebar-accent data-[state=open]:text-sidebar-accent-foreground mr-0.5"
-            showOnHover={!isActive}
-          >
-            <MoreHorizontalIcon />
-            <span className="sr-only">More</span>
-          </SidebarMenuAction>
-        </DropdownMenuTrigger>
-
-        <DropdownMenuContent side="bottom" align="end">
-          <DropdownMenuSub>
-            <DropdownMenuSubTrigger className="cursor-pointer">
-              <ShareIcon />
-              <span>Share</span>
-            </DropdownMenuSubTrigger>
-            <DropdownMenuPortal>
-              <DropdownMenuSubContent>
-                <DropdownMenuItem
-                  className="cursor-pointer flex-row justify-between"
-                  onClick={() => {
-                    setVisibilityType('private');
-                  }}
-                >
-                  <div className="flex flex-row gap-2 items-center">
-                    <LockIcon size={12} />
-                    <span>Private</span>
-                  </div>
-                  {visibilityType === 'private' ? (
-                    <CheckCircleFillIcon />
-                  ) : null}
-                </DropdownMenuItem>
-                <DropdownMenuItem
-                  className="cursor-pointer flex-row justify-between"
-                  onClick={() => {
-                    setVisibilityType('public');
-                  }}
-                >
-                  <div className="flex flex-row gap-2 items-center">
-                    <GlobeIcon />
-                    <span>Public</span>
-                  </div>
-                  {visibilityType === 'public' ? <CheckCircleFillIcon /> : null}
-                </DropdownMenuItem>
-              </DropdownMenuSubContent>
-            </DropdownMenuPortal>
-          </DropdownMenuSub>
-
-          <DropdownMenuItem
-            className="cursor-pointer text-destructive focus:bg-destructive/15 focus:text-destructive dark:text-red-500"
-            onSelect={() => onDelete(chat.id)}
-          >
-            <TrashIcon />
-            <span>Delete</span>
-          </DropdownMenuItem>
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </SidebarMenuItem>
-  );
-};
-
-export function SidebarAgentItem({ agent, onDelete }: AgentItemProps) {
-  const { agent: currentAgent } = useCurrentAgent();
-  const { user } = useUser();
-  const { setOpenMobile } = useSidebar();
+export function SidebarAgentItem({ agent, isOpen }: AgentItemProps) {
+  const { setOpenMobile, state } = useSidebar();
   const { id } = useParams();
   const [randomColor, setRandomColor] = useState<string>();
-  const { data: history, isLoading } = useSWR<Array<Chat>>(
-    user && currentAgent?.id === agent.id ? `/api/history?agentId=${agent.id}` : null,
-    fetcher,
+
+  // Only fetch when expanded and open
+  const {
+    data: history,
+    isLoading,
+    mutate,
+  } = useSWR<Array<Chat>>(
+    `/api/history?agentId=${agent.id}`,
+    isOpen ? fetcher : null,
     {
-      fallbackData: [],
       revalidateOnFocus: false,
+      revalidateIfStale: false,
     },
   );
+
+  useEffect(() => {
+    if (isOpen) {
+      mutate();
+    }
+  }, [isOpen, mutate]);
 
   useEffect(() => {
     setRandomColor(getRandomColor());
@@ -230,171 +131,205 @@ export function SidebarAgentItem({ agent, onDelete }: AgentItemProps) {
     );
   };
 
+  const groupedChats = useMemo(() => {
+    if (!history) return null;
+    return groupChatsByDate(history);
+  }, [history]);
+
   return (
-    <div
+    <AccordionItem
+      value={agent.id}
+      className={cn('w-full border-none', {
+        'mb-3': isOpen,
+        'flex flex-col items-center': state === 'collapsed',
+      })}
+    >
+      <div
+        className={cn(
+          'flex items-center gap-2 p-2 rounded-md hover:bg-dark-gray transition-colors w-full',
+          {
+            'bg-dark-gray': id === agent.chat.id,
+            '!bg-transparent p-0 justify-center': state === 'collapsed',
+          },
+        )}
+      >
+        <Link href={`/chat/${agent.chat.id}`}>
+          <div className="rounded-full shrink-0">
+            <Avatar className="size-9 text-md font-bold">
+              <AvatarImage
+                src={agent.avatarUrl || undefined}
+                alt={agent.name}
+                className="object-contain"
+              />
+              <AvatarFallback className={randomColor}>
+                {agent.name.slice(0, 2).toUpperCase()}
+              </AvatarFallback>
+            </Avatar>
+          </div>
+        </Link>
+        {state === 'expanded' && (
+          <div className="flex flex-col flex-1 min-w-0 gap-1">
+            <Link href={`/chat/${agent.chat.id}`}>
+              <div className="flex justify-between items-center">
+                <p className="text-foreground font-bold text-sm max-w-40 truncate">
+                  {agent.name}
+                </p>
+                <span className="text-[0.7rem] text-muted-foreground">
+                  {getMessageDateLabel(agent.recentMessage)}
+                </span>
+              </div>
+            </Link>
+            <div className="flex items-center justify-between gap-2">
+              <p className="text-xs text-muted-foreground truncate w-4/5">
+                <Link href={`/chat/${agent.chat.id}`}>
+                  {agent.recentMessage.content.content}
+                </Link>
+              </p>
+              <AccordionTrigger className="p-0" />
+            </div>
+          </div>
+        )}
+      </div>
+
+      {state === 'expanded' && (
+        <AccordionContent className="space-y-2 p-0">
+          <div className="flex flex-col gap-3">
+            {isLoading ? (
+              <div className="space-y-2 py-2">
+                {[1, 2, 3].map((i) => (
+                  <div
+                    key={i}
+                    className="flex items-center gap-2 h-8 px-3 animate-pulse"
+                  >
+                    <div className="h-4 bg-muted rounded w-4/5" />
+                    <div className="h-3 bg-muted rounded w-12 ml-auto" />
+                  </div>
+                ))}
+              </div>
+            ) : groupedChats ? (
+              <>
+                {groupedChats.today.length > 0 && (
+                  <div>
+                    <div className="px-2 py-1 text-xs text-muted-foreground text-right">
+                      Today
+                    </div>
+                    <div className="flex flex-col gap-1 pl-12 pr-4">
+                      {groupedChats.today.map((chat) => (
+                        <HistoryItem
+                          key={chat.id}
+                          chat={chat}
+                          isActive={chat.id === id}
+                          onClose={() => setOpenMobile(false)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {groupedChats.yesterday.length > 0 && (
+                  <div>
+                    <div className="px-2 py-1 text-xs text-muted-foreground text-right">
+                      Yesterday
+                    </div>
+                    <div className="flex flex-col gap-1 pl-12 pr-4">
+                      {groupedChats.yesterday.map((chat) => (
+                        <HistoryItem
+                          key={chat.id}
+                          chat={chat}
+                          isActive={chat.id === id}
+                          onClose={() => setOpenMobile(false)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {groupedChats.lastWeek.length > 0 && (
+                  <div>
+                    <div className="px-2 py-1 text-xs text-muted-foreground text-right">
+                      Last 7 days
+                    </div>
+                    <div className="flex flex-col gap-1 pl-12 pr-4">
+                      {groupedChats.lastWeek.map((chat) => (
+                        <HistoryItem
+                          key={chat.id}
+                          chat={chat}
+                          isActive={chat.id === id}
+                          onClose={() => setOpenMobile(false)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {groupedChats.lastMonth.length > 0 && (
+                  <div>
+                    <div className="px-2 py-1 text-xs text-muted-foreground text-right">
+                      Last 30 days
+                    </div>
+                    <div className="flex flex-col gap-1 pl-12 pr-4">
+                      {groupedChats.lastMonth.map((chat) => (
+                        <HistoryItem
+                          key={chat.id}
+                          chat={chat}
+                          isActive={chat.id === id}
+                          onClose={() => setOpenMobile(false)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+
+                {groupedChats.older.length > 0 && (
+                  <div>
+                    <div className="px-2 py-1 text-xs text-muted-foreground text-right">
+                      Older
+                    </div>
+                    <div className="flex flex-col gap-1 pl-12 pr-4">
+                      {groupedChats.older.map((chat) => (
+                        <HistoryItem
+                          key={chat.id}
+                          chat={chat}
+                          isActive={chat.id === id}
+                          onClose={() => setOpenMobile(false)}
+                        />
+                      ))}
+                    </div>
+                  </div>
+                )}
+              </>
+            ) : null}
+          </div>
+        </AccordionContent>
+      )}
+    </AccordionItem>
+  );
+}
+
+function HistoryItem({
+  chat,
+  isActive,
+  onClose,
+}: {
+  chat: Chat;
+  isActive: boolean;
+  onClose: () => void;
+}) {
+  return (
+    <Link
+      href={`/chat/${chat.id}`}
       className={cn(
-        'flex items-center gap-2 p-2 rounded-md hover:bg-dark-gray transition-colors',
+        'flex items-center gap-2 rounded-md text-muted-foreground hover:text-white transition-colors',
         {
-          'bg-dark-gray': id === agent.chat.id,
+          'text-white': isActive,
         },
       )}
+      onClick={onClose}
     >
-      <div className="rounded-full shrink-0">
-        <Avatar className="size-9 text-md font-bold">
-          <AvatarImage src={agent.avatarUrl || undefined} alt={agent.name} className="object-contain" />
-          <AvatarFallback className={randomColor}>
-            {agent.name.slice(0, 2).toUpperCase()}
-          </AvatarFallback>
-        </Avatar>
-      </div>
-      <div className="flex flex-col flex-1 min-w-0 gap-1">
-        <div className="flex justify-between items-center">
-          <p className="text-foreground font-bold text-sm max-w-40 truncate">
-            {agent.name}
-          </p>
-          <span className="text-[0.7rem] text-muted-foreground">
-            {getMessageDateLabel(agent.recentMessage)}
-          </span>
-        </div>
-        <p className="text-xs text-muted-foreground truncate w-4/5">
-          {agent.recentMessage.content.content}
-        </p>
-      </div>
-      {false && (
-        <SidebarGroup>
-          <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-            Today
-          </div>
-          <SidebarGroupContent>
-            <div className="flex flex-col">
-              {[44, 32, 28, 64, 52].map((item) => (
-                <div
-                  key={item}
-                  className="rounded-md h-8 flex gap-2 px-2 items-center"
-                >
-                  <div
-                    className="h-4 rounded-md flex-1 max-w-[--skeleton-width] bg-sidebar-accent-foreground/10"
-                    style={
-                      {
-                        '--skeleton-width': `${item}%`,
-                      } as React.CSSProperties
-                    }
-                  />
-                </div>
-              ))}
-            </div>
-          </SidebarGroupContent>
-        </SidebarGroup>
-      )}
-      {false &&
-        history &&
-        (history as Chat[]).length > 0 &&
-        (() => {
-          const groupedChats = groupChatsByDate(history as Chat[]);
-
-          return (
-            <>
-              <div className="relative mb-2">
-                <Input
-                  type="text"
-                  placeholder="Search for agents"
-                  className="pl-8"
-                  onChange={(e) => {
-                    console.log(e.target.value);
-                  }}
-                />
-                <SearchIcon
-                  size={20}
-                  className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
-                />
-              </div>
-              {groupedChats.today.length > 0 && (
-                <>
-                  <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-                    Today
-                  </div>
-                  {groupedChats.today.map((chat) => (
-                    <ChatItem
-                      key={chat.id}
-                      chat={chat}
-                      isActive={chat.id === id}
-                      onDelete={onDelete}
-                      setOpenMobile={setOpenMobile}
-                    />
-                  ))}
-                </>
-              )}
-
-              {groupedChats.yesterday.length > 0 && (
-                <>
-                  <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-                    Yesterday
-                  </div>
-                  {groupedChats.yesterday.map((chat) => (
-                    <ChatItem
-                      key={chat.id}
-                      chat={chat}
-                      isActive={chat.id === id}
-                      onDelete={onDelete}
-                      setOpenMobile={setOpenMobile}
-                    />
-                  ))}
-                </>
-              )}
-
-              {groupedChats.lastWeek.length > 0 && (
-                <>
-                  <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-                    Last 7 days
-                  </div>
-                  {groupedChats.lastWeek.map((chat) => (
-                    <ChatItem
-                      key={chat.id}
-                      chat={chat}
-                      isActive={chat.id === id}
-                      onDelete={onDelete}
-                      setOpenMobile={setOpenMobile}
-                    />
-                  ))}
-                </>
-              )}
-
-              {groupedChats.lastMonth.length > 0 && (
-                <>
-                  <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-                    Last 30 days
-                  </div>
-                  {groupedChats.lastMonth.map((chat) => (
-                    <ChatItem
-                      key={chat.id}
-                      chat={chat}
-                      isActive={chat.id === id}
-                      onDelete={onDelete}
-                      setOpenMobile={setOpenMobile}
-                    />
-                  ))}
-                </>
-              )}
-
-              {groupedChats.older.length > 0 && (
-                <>
-                  <div className="px-2 py-1 text-xs text-sidebar-foreground/50">
-                    Older
-                  </div>
-                  {groupedChats.older.map((chat) => (
-                    <ChatItem
-                      key={chat.id}
-                      chat={chat}
-                      isActive={chat.id === id}
-                      onDelete={onDelete}
-                      setOpenMobile={setOpenMobile}
-                    />
-                  ))}
-                </>
-              )}
-            </>
-          );
-        })()}
-    </div>
+      <span className="truncate text-[0.8rem] flex-1">{chat.title}</span>
+      <span className="text-[0.7rem] shrink-0">
+        {format(new Date(chat.createdAt), 'MMM d')}
+      </span>
+    </Link>
   );
 }

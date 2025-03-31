@@ -25,7 +25,7 @@ import {
   hasAttachment,
   sanitizeResponseMessages,
   convertCoreMessageAttachments,
-  handleClaudeReasoningMessages,
+  sanitizeMessages,
 } from '@/lib/utils.server';
 import { generateUUID } from '@/lib/utils';
 import { toCoreTools } from '@/lib/agents/tool';
@@ -86,7 +86,6 @@ export async function POST(request: NextRequest) {
     const chat = await getChat(id, userId);
     verifyChatWritePermission(chat, userId);
 
-    const agent = await getAgent(chat.agentId, userId);
     const sanitizedMessages = isReasoningAllowed(modelData)
       ? messages
       : messages.map((message) => ({
@@ -94,7 +93,8 @@ export async function POST(request: NextRequest) {
           parts: message.parts?.filter((part) => part.type !== 'reasoning'),
         }));
 
-    const coreMessages = handleClaudeReasoningMessages(
+    const agent = await getAgent(chat.agentId, userId);
+    const coreMessages = sanitizeMessages(
       convertToCoreMessages(sanitizedMessages),
       provider,
       modelId,

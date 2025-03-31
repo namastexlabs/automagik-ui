@@ -1,6 +1,8 @@
 'use client';
 
 import { useActionState, useState, type PropsWithChildren } from 'react';
+import { useProgress } from '@bprogress/next';
+
 import type { ButtonProps } from '@/components/ui/button';
 import type { InputProps } from '@/components/ui/floating-input';
 import { Button } from '@/components/ui/button';
@@ -21,14 +23,18 @@ const WaitListInput = ({ className, ...props }: InputProps) => {
   );
 };
 export const WaitlistForm = () => {
+  const { set, stop } = useProgress();
   const [hasSubmitted, setHasSubmitted] = useState(false);
-  const [{ status, errors = {}, data }, formAction] = useActionState<
+  const [{ status, errors = {} }, formAction] = useActionState<
     Awaited<ReturnType<typeof joinWaitlistAction>>,
     FormData
   >(
     async (state, formData) => {
+      set(0.4);
       const result = await joinWaitlistAction(state, formData);
       setHasSubmitted(true);
+      stop();
+
       return result;
     },
     { status: DataStatus.Success, data: null },

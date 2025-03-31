@@ -26,7 +26,7 @@ export default async function Layout({ children }: { children: ReactNode }) {
         email: session.user.email,
       }}
     >
-      <SidebarProvider defaultOpen={true}>
+      <SidebarProvider defaultOpen={!isCollapsed}>
         <AppSidebar initialAgents={agents.data} />
         <SidebarInset>{children}</SidebarInset>
       </SidebarProvider>

@@ -4,7 +4,6 @@ import { useParams, useRouter } from 'next/navigation';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import useSWR from 'swr';
-import Link from 'next/link';
 import { Search } from 'lucide-react';
 
 import {
@@ -21,12 +20,14 @@ import {
   SidebarGroup,
   SidebarGroupContent,
   SidebarMenu,
+  useSidebar,
 } from '@/components/ui/sidebar';
-import { fetcher } from '@/lib/utils';
+import { cn, fetcher } from '@/lib/utils';
 import { deleteChatAction } from '@/app/(chat)/actions';
 import { SidebarAgentItem } from '@/components/sidebar-agent-item';
 import type { AgentWithMessagesDTO } from '@/lib/data/agent';
 import { Input } from '@/components/ui/input';
+import { Accordion } from './ui/accordion';
 
 export function SidebarHistory({
   initialAgents,
@@ -37,6 +38,9 @@ export function SidebarHistory({
   const [deleteId, setDeleteId] = useState<string | null>(null);
   const [showDeleteDialog, setShowDeleteDialog] = useState(false);
   const router = useRouter();
+  const { state } = useSidebar();
+
+  const [openHistories, setOpenHistories] = useState<string[]>([]);
 
   const { data: agents, mutate } = useSWR<AgentWithMessagesDTO[]>(
     `/agents`,
@@ -77,32 +81,40 @@ export function SidebarHistory({
     <>
       <SidebarGroup className="p-0">
         <SidebarGroupContent>
-          <SidebarMenu className="px-2">
-            <h2 className="text-sm font-medium mb-2">Recent Threads</h2>
-            <div className="relative mb-4">
-              <Input
-                type="text"
-                placeholder="Search for agents"
-                className="pl-8"
-              />
-              <Search
-                size={16}
-                className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
-              />
-            </div>
-            {agents?.map((agent) =>
-              agent.chat.id === id ? (
+          <SidebarMenu
+            className={cn('px-2', { 'px-0 gap-4': state === 'collapsed' })}
+          >
+            {state === 'expanded' && (
+              <>
+                <h2 className="text-sm font-medium mb-2">Recent Threads</h2>
+                <div className="relative mb-4">
+                  <Input
+                    type="text"
+                    placeholder="Search for agents"
+                    className="pl-8"
+                  />
+                  <Search
+                    size={16}
+                    className="absolute left-2 top-1/2 -translate-y-1/2 text-muted-foreground"
+                  />
+                </div>
+              </>
+            )}
+            <Accordion
+              type="multiple"
+              value={openHistories}
+              onValueChange={setOpenHistories}
+              className="space-y-2"
+            >
+              {agents?.map((agent) => (
                 <SidebarAgentItem
                   key={agent.id}
                   agent={agent}
+                  isOpen={openHistories.includes(agent.id)}
                   onDelete={onDeleteThread}
                 />
-              ) : (
-                <Link href={`/chat/${agent.chat.id}`} key={agent.id}>
-                  <SidebarAgentItem agent={agent} onDelete={onDeleteThread} />
-                </Link>
-              ),
-            )}
+              ))}
+            </Accordion>
           </SidebarMenu>
         </SidebarGroupContent>
       </SidebarGroup>
