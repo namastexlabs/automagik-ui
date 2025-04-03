@@ -73,7 +73,6 @@ export async function getChats({
       .from(innerQuery)
       .orderBy(desc(innerQuery.message.createdAt));
   } catch (error) {
-    console.log(error);
     console.error('Failed to get chats by user from database');
     throw error;
   }

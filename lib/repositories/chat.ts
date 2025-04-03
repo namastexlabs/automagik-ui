@@ -49,8 +49,8 @@ export async function getAgentChats(
   const agent = await getAgent(agentId, userId);
   const chats = (await getChats({ userId, agentId: agent.id })).map(
     ({ message, chat }) => ({
-      ...chat,
-      latestMessage: message,
+      ...(chat as Chat),
+      latestMessage: message as Message,
     }),
   );
 

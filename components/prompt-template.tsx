@@ -1,5 +1,5 @@
 import { useDeferredValue, useEffect, useState } from 'react';
-import { Ellipsis } from 'lucide-react';
+import { Ellipsis, PencilIcon } from 'lucide-react';
 
 import { Textarea } from '@/components/ui/textarea';
 import { Badge } from '@/components/ui/badge';
@@ -24,27 +24,25 @@ export function PromptTemplate({
   name,
   placeholder,
   agent,
-  formId,
-  openDialog,
-  setOpenDialog,
   template,
   onChange,
+  dynamicBlocksName,
+  initialDynamicBlocks,
 }: {
   template: string;
   onChange: (template: string) => void;
   name: string;
+  dynamicBlocksName: string;
   placeholder: string;
   agent?: AgentDTO | null;
-  formId: string;
-  openDialog: boolean;
-  setOpenDialog: (isOpen: boolean) => void;
+  initialDynamicBlocks?: { name: string; visibility: 'private' | 'public' }[];
 }) {
   const [open, setOpen] = useState<number | null>(null);
-
+  const [openDialog, setOpenDialog] = useState(false);
   const deferredTemplate = useDeferredValue(template);
   const [dynamicBlocks, setDynamicBlocks] = useState<
     { name: string; visibility: 'private' | 'public' }[]
-  >([]);
+  >(initialDynamicBlocks || []);
 
   useEffect(() => {
     setDynamicBlocks((state) =>
@@ -73,6 +71,17 @@ export function PromptTemplate({
       ),
     );
   };
+
+  const badgeInputs = dynamicBlocks.map((block) => {
+    return (
+      <input
+        key={block.name}
+        type="hidden"
+        name={dynamicBlocksName}
+        value={JSON.stringify(block)}
+      />
+    );
+  });
 
   const badges = dynamicBlocks.map((block, index) => {
     const isOpen = open === index;
@@ -106,7 +115,6 @@ export function PromptTemplate({
                 Public
               </Label>
               <Switch
-                form={formId}
                 id={`dynamicBlocks[${index}][visibility]`}
                 checked={block.visibility === 'public'}
                 onCheckedChange={(value) =>
@@ -115,12 +123,6 @@ export function PromptTemplate({
                     value ? 'public' : 'private',
                   )
                 }
-              />
-              <input
-                form={formId}
-                type="hidden"
-                name="dynamicBlocks"
-                value={JSON.stringify(block)}
               />
             </div>
           </PopoverContent>
@@ -146,19 +148,26 @@ export function PromptTemplate({
           </div>
         </DialogContent>
       </Dialog>
-      <Textarea
-        disabled={openDialog}
-        name={name}
-        rows={10}
-        className="bg-muted text-md md:text-sm resize-none"
-        placeholder={placeholder}
-        required
-        value={template}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      <div className="flex gap-2 items-center overflow-x-auto w-[29rem] py-2">
-        {badges}
-      </div>
+      <Button
+        type="button"
+        variant="ghost"
+        className="group flex h-auto p-0 hover:bg-transparent gap-3 items-start justify-between"
+        onClick={() => setOpenDialog(true)}
+      >
+        <Textarea
+          required
+          name={name}
+          value={template}
+          placeholder={placeholder}
+          onChange={(e) => onChange(e.target.value)}
+          rows={5}
+          className="min-h-[80px] resize-none cursor-pointer flex-1 bg-dark-background border border-muted p-3 pb-0 rounded-lg text-left"
+        />
+        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+          <PencilIcon className="size-4" />
+        </div>
+      </Button>
+      {badgeInputs}
     </>
   );
 }

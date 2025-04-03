@@ -1,4 +1,6 @@
 import { EditIcon } from 'lucide-react';
+import Link from 'next/link';
+
 import {
   Tooltip,
   TooltipContent,
@@ -6,15 +8,12 @@ import {
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
 import type { AgentDTO } from '@/lib/data/agent';
-
 import { TrashIcon } from './icons';
 
 export function PrivateAgentActions({
-  openAgentDialog,
   setAgentDelete,
   agent,
 }: {
-  openAgentDialog: (id: string) => void;
   setAgentDelete: (id: string) => void;
   agent: AgentDTO;
 }) {
@@ -26,12 +25,11 @@ export function PrivateAgentActions({
             type="button"
             variant="ghost"
             className="size-[48px] p-1"
-            onClick={(e) => {
-              e.stopPropagation();
-              openAgentDialog(agent.id);
-            }}
+            asChild
           >
-            <EditIcon />
+            <Link href={`/agents/${agent.id}`}>
+              <EditIcon />
+            </Link>
           </Button>
         </TooltipTrigger>
         <TooltipContent>Edit Agent</TooltipContent>
