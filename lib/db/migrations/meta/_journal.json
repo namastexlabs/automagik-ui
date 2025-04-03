@@ -169,6 +169,13 @@
       "when": 1743123310107,
       "tag": "0023_giant_madrox",
       "breakpoints": true
+    },
+    {
+      "idx": 24,
+      "version": "7",
+      "when": 1743446239270,
+      "tag": "0024_certain_titania",
+      "breakpoints": true
     }
   ]
 }

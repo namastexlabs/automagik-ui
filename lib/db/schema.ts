@@ -86,15 +86,16 @@ export const agent = pgTable(
     id: uuid('id').primaryKey().notNull().defaultRandom(),
     name: text('name').notNull(),
     systemPrompt: text('system_prompt').notNull(),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
     visibility: varchar('visibility', { enum: ['public', 'private'] })
       .notNull()
       .default('private'),
-    userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
     avatarUrl: text('avatar_url'),
+    description: text('description').notNull().default(''),
+    heartbeat: boolean('heartbeat').notNull().default(false),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
-    unique('agent_unique_user_name').on(table.name, table.userId),
     uniqueIndex('agent_unique_private_user')
       .on(table.userId, table.name)
       .where(sql`${table.visibility} = 'private'`),
