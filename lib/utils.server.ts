@@ -6,6 +6,7 @@ import type {
   CoreUserMessage,
   Message,
 } from 'ai';
+import type { AnyColumn, GetColumnData, SQL } from 'drizzle-orm';
 
 import type { Message as DBMessage } from '@/lib/db/schema';
 
@@ -247,4 +248,11 @@ export function getDiffRelation<PREVIOUS, CURRENT>(
   );
 
   return [deletedItems, newItems] as const;
+}
+
+export const aliasedColumn = <T extends AnyColumn>(
+  column: T,
+  alias: string,
+): SQL.Aliased<GetColumnData<T>> => {
+  return column.getSQL().mapWith(column.mapFromDriverValue).as(alias)
 }
