@@ -16,6 +16,9 @@ import { toast } from 'sonner';
 import { useLocalStorage } from 'usehooks-ts';
 import { useProgress } from '@bprogress/next';
 
+import type { ChatDTO } from '@/lib/data/chat';
+import { useCurrentAgent } from '@/hooks/use-current-agent';
+import type { AgentWithMessagesDTO } from '@/lib/data/agent';
 import {
   ChatContext,
   ChatInputContext,
@@ -28,8 +31,6 @@ import { getModelData, isImagesAllowed } from '@/lib/ai/models';
 
 import { DataStreamHandler } from './data-stream-handler';
 import { useSidebar } from './ui/sidebar';
-import type { ChatDTO } from '@/lib/data/chat';
-import { useCurrentAgent } from '@/hooks/use-current-agent';
 
 export function ChatProvider({
   chat,
@@ -102,7 +103,7 @@ export function ChatProvider({
     },
   });
 
-  const { mutate } = useSWRConfig();
+  const { mutate, cache } = useSWRConfig();
   const router = useRouter();
   const { agent: currentAgent } = useCurrentAgent();
 
@@ -153,26 +154,18 @@ export function ChatProvider({
           toast.error(errors._errors?.[0] || 'Failed to create chat');
         }
 
-        if (data) {
-          mutate(`/api/history?agentId=${agentId}`, data, {
-            revalidate: false,
-            populateCache: (data, history = []) => {
-              return [data, ...history];
-            },
-          });
-        }
-
         return data;
       }
 
       return chat;
     },
-    [chat, mutate, setProgress, stopProgress],
+    [chat, setProgress, stopProgress],
   );
 
-  const reloadMessage = useCallback(() => {
-    return reload();
-  }, [reload]);
+  const reloadMessage = useCallback(async () => {
+    await reload();
+    mutate(`/api/history?agentId=${currentAgent?.id}`);
+  }, [reload, currentAgent?.id, mutate]);
 
   // Really weird error when a stream overflows or something like that
   const isStreamInputError =
@@ -232,6 +225,17 @@ export function ChatProvider({
           experimental_attachments: newAttachments,
         });
 
+        const recentAgents = cache.get('/api/agents/recent');
+        const hasAgent = !!recentAgents?.data?.some(
+          (agent: AgentWithMessagesDTO) => agent.id === agentId,
+        );
+
+        if (!hasAgent) {
+          mutate('/api/agents/recent');
+        }
+
+        mutate(`/api/history?agentId=${agentId}`);
+
         if (shouldSubmit) {
           router.replace(`/chat/${data.id}`);
         }
@@ -243,10 +247,12 @@ export function ChatProvider({
     [
       getOrCreateChat,
       setInput,
+      mutate,
       setAttachments,
       shouldRemoveLastMessage,
       append,
       chat,
+      cache,
       shouldSubmit,
       openAgentListDialog,
       setMessages,
@@ -269,13 +275,7 @@ export function ChatProvider({
       isAutoSubmitting.current = true;
       onSubmit(input, attachments, currentAgent.id);
     }
-  }, [
-    shouldSubmit,
-    onSubmit,
-    input,
-    attachments,
-    currentAgent,
-  ]);
+  }, [shouldSubmit, onSubmit, input, attachments, currentAgent]);
 
   const isLoading = status === 'submitted' || status === 'streaming';
   const chatContextValue = useMemo(() => {

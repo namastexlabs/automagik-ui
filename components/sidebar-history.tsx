@@ -43,7 +43,7 @@ export function SidebarHistory({
   const [openHistories, setOpenHistories] = useState<string[]>([]);
 
   const { data: agents, mutate } = useSWR<AgentWithMessagesDTO[]>(
-    `/agents`,
+    `/api/agents/recent`,
     fetcher,
     {
       fallbackData: initialAgents,

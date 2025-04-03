@@ -1,36 +1,30 @@
 'use client';
 
 import useSWR from 'swr';
-import {
-  isYesterday,
-  isToday,
-  isSameWeek,
-  isSameMonth,
-  subWeeks,
-  subMonths,
-  format,
-} from 'date-fns';
+import { isYesterday, isToday, subWeeks, subMonths, format } from 'date-fns';
+import { Bot } from 'lucide-react';
 import { useParams } from 'next/navigation';
 import Link from 'next/link';
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo } from 'react';
 
-import type { Chat, Message } from '@/lib/db/schema';
+import type { Message } from '@/lib/db/schema';
 import type { AgentWithMessagesDTO } from '@/lib/data/agent';
+import type { ChatWithLatestMessage } from '@/lib/repositories/chat';
 import { cn, fetcher } from '@/lib/utils';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import {
   AccordionContent,
   AccordionItem,
   AccordionTrigger,
-} from './ui/accordion';
-import { useSidebar } from './ui/sidebar';
+} from '@/components/ui/accordion';
+import { useSidebar } from '@/components/ui/sidebar';
 
 type GroupedChats = {
-  today: Chat[];
-  yesterday: Chat[];
-  lastWeek: Chat[];
-  lastMonth: Chat[];
-  older: Chat[];
+  today: ChatWithLatestMessage[];
+  yesterday: ChatWithLatestMessage[];
+  lastWeek: ChatWithLatestMessage[];
+  lastMonth: ChatWithLatestMessage[];
+  older: ChatWithLatestMessage[];
 };
 
 type AgentItemProps = {
@@ -39,102 +33,101 @@ type AgentItemProps = {
   onDelete: (chatId: string) => void;
 };
 
-const colors = [
-  'bg-red-500',
-  'bg-blue-500',
-  'bg-green-500',
-  'bg-yellow-500',
-  'bg-purple-500',
-  'bg-pink-500',
-];
-
-function getRandomColor() {
-  return colors[Math.floor(Math.random() * colors.length)];
+enum GroupLabel {
+  Today = 'Today',
+  Yesterday = 'Yesterday',
+  LastWeek = 'Last week',
+  LastMonth = 'Last month',
+  Older = 'Older',
 }
 
 const getMessageDateLabel = (message: Message) => {
   const now = new Date();
   const messageDate = new Date(message.createdAt);
+  const oneWeekAgo = subWeeks(now, 1);
+  const oneMonthAgo = subMonths(now, 1);
 
   if (isToday(messageDate)) {
-    return 'Today';
+    return GroupLabel.Today;
   } else if (isYesterday(messageDate)) {
-    return 'Yesterday';
-  } else if (isSameWeek(messageDate, now)) {
-    return 'Last week';
-  } else if (isSameMonth(messageDate, now)) {
-    return 'Last month';
+    return GroupLabel.Yesterday;
+  } else if (messageDate > oneWeekAgo) {
+    return GroupLabel.LastWeek;
+  } else if (messageDate > oneMonthAgo) {
+    return GroupLabel.LastMonth;
   } else {
-    return 'Older';
+    return GroupLabel.Older;
   }
 };
 
 export function SidebarAgentItem({ agent, isOpen }: AgentItemProps) {
   const { setOpenMobile, state } = useSidebar();
-  const { id } = useParams();
-  const [randomColor, setRandomColor] = useState<string>();
+  const { id } = useParams<{ id?: string }>();
 
-  // Only fetch when expanded and open
   const {
     data: history,
     isLoading,
     mutate,
-  } = useSWR<Array<Chat>>(
+  } = useSWR<Array<ChatWithLatestMessage>>(
     `/api/history?agentId=${agent.id}`,
-    isOpen ? fetcher : null,
+    fetcher,
     {
       revalidateOnFocus: false,
       revalidateIfStale: false,
+      revalidateOnMount: false,
     },
   );
 
   useEffect(() => {
-    if (isOpen) {
+    if (history === undefined && isOpen) {
       mutate();
     }
-  }, [isOpen, mutate]);
+  }, [isOpen, mutate, history]);
 
-  useEffect(() => {
-    setRandomColor(getRandomColor());
-  }, []);
-
-  const groupChatsByDate = (chats: Chat[]): GroupedChats => {
-    const now = new Date();
-    const oneWeekAgo = subWeeks(now, 1);
-    const oneMonthAgo = subMonths(now, 1);
-
-    return chats.reduce(
-      (groups, chat) => {
-        const chatDate = new Date(chat.createdAt);
-
-        if (isToday(chatDate)) {
-          groups.today.push(chat);
-        } else if (isYesterday(chatDate)) {
-          groups.yesterday.push(chat);
-        } else if (chatDate > oneWeekAgo) {
-          groups.lastWeek.push(chat);
-        } else if (chatDate > oneMonthAgo) {
-          groups.lastMonth.push(chat);
-        } else {
-          groups.older.push(chat);
-        }
-
-        return groups;
-      },
-      {
-        today: [],
-        yesterday: [],
-        lastWeek: [],
-        lastMonth: [],
-        older: [],
-      } as GroupedChats,
-    );
-  };
-
+  const currentChat = history ? history[0] : agent.chat;
+  const recentMessage = history ? history[0]?.latestMessage : agent.recentMessage;
   const groupedChats = useMemo(() => {
-    if (!history) return null;
-    return groupChatsByDate(history);
+    if (!history) {
+      return null;
+    }
+    const groupChatsByDate = (chats: ChatWithLatestMessage[]): GroupedChats => {
+      const now = new Date();
+      const oneWeekAgo = subWeeks(now, 1);
+      const oneMonthAgo = subMonths(now, 1);
+
+      return chats.reduce(
+        (groups, chat) => {
+          const chatDate = new Date(chat.latestMessage.createdAt);
+
+          if (isToday(chatDate)) {
+            groups.today.push(chat);
+          } else if (isYesterday(chatDate)) {
+            groups.yesterday.push(chat);
+          } else if (chatDate > oneWeekAgo) {
+            groups.lastWeek.push(chat);
+          } else if (chatDate > oneMonthAgo) {
+            groups.lastMonth.push(chat);
+          } else {
+            groups.older.push(chat);
+          }
+
+          return groups;
+        },
+        {
+          today: [],
+          yesterday: [],
+          lastWeek: [],
+          lastMonth: [],
+          older: [],
+        } as GroupedChats,
+      );
+    };
+    return groupChatsByDate(history.slice(1));
   }, [history]);
+
+  if (!currentChat) {
+    return null;
+  }
 
   return (
     <AccordionItem
@@ -146,15 +139,15 @@ export function SidebarAgentItem({ agent, isOpen }: AgentItemProps) {
     >
       <div
         className={cn(
-          'flex items-center gap-2 p-2 rounded-md hover:bg-dark-gray transition-colors w-full',
+          `group/agent-card flex items-center rounded-md hover:bg-dark-gray transition-colors w-full`,
           {
-            'bg-dark-gray': id === agent.chat.id,
+            'bg-dark-gray': id === currentChat.id,
             '!bg-transparent p-0 justify-center': state === 'collapsed',
           },
         )}
       >
-        <Link href={`/chat/${agent.chat.id}`}>
-          <div className="rounded-full shrink-0">
+        <Link href={`/chat/${currentChat.id}`}>
+          <div className="rounded-full shrink-0 px-2">
             <Avatar className="size-9 text-md font-bold">
               <AvatarImage
                 src={agent.avatarUrl || undefined}
@@ -168,24 +161,24 @@ export function SidebarAgentItem({ agent, isOpen }: AgentItemProps) {
           </div>
         </Link>
         {state === 'expanded' && (
-          <div className="flex flex-col flex-1 min-w-0 gap-1">
-            <Link href={`/chat/${agent.chat.id}`}>
-              <div className="flex justify-between items-center">
+          <div className="flex flex-col flex-1 min-w-0">
+            <Link href={`/chat/${currentChat.id}`}>
+              <div className="flex justify-between items-center pb-1 pr-2 pt-2">
                 <p className="text-foreground font-bold text-sm max-w-40 truncate">
                   {agent.name}
                 </p>
                 <span className="text-[0.7rem] text-muted-foreground">
-                  {getMessageDateLabel(agent.recentMessage)}
+                  {getMessageDateLabel(recentMessage)}
                 </span>
               </div>
             </Link>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground truncate w-4/5">
-                <Link href={`/chat/${agent.chat.id}`}>
-                  {agent.recentMessage.content.content}
+              <p className="text-xs text-muted-foreground group-hover/agent-card:text-white truncate w-4/5">
+                <Link href={`/chat/${currentChat.id}`}>
+                  {recentMessage.content.content}
                 </Link>
               </p>
-              <AccordionTrigger className="p-0" />
+              <AccordionTrigger className="p-0 pr-2 pb-2" />
             </div>
           </div>
         )}
@@ -193,7 +186,7 @@ export function SidebarAgentItem({ agent, isOpen }: AgentItemProps) {
 
       {state === 'expanded' && (
         <AccordionContent className="space-y-2 p-0">
-          <div className="flex flex-col gap-3">
+          <div className="flex flex-col gap-1">
             {isLoading ? (
               <div className="space-y-2 py-2">
                 {[1, 2, 3].map((i) => (
@@ -208,95 +201,41 @@ export function SidebarAgentItem({ agent, isOpen }: AgentItemProps) {
               </div>
             ) : groupedChats ? (
               <>
-                {groupedChats.today.length > 0 && (
-                  <div>
-                    <div className="px-2 py-1 text-xs text-muted-foreground text-right">
-                      Today
-                    </div>
-                    <div className="flex flex-col gap-1 pl-12 pr-4">
-                      {groupedChats.today.map((chat) => (
-                        <HistoryItem
-                          key={chat.id}
-                          chat={chat}
-                          isActive={chat.id === id}
-                          onClose={() => setOpenMobile(false)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {groupedChats.yesterday.length > 0 && (
-                  <div>
-                    <div className="px-2 py-1 text-xs text-muted-foreground text-right">
-                      Yesterday
-                    </div>
-                    <div className="flex flex-col gap-1 pl-12 pr-4">
-                      {groupedChats.yesterday.map((chat) => (
-                        <HistoryItem
-                          key={chat.id}
-                          chat={chat}
-                          isActive={chat.id === id}
-                          onClose={() => setOpenMobile(false)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {groupedChats.lastWeek.length > 0 && (
-                  <div>
-                    <div className="px-2 py-1 text-xs text-muted-foreground text-right">
-                      Last 7 days
-                    </div>
-                    <div className="flex flex-col gap-1 pl-12 pr-4">
-                      {groupedChats.lastWeek.map((chat) => (
-                        <HistoryItem
-                          key={chat.id}
-                          chat={chat}
-                          isActive={chat.id === id}
-                          onClose={() => setOpenMobile(false)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {groupedChats.lastMonth.length > 0 && (
-                  <div>
-                    <div className="px-2 py-1 text-xs text-muted-foreground text-right">
-                      Last 30 days
-                    </div>
-                    <div className="flex flex-col gap-1 pl-12 pr-4">
-                      {groupedChats.lastMonth.map((chat) => (
-                        <HistoryItem
-                          key={chat.id}
-                          chat={chat}
-                          isActive={chat.id === id}
-                          onClose={() => setOpenMobile(false)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
-
-                {groupedChats.older.length > 0 && (
-                  <div>
-                    <div className="px-2 py-1 text-xs text-muted-foreground text-right">
-                      Older
-                    </div>
-                    <div className="flex flex-col gap-1 pl-12 pr-4">
-                      {groupedChats.older.map((chat) => (
-                        <HistoryItem
-                          key={chat.id}
-                          chat={chat}
-                          isActive={chat.id === id}
-                          onClose={() => setOpenMobile(false)}
-                        />
-                      ))}
-                    </div>
-                  </div>
-                )}
+                <GroupedChats
+                  currentChatId={id}
+                  lastMessage={recentMessage}
+                  chats={groupedChats.today}
+                  label={GroupLabel.Today}
+                  onClose={() => setOpenMobile(false)}
+                />
+                <GroupedChats
+                  currentChatId={id}
+                  lastMessage={recentMessage}
+                  chats={groupedChats.yesterday}
+                  label={GroupLabel.Yesterday}
+                  onClose={() => setOpenMobile(false)}
+                />
+                <GroupedChats
+                  currentChatId={id}
+                  lastMessage={recentMessage}
+                  chats={groupedChats.lastWeek}
+                  label={GroupLabel.LastWeek}
+                  onClose={() => setOpenMobile(false)}
+                />
+                <GroupedChats
+                  currentChatId={id}
+                  lastMessage={recentMessage}
+                  chats={groupedChats.lastMonth}
+                  label={GroupLabel.LastMonth}
+                  onClose={() => setOpenMobile(false)}
+                />
+                <GroupedChats
+                  currentChatId={id}
+                  lastMessage={recentMessage}
+                  chats={groupedChats.older}
+                  label={GroupLabel.Older}
+                  onClose={() => setOpenMobile(false)}
+                />
               </>
             ) : null}
           </div>
@@ -306,30 +245,52 @@ export function SidebarAgentItem({ agent, isOpen }: AgentItemProps) {
   );
 }
 
-function HistoryItem({
-  chat,
-  isActive,
+function GroupedChats({
+  currentChatId,
+  lastMessage,
+  chats,
+  label,
   onClose,
 }: {
-  chat: Chat;
-  isActive: boolean;
+  currentChatId?: string;
+  lastMessage: Message;
+  chats: ChatWithLatestMessage[];
+  label: GroupLabel;
   onClose: () => void;
 }) {
+  if (chats.length === 0) {
+    return null;
+  }
+
+  const hasLastChatLabel = getMessageDateLabel(lastMessage) === label;
+
   return (
-    <Link
-      href={`/chat/${chat.id}`}
-      className={cn(
-        'flex items-center gap-2 rounded-md text-muted-foreground hover:text-white transition-colors',
-        {
-          'text-white': isActive,
-        },
+    <div>
+      {!hasLastChatLabel && (
+        <div className="px-2 pt-1 text-[0.7rem] text-muted-foreground text-right">
+          {label}
+        </div>
       )}
-      onClick={onClose}
-    >
-      <span className="truncate text-[0.8rem] flex-1">{chat.title}</span>
-      <span className="text-[0.7rem] shrink-0">
-        {format(new Date(chat.createdAt), 'MMM d')}
-      </span>
-    </Link>
+      <div className="flex flex-col gap-1 pr-2">
+        {chats.map((chat) => (
+          <Link
+            key={chat.id}
+            href={`/chat/${chat.id}`}
+            className={cn(
+              'flex items-center gap-2 pl-[3.25rem] rounded-md text-muted-foreground hover:text-white transition-colors',
+              {
+                'text-white': currentChatId === chat.id,
+              },
+            )}
+            onClick={() => onClose()}
+          >
+            <span className="truncate text-[0.75rem] flex-1">{chat.title}</span>
+            <span className="text-[0.7rem] shrink-0">
+              {format(new Date(chat.latestMessage.createdAt), 'MMM d')}
+            </span>
+          </Link>
+        ))}
+      </div>
+    </div>
   );
 }
