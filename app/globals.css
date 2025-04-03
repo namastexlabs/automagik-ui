@@ -108,9 +108,15 @@
         @apply border-border;
     }
 
+    html {
+      scroll-behavior: smooth;
+      font-size: 18px;
+    }
+
     body {
         @apply bg-background text-foreground;
     }
+
     @font-face {
       font-family: 'Inter';
       src: url('/fonts/Inter-Regular.ttf') format('truetype');
@@ -161,9 +167,10 @@
     }
 }
 
-html {
-  scroll-behavior: smooth;
-  font-size: 18px;
+.temporary-animation {
+  -webkit-animation-iteration-count: 4 !important;
+  animation-iteration-count: 4 !important;
+  animation-fill-mode: forwards !important;
 }
 
 .skeleton {

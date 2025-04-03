@@ -127,9 +127,9 @@ export function FlowFormDialog({
         <DialogTrigger asChild>
           <Button
             variant="ghost"
-            className="py-0.5 px-2 gap-1 ml-auto text-[0.8rem] h-max justify-start"
+            className="py-0.5 px-2 gap-1 ml-auto text-[0.8rem] items-center h-max justify-start hover:bg-transparent"
           >
-            <PlusIcon />
+            <PlusIcon size={18} />
             New Tool
           </Button>
         </DialogTrigger>
@@ -152,12 +152,7 @@ export function FlowFormDialog({
             <input type="hidden" name="visibility" value={visibility} />
             <div className="flex flex-col gap-5 py-3">
               <div className="flex flex-col gap-2">
-                <Label
-                  htmlFor={`${formId}-verboseName`}
-                  className="text-zinc-600 font-normal dark:text-zinc-400"
-                >
-                  Name
-                </Label>
+                <Label htmlFor={`${formId}-verboseName`}>Name</Label>
                 <Input
                   id={`${formId}-verboseName`}
                   name="verboseName"
@@ -170,12 +165,7 @@ export function FlowFormDialog({
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label
-                  htmlFor={`${formId}-description`}
-                  className="text-zinc-600 font-normal dark:text-zinc-400"
-                >
-                  Description
-                </Label>
+                <Label htmlFor={`${formId}-description`}>Description</Label>
                 <Textarea
                   name="description"
                   rows={10}
@@ -190,12 +180,7 @@ export function FlowFormDialog({
                 />
               </div>
               <div className="flex flex-col gap-2">
-                <Label
-                  htmlFor={`${formId}-flow-id`}
-                  className="text-zinc-600 font-normal dark:text-zinc-400"
-                >
-                  Workflow
-                </Label>
+                <Label htmlFor={`${formId}-flow-id`}>Workflow</Label>
                 <FlowsCombobox
                   formId={formId}
                   selected={selectedFlow}

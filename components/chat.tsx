@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect } from 'react';
+import { Suspense, lazy, useEffect } from 'react';
 import type { Message } from 'ai';
 import useSWR from 'swr';
 import type { Vote } from '@/lib/db/schema';
@@ -9,14 +9,16 @@ import { fetcher } from '@/lib/utils';
 import { useBlockSelector } from '@/hooks/use-block';
 
 import type { VisibilityType } from './visibility-selector';
-import { Block } from './block';
 import { MultimodalInput } from './multimodal-input';
 import { Messages } from './messages';
 import { ChatProvider } from './chat-provider';
-import { AgentModals } from './agent-modals';
 import type { ChatDTO } from '@/lib/data/chat';
 import type { AgentDTO } from '@/lib/data/agent';
 import { useCurrentAgent } from '@/hooks/use-current-agent';
+
+const Block = lazy(() =>
+  import('./block').then((mod) => ({ default: mod.Block })),
+);
 
 export function Chat({
   chat,
@@ -62,15 +64,16 @@ export function Chat({
       provider={provider}
       isReadOnly={isReadonly}
     >
-      <div className="flex flex-col min-w-0 h-dvh bg-accent bg-gradient-to-tl from-accent from-40% to-white/15">
+      <div className="flex flex-col min-w-0 h-dvh bg-black-white-gradient">
         <ChatHeader selectedVisibilityType={selectedVisibilityType} />
         <Messages isBlockVisible={isBlockVisible} votes={votes} />
         <form className="flex mx-auto px-4 pb-4 md:pb-6 gap-2 w-full md:max-w-3xl">
           {!isReadonly && <MultimodalInput />}
         </form>
       </div>
-      <Block votes={votes} />
-      <AgentModals />
+      <Suspense fallback={null}>
+        <Block votes={votes} />
+      </Suspense>
     </ChatProvider>
   );
 }
