@@ -159,10 +159,10 @@ export function SidebarAgentItem({ agent, isOpen }: AgentItemProps) {
               <AvatarImage
                 src={agent.avatarUrl || undefined}
                 alt={agent.name}
-                className="object-contain"
+                className="object-cover"
               />
-              <AvatarFallback className={randomColor}>
-                {agent.name.slice(0, 2).toUpperCase()}
+              <AvatarFallback className="bg-transparent">
+                <Bot className="size-7" />
               </AvatarFallback>
             </Avatar>
           </div>

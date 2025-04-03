@@ -4,6 +4,7 @@ import type { Message, ToolInvocation as AIToolInvocation } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
 import { useState } from 'react';
+import { Bot } from 'lucide-react';
 
 import type { InternalToolInvocationPayload } from '@/lib/agents/tool-declarations/client';
 import type { Vote } from '@/lib/db/schema';
@@ -21,6 +22,7 @@ import { ToolInvocation } from './internal-tool-invocation';
 import { Badge } from './ui/badge';
 import { MessageReasoning } from './message-reasoning';
 import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
+
 export function PreviewMessage({
   chatId,
   message,
@@ -87,15 +89,16 @@ export function PreviewMessage({
           )}
         >
           {message.role === 'assistant' && (
-            <div className="size-8 flex items-center rounded-full justify-center shrink-0">
+            <div className="size-12 flex items-center rounded-full justify-center shrink-0">
               <div className="translate-y-px">
-                <Avatar className="size-9 text-md font-bold">
+                <Avatar className="size-12 text-md font-bold">
                   <AvatarImage
+                    className="object-cover"
                     src={agentAvatarUrl || undefined}
                     alt={agentName || ''}
                   />
-                  <AvatarFallback className="bg-white text-black">
-                    {agentName?.slice(0, 2).toUpperCase() || ''}
+                  <AvatarFallback className="bg-transparent">
+                    <Bot className="size-12" />
                   </AvatarFallback>
                 </Avatar>
               </div>
@@ -223,14 +226,15 @@ export const ThinkingMessage = ({
           },
         )}
       >
-        <div className="size-8 flex items-center rounded-full justify-center shrink-0">
-          <Avatar className="size-9 text-md font-bold">
+        <div className="size-12 flex items-center rounded-full justify-center shrink-0">
+          <Avatar className="size-12 text-md font-bold">
             <AvatarImage
+              className="object-cover"
               src={agentAvatarUrl || undefined}
               alt={agentName || ''}
             />
-            <AvatarFallback className="bg-white text-black">
-              {agentName?.slice(0, 2).toUpperCase() || ''}
+            <AvatarFallback className="bg-transparent">
+              <Bot className="size-12" />
             </AvatarFallback>
           </Avatar>
         </div>
