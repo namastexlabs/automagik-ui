@@ -1,17 +1,14 @@
 import 'server-only';
+import { and, desc, eq, getTableColumns } from 'drizzle-orm';
 
-import { eq } from 'drizzle-orm';
-
-import * as schema from '../schema';
-import { db } from './index';
+import { db, schema } from './index';
+import { aliasedColumn } from '@/lib/utils.server';
 
 export async function saveChat({
-  id,
   userId,
   title,
   agentId,
 }: {
-  id: string;
   userId: string;
   title: string;
   agentId: string;
@@ -20,7 +17,6 @@ export async function saveChat({
     const [createdChat] = await db
       .insert(schema.chat)
       .values({
-        id,
         createdAt: new Date(),
         userId,
         title,
@@ -38,19 +34,44 @@ export async function saveChat({
 export async function getChats({
   userId,
   agentId,
+  limit = 10,
 }: {
   userId: string;
-  agentId?: string;
+  agentId: string;
+  limit?: number;
 }) {
   try {
-    return await db.query.chat.findMany({
-      where: (chat, { and, eq }) =>
-        and(
-          eq(chat.userId, userId),
-          agentId ? eq(chat.agentId, agentId) : undefined,
-        ),
-      orderBy: (chat, { desc }) => [desc(chat.createdAt)],
-    });
+    const prefixedChatColumns = Object.fromEntries(
+      Object.entries(getTableColumns(schema.chat)).map(([key, value]) => [
+        key,
+        aliasedColumn(value, `chat_${value.name}`),
+      ]),
+    );
+    const prefixedMessageColumns = Object.fromEntries(
+      Object.entries(getTableColumns(schema.message)).map(([key, value]) => [
+        key,
+        aliasedColumn(value, `message_${value.name}`),
+      ]),
+    );
+
+    const innerQuery = db
+      .selectDistinctOn([schema.chat.id], {
+        chat: prefixedChatColumns,
+        message: prefixedMessageColumns,
+      })
+      .from(schema.chat)
+      .where(
+        and(eq(schema.chat.userId, userId), eq(schema.chat.agentId, agentId)),
+      )
+      .innerJoin(schema.message, eq(schema.chat.id, schema.message.chatId))
+      .orderBy(schema.chat.id, desc(schema.message.createdAt))
+      .limit(limit)
+      .as('inner_query');
+
+    return await db
+      .select()
+      .from(innerQuery)
+      .orderBy(desc(innerQuery.message.createdAt));
   } catch (error) {
     console.error('Failed to get chats by user from database');
     throw error;
@@ -73,6 +94,9 @@ export async function getChatById({ id }: { id: string }) {
   try {
     return await db.query.chat.findFirst({
       where: (chat, { eq }) => eq(chat.id, id),
+      with: {
+        agent: true,
+      },
     });
   } catch (error) {
     console.error('Failed to get chat by id from database');

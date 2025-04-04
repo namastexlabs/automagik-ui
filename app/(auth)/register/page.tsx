@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useActionState, useState, useEffect } from 'react';
 import { toast } from 'sonner';
 import { useProgress } from '@bprogress/next';
+import Image from 'next/image';
 
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
@@ -25,7 +26,7 @@ export default function Page() {
       } = await supabase.auth.getUser();
 
       if (user) {
-        router.replace('/');
+        router.replace('/chat');
       }
     };
 
@@ -39,21 +40,31 @@ export default function Page() {
     async (_, formData) => {
       const supabase = createBrowserClient();
       try {
+        const email = formData.get('email') as string;
         const { error } = await supabase.auth.signUp({
-          email: formData.get('email') as string,
+          email,
           password: formData.get('password') as string,
+          options: {
+            emailRedirectTo: `${window.location.origin}/chat/welcome`,
+          },
         });
 
         if (error) {
           stop();
           return {
             status: DataStatus.InvalidData,
-            errors: { _errors: [error.message] },
+            errors: {
+              _errors: [
+                email.includes('@automagik.ai')
+                  ? error.message
+                  : 'Invalid email',
+              ],
+            },
           };
         }
 
         toast.success('Check your email to confirm your account');
-        router.replace('/');
+        router.replace('/login');
 
         return { status: DataStatus.Success };
       } catch (error) {
@@ -81,26 +92,29 @@ export default function Page() {
   };
 
   return (
-    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-background">
+    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-accent bg-gradient-to-tl from-accent to-light-gray/10">
       <div className="w-full max-w-md overflow-hidden rounded-2xl gap-12 flex flex-col">
-        <div className="flex flex-col items-center justify-center gap-2 px-4 text-center sm:px-16">
-          <h3 className="text-xl font-semibold dark:text-zinc-50">Sign Up</h3>
-          <p className="text-sm text-gray-500 dark:text-zinc-400">
-            Create an account with your email and password
-          </p>
-        </div>
+        <Image
+          src="/images/automagik-logo-white.svg"
+          alt="Automagik"
+          width={540}
+          height={160}
+          className="z-10 aspect-[12/3] object-cover mb-10"
+        />
         <AuthForm action={handleSubmit} defaultEmail={email}>
           {errors._errors && (
             <span className="text-sm text-destructive">
               {errors._errors.join(', ')}
             </span>
           )}
-          <SubmitButton>Sign Up</SubmitButton>
-          <p className="text-center text-sm text-gray-600 mt-4 dark:text-zinc-400">
+          <SubmitButton variant="gradient" className="rounded-full">
+            Sign Up
+          </SubmitButton>
+          <p className="text-center text-sm mt-4">
             {'Already have an account? '}
             <Link
               href="/login"
-              className="font-semibold text-gray-800 hover:underline dark:text-zinc-200"
+              className="font-semibold text-accent-cyan hover:underline"
             >
               Sign in
             </Link>

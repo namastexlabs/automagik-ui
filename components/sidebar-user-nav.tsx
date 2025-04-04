@@ -1,6 +1,5 @@
 'use client';
-import { ChevronUp } from 'lucide-react';
-import Image from 'next/image';
+import { ChevronUp, UserRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 
@@ -16,15 +15,18 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  useSidebar,
 } from '@/components/ui/sidebar';
 import { useUser } from '@/contexts/user';
 import { useResolvedTheme } from '@/hooks/use-resolved-theme';
+import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function SidebarUserNav() {
   const { setTheme } = useTheme();
   const colorMode = useResolvedTheme();
   const router = useRouter();
   const { user } = useUser();
+  const { state } = useSidebar();
 
   const handleSignOut = async () => {
     try {
@@ -46,16 +48,19 @@ export function SidebarUserNav() {
       <SidebarMenuItem>
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent bg-background data-[state=open]:text-sidebar-accent-foreground h-10">
-              <Image
-                src={`https://avatar.vercel.sh/${user.email}`}
-                alt={user.email ?? 'User Avatar'}
-                width={24}
-                height={24}
-                className="rounded-full"
-              />
-              <span className="truncate">{user?.email}</span>
-              <ChevronUp className="ml-auto" />
+            <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent rounded-full bg-accent border border-dark-gray data-[state=open]:text-sidebar-accent-foreground h-12">
+              <Avatar className="size-8 font-bold">
+                <AvatarImage src="" alt="User Avatar" />
+                <AvatarFallback>
+                  <UserRound />
+                </AvatarFallback>
+              </Avatar>
+              {state === 'expanded' && (
+                <>
+                  <span className="truncate">{user?.email}</span>
+                  <ChevronUp className="ml-auto" />
+                </>
+              )}
             </SidebarMenuButton>
           </DropdownMenuTrigger>
           <DropdownMenuContent

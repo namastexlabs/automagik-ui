@@ -8,8 +8,10 @@ import { useResolvedTheme } from '@/hooks/use-resolved-theme';
 
 export function NotFoundHandler({
   children,
+  href = '/',
 }: {
   children: React.ReactNode;
+  href? : string;
 }) {
   const colorMode = useResolvedTheme();
 
@@ -40,7 +42,7 @@ export function NotFoundHandler({
           <div className="max-w-xs mx-auto gap-4 flex mt-8 flex-col items-center">
             <p className="text-xl font-bold">{children}</p>
             <Link
-              href="/"
+              href={href}
               className="w-full text-xl p-2 rounded-lg border border-primary"
             >
               Return Home

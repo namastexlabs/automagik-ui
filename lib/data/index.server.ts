@@ -64,10 +64,7 @@ export function handleApplicationError<
     return {
       status: error.status,
       data: null,
-      errors: {
-        _errors: [error.message],
-        ...error.errors,
-      },
+      errors: error.errors,
     };
   }
 

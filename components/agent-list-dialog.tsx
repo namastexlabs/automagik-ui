@@ -1,8 +1,9 @@
-import React, { useMemo, useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { CopyPlus, PlusIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useSWRConfig } from 'swr';
+import useSWR from 'swr';
 
 import { deleteAgentAction, duplicateAgentAction } from '@/app/(chat)/actions';
 import {
@@ -11,7 +12,6 @@ import {
   TooltipContent,
 } from '@/components/ui/tooltip';
 import { Button } from '@/components/ui/button';
-import { Checkbox } from '@/components/ui/checkbox';
 import {
   Dialog,
   DialogContent,
@@ -31,69 +31,49 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
-import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
+import { useSidebar } from '@/components/ui/sidebar';
 import { useUser } from '@/contexts/user';
 import type { AgentDTO } from '@/lib/data/agent';
 
 import { PrivateAgentActions } from './private-agent-actions';
+import { fetcher } from '@/lib/utils';
 
-export function AgentListDialog({
-  agents,
-  openAgentDialog,
-  isAgentDialogOpen,
-  isOpenAgentListDialog,
-  openAgentListDialog,
-}: {
-  agents: AgentDTO[];
-  isAgentDialogOpen: boolean;
-  openAgentDialog: (agentId?: string) => void;
-  openAgentListDialog: (isOpen: boolean) => void;
-  isOpenAgentListDialog: boolean;
-}) {
+export function AgentListDialog() {
+  const { user } = useUser();
+  const { openAgentListDialog, isAgentListDialogOpen } = useSidebar();
+  const router = useRouter();
+
+  const {
+    data: agents = [],
+    mutate,
+    isLoading,
+  } = useSWR<AgentDTO[]>('/api/agents', fetcher);
+
   const [isDuplicatingAgent, setIsDuplicatingAgent] = useState(false);
   const [agentDelete, setAgentDelete] = useState<string | null>(null);
   const [isDeletingAgent, setIsDeletingAgent] = useState(false);
-  const router = useRouter();
-  const { mutate } = useSWRConfig();
-  const { tabs, removeTab, toggleTab } = useAgentTabs();
-  const { currentTab, setTab } = useCurrentAgentTab();
-  const { user } = useUser();
 
-  const sortedAgents = useMemo(
-    () =>
-      agents.toSorted((a, b) => {
-        const tabIndexA = tabs.indexOf(a.id);
-        const tabIndexB = tabs.indexOf(b.id);
+  const onRemoveAgent = useCallback(
+    (agentId: string) => {
+      mutate((agents = []) => {
+        const newAgents = agents.filter((agent) => agent.id !== agentId);
 
-        if (tabIndexA === -1 && tabIndexB === -1) {
-          if (a.userId !== user.id) {
-            return 1;
-          }
-          if (b.userId !== user.id) {
-            return -1;
-          }
+        if (newAgents.length === 0) {
+          router.push('/chat');
+          openAgentListDialog(false);
         }
 
-        if (tabIndexA === -1) {
-          return 1;
-        }
+        return newAgents;
+      });
+    },
+    [mutate, openAgentListDialog, router],
+  );
 
-        if (tabIndexB === -1) {
-          return -1;
-        }
-
-        if (a.userId !== user.id) {
-          return 1;
-        }
-
-        if (b.userId !== user.id) {
-          return -1;
-        }
-
-        return tabIndexA - tabIndexB;
-      }),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [agents, isOpenAgentListDialog],
+  const onSaveAgent = useCallback(
+    (agent: AgentDTO) => {
+      mutate((agents = []) => [...agents, agent]);
+    },
+    [mutate],
   );
 
   const handleDelete = async (agentId: string) => {
@@ -115,28 +95,8 @@ export function AgentListDialog({
 
             return;
           }
-          const currentIndex = tabs.indexOf(agentId);
-          removeTab(agentId);
-          if (agentId === currentTab) {
-            router.push('/');
 
-            if (tabs.length > 1) {
-              setTab(tabs[currentIndex === 0 ? 1 : currentIndex - 1]);
-            }
-          }
-
-          removeTab(agentId);
-          mutate('/api/agents', (agents: AgentDTO[] = []) => {
-            const newAgents = agents.filter((agent) => agent.id !== agentId);
-
-            if (newAgents.length === 0) {
-              router.push('/');
-              openAgentListDialog(false);
-            }
-
-            return newAgents;
-          });
-
+          onRemoveAgent(agentId);
           setAgentDelete(null);
           return 'Agent deleted successfully';
         },
@@ -159,16 +119,12 @@ export function AgentListDialog({
           const { data, errors } = response;
 
           if (errors) {
-            console.log(errors);
             toast.error(errors?._errors?.[0] || 'Failed to duplicate agent');
             return;
           }
 
           if (data) {
-            mutate('/api/agents', (agents: AgentDTO[] = []) => [
-              ...agents,
-              data,
-            ]);
+            onSaveAgent(data);
           }
 
           return 'Agent duplicated successfully';
@@ -180,31 +136,8 @@ export function AgentListDialog({
     );
   };
 
-  const handleCheckboxChange = (agentId: string, isChecked: boolean) => {
-    if (isChecked && (!currentTab || !tabs.includes(currentTab))) {
-      setTab(agentId);
-    }
-
-    toggleTab(agentId);
-  };
-
   return (
-    <Dialog
-      modal={!isAgentDialogOpen}
-      open={isOpenAgentListDialog}
-      onOpenChange={(open) => {
-        if (!open && isAgentDialogOpen) {
-          return;
-        }
-
-        if (!open && currentTab && !tabs.includes(currentTab)) {
-          router.push('/');
-          setTab(tabs[0] || null);
-        }
-
-        openAgentListDialog(open);
-      }}
-    >
+    <Dialog open={isAgentListDialogOpen} onOpenChange={openAgentListDialog}>
       <DialogContent className="w-[600px]">
         <DialogHeader>
           <DialogTitle>Agents</DialogTitle>
@@ -212,64 +145,76 @@ export function AgentListDialog({
             Select agents to chat with or create a new one
           </DialogDescription>
         </DialogHeader>
-        <div className="flex flex-col gap-[12px] pt-[12px] max-h-[40vh] overflow-y-auto">
-          {sortedAgents.map((agent) => (
-            // biome-ignore lint/a11y/useKeyWithClickEvents: This is already interactive with the checkbox
-            // biome-ignore lint/nursery/noStaticElementInteractions: This is already interactive with the checkbox
-            <div
-              key={`${agent.id} ${tabs.includes(agent.id)}`}
-              onClick={() =>
-                tabs.includes(agent.id)
-                  ? handleCheckboxChange(agent.id, false)
-                  : handleCheckboxChange(agent.id, true)
-              }
-              className="flex justify-between items-center px-2 py-1 rounded-md border hover:border-zinc-300 cursor-pointer"
-            >
-              <div className="flex items-center space-x-3">
-                <Checkbox
-                  checked={tabs.includes(agent.id)}
-                  className="size-6"
-                />
-                <Label className="w-[280px] truncate cursor-pointer">
-                  {agent.name}
-                </Label>
+        {isLoading && <div>Loading...</div>}
+        {!isLoading && (
+          <div className="flex flex-col gap-[12px] pt-[12px] max-h-[40vh] overflow-y-auto">
+            {agents.map((agent) => (
+              // biome-ignore lint/nursery/noStaticElementInteractions: <explanation>
+              // biome-ignore lint/a11y/useKeyWithClickEvents: <explanation>
+              <div
+                key={`${agent.id}`}
+                tabIndex={-1}
+                onClick={() => {
+                  openAgentListDialog(false);
+                  router.push(`/chat?agent=${agent.id}`);
+                }}
+                className="relative flex justify-between items-center px-2 py-1 rounded-md border hover:border-zinc-300 cursor-pointer"
+              >
+                <Button
+                  key={`${agent.id}`}
+                  variant="ghost"
+                  onClick={() => {
+                    openAgentListDialog(false);
+                    router.push(`/?agent=${agent.id}`);
+                  }}
+                  className="hover:bg-transparent"
+                >
+                  <div className="flex items-center space-x-3">
+                    <Label className="w-[280px] truncate cursor-pointer">
+                      {agent.name}
+                    </Label>
+                  </div>
+                </Button>
+                <div className="absolute top-0 right-0">
+                  {agent.userId === user.id ? (
+                    <PrivateAgentActions
+                      setAgentDelete={setAgentDelete}
+                      agent={agent}
+                    />
+                  ) : (
+                    <Tooltip>
+                      <TooltipTrigger asChild>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          className="size-[48px] p-1"
+                          disabled={isDuplicatingAgent}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDuplicate(agent.id);
+                          }}
+                        >
+                          <CopyPlus />
+                        </Button>
+                      </TooltipTrigger>
+                      <TooltipContent>Duplicate Agent</TooltipContent>
+                    </Tooltip>
+                  )}
+                </div>
               </div>
-              {agent.userId === user.id ? (
-                <PrivateAgentActions
-                  openAgentDialog={openAgentDialog}
-                  setAgentDelete={setAgentDelete}
-                  agent={agent}
-                />
-              ) : (
-                <Tooltip>
-                  <TooltipTrigger asChild>
-                    <Button
-                      type="button"
-                      variant="ghost"
-                      className="size-[48px] p-1"
-                      disabled={isDuplicatingAgent}
-                      onClick={(e) => {
-                        e.stopPropagation();
-                        handleDuplicate(agent.id);
-                      }}
-                    >
-                      <CopyPlus />
-                    </Button>
-                  </TooltipTrigger>
-                  <TooltipContent>Duplicate Agent</TooltipContent>
-                </Tooltip>
-              )}
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        )}
         <Button
           variant="outline"
           type="button"
-          onClick={() => openAgentDialog()}
           className="flex items-center justify-center w-full mt-1 space-x-2"
+          asChild
         >
-          New Agent
-          <PlusIcon />
+          <Link href="/agents/new">
+            New Agent
+            <PlusIcon />
+          </Link>
         </Button>
         <DialogFooter>
           <DialogClose asChild>

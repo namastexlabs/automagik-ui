@@ -1,8 +1,8 @@
 import 'server-only';
-import { and, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, inArray } from 'drizzle-orm';
 
-import * as schema from '../schema';
-import { db } from './index';
+import { db, schema } from './index';
+import { aliasedColumn } from '@/lib/utils.server';
 
 const AGENT_RELATION_QUERY = {
   dynamicBlocks: {
@@ -47,6 +47,67 @@ export async function getAvailableAgents({ userId }: { userId: string }) {
 
 export type AgentData = Awaited<ReturnType<typeof getAvailableAgents>>[number];
 
+export async function getLatestAgentMessages(
+  userId: string,
+  limit?: number,
+  offset?: number,
+) {
+  try {
+    const prefixedAgentColumns = Object.fromEntries(
+      Object.entries(getTableColumns(schema.agent)).map(([key, value]) => [
+        key,
+        aliasedColumn(value, `agent_${value.name}`),
+      ]),
+    );
+    const prefixedChatColumns = Object.fromEntries(
+      Object.entries(getTableColumns(schema.chat)).map(([key, value]) => [
+        key,
+        aliasedColumn(value, `chat_${value.name}`),
+      ]),
+    );
+    const prefixedMessageColumns = Object.fromEntries(
+      Object.entries(getTableColumns(schema.message)).map(([key, value]) => [
+        key,
+        aliasedColumn(value, `message_${value.name}`),
+      ]),
+    );
+
+    const innerQuery = db
+      .selectDistinctOn([schema.agent.id], {
+        agent: prefixedAgentColumns,
+        chat: prefixedChatColumns,
+        message: prefixedMessageColumns,
+      })
+      .from(schema.agent)
+      .innerJoin(
+        schema.chat,
+        and(
+          eq(schema.agent.id, schema.chat.agentId),
+          eq(schema.chat.userId, userId),
+        ),
+      )
+      .innerJoin(schema.message, eq(schema.chat.id, schema.message.chatId))
+      .orderBy(schema.agent.id, desc(schema.message.createdAt));
+
+    if (limit) {
+      innerQuery.limit(limit);
+    }
+
+    if (offset) {
+      innerQuery.offset(offset);
+    }
+
+    const innerQueryAlias = innerQuery.as('inner_query');
+    return await db
+      .select()
+      .from(innerQueryAlias)
+      .orderBy(desc(innerQueryAlias.message.createdAt));
+  } catch (error) {
+    console.error('Failed to get latest agent messages in database');
+    throw error;
+  }
+}
+
 export async function getAgentById({
   id,
 }: { id: string }): Promise<AgentData | undefined> {
@@ -61,35 +122,14 @@ export async function getAgentById({
   }
 }
 
-export async function getAgentByNameAndUserId({
-  name,
-  userId,
-  visibility,
-}: {
-  name: string;
-  userId: string;
-  visibility: 'private' | 'public';
-}) {
-  try {
-    return await db.query.agent.findFirst({
-      where: (agent, { and, eq }) =>
-        and(
-          eq(agent.name, name),
-          eq(agent.userId, userId),
-          eq(agent.visibility, visibility),
-        ),
-    });
-  } catch (error) {
-    console.error('Failed to get agent in database');
-    throw error;
-  }
-}
-
 export async function createAgent(data: {
   name: string;
   systemPrompt: string;
   userId: string | null;
   visibility?: 'private' | 'public';
+  avatarUrl?: string | null;
+  description: string;
+  heartbeat: boolean;
 }) {
   try {
     const [createdAgent] = await db
@@ -111,6 +151,7 @@ export async function updateAgent({
   id: string;
   name?: string;
   systemPrompt?: string;
+  avatarUrl?: string | null;
   visibility?: 'private' | 'public';
 }) {
   try {
@@ -212,6 +253,9 @@ export async function createAgentTransaction(data: {
   visibility?: 'private' | 'public';
   tools?: string[];
   dynamicBlocks?: string[];
+  avatarUrl?: string | null;
+  description: string;
+  heartbeat: boolean;
 }) {
   return await db.transaction(async () => {
     const agent = await createAgent({
@@ -219,6 +263,9 @@ export async function createAgentTransaction(data: {
       systemPrompt: data.systemPrompt,
       userId: data.userId,
       visibility: data.visibility,
+      avatarUrl: data.avatarUrl,
+      description: data.description,
+      heartbeat: data.heartbeat,
     });
 
     if (data.tools && data.tools.length > 0) {
@@ -248,6 +295,9 @@ export async function updateAgentTransaction(data: {
   name?: string;
   systemPrompt?: string;
   visibility?: 'private' | 'public';
+  description?: string;
+  heartbeat?: boolean;
+  avatarUrl?: string | null;
   newTools?: string[];
   newDynamicBlocks?: string[];
   removedTools?: string[];

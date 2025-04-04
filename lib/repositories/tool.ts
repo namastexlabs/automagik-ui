@@ -11,24 +11,24 @@ import {
 import type { Tool } from '@/lib/db/schema';
 import { isUniqueConstraintError } from '@/lib/db/queries';
 import { ConflictError, NotFoundError, UnauthorizedError } from '@/lib/errors';
-import { createChatFlowTool } from '@/lib/agents/tool';
+import { createChatFlowTool, normalizeVerboseName } from '@/lib/agents/tool';
 
 export async function createFlowTool({
   userId,
   flowId,
-  name,
   verboseName,
   description,
   visibility,
 }: {
   userId: string;
   flowId: string;
-  name: string;
   verboseName: string;
   description: string;
   visibility?: 'private' | 'public';
 }): Promise<Tool> {
   try {
+    const name = normalizeVerboseName(verboseName);
+
     const {
       name: toolName,
       verboseName: toolVerboseName,
@@ -61,7 +61,6 @@ export async function updateFlowTool({
   id,
   userId,
   flowId,
-  name,
   verboseName,
   description,
   visibility,
@@ -69,7 +68,6 @@ export async function updateFlowTool({
   id: string;
   userId: string;
   flowId: string;
-  name: string;
   verboseName: string;
   description: string;
   visibility?: 'private' | 'public';
@@ -83,6 +81,7 @@ export async function updateFlowTool({
       throw new UnauthorizedError('Not authorized to update this tool');
     }
 
+    const name = normalizeVerboseName(flowTool.name);
     const {
       name: toolName,
       verboseName: toolVerboseName,

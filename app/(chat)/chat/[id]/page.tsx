@@ -11,7 +11,6 @@ import {
   isModelValid,
 } from '@/lib/ai/models';
 import { MODEL_COOKIE_KEY, PROVIDER_COOKIE_KEY } from '@/lib/ai/cookies';
-import { getInitialAgents } from '@/lib/data/agent';
 import { getChat } from '@/lib/data/chat';
 import { DataStatus } from '@/lib/data';
 import { getChatMessages } from '@/lib/data/message';
@@ -32,12 +31,10 @@ export default async function Page({
     notFound();
   }
 
-  const agentsData = await getInitialAgents();
   const messagesData = await getChatMessages(id);
 
   const error = [
     ...(chatData.errors?._errors ?? []),
-    ...(agentsData.errors?._errors ?? []),
     ...(messagesData.errors?._errors ?? []),
   ];
 
@@ -46,14 +43,12 @@ export default async function Page({
   }
 
   const chat = chatData.data;
-  const agents = agentsData.data;
   const messages = messagesData.data;
 
   const isChatOwner = session.user.id === chat.userId;
-  const currentAgent = agents.find((agent) => agent.id === chat.agentId);
   const isAgentReadOnly =
-    currentAgent?.visibility === 'private' &&
-    currentAgent?.userId !== session.user.id;
+    chat.agent?.visibility === 'private' &&
+    chat.agent?.userId !== session.user.id;
 
   const cookieStore = await cookies();
   const providerFromCookie = cookieStore.get(PROVIDER_COOKIE_KEY)
@@ -71,7 +66,6 @@ export default async function Page({
   return (
     <Chat
       chat={chat}
-      initialAgents={agents}
       initialMessages={messages}
       provider={provider}
       modelId={modelId}

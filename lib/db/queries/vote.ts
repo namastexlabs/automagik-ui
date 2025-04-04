@@ -1,8 +1,7 @@
 import 'server-only';
 import { and, eq } from 'drizzle-orm';
 
-import * as schema from '../schema';
-import { db } from './index';
+import { db, schema } from './index';
 
 export async function voteMessage({
   chatId,

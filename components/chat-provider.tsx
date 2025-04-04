@@ -10,26 +10,27 @@ import {
   type PropsWithChildren,
 } from 'react';
 import type { Attachment } from 'ai';
-import useSWR, { useSWRConfig } from 'swr';
+import { useSWRConfig } from 'swr';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { toast } from 'sonner';
 import { useLocalStorage } from 'usehooks-ts';
 import { useProgress } from '@bprogress/next';
 
+import type { ChatDTO } from '@/lib/data/chat';
+import { useCurrentAgent } from '@/hooks/use-current-agent';
+import type { AgentWithMessagesDTO } from '@/lib/data/agent';
 import {
   ChatContext,
   ChatInputContext,
   ChatMessagesContext,
   ChatHandlersContext,
 } from '@/contexts/chat';
-import type { AgentDTO } from '@/lib/data/agent';
-import type { Chat } from '@/lib/db/schema';
 import { createChatAction } from '@/app/(chat)/actions';
 import { generateUUID } from '@/lib/utils';
-import { useAgentTabs, useCurrentAgentTab } from '@/contexts/agent-tabs';
 import { getModelData, isImagesAllowed } from '@/lib/ai/models';
 
 import { DataStreamHandler } from './data-stream-handler';
+import { useSidebar } from './ui/sidebar';
 
 export function ChatProvider({
   chat,
@@ -38,22 +39,15 @@ export function ChatProvider({
   modelId,
   provider,
   isReadOnly,
-  setOpenAgentListDialog,
-  setAgentDialogState,
 }: PropsWithChildren<{
-  chat?: Chat;
+  chat?: ChatDTO;
   initialMessages: Message[];
   modelId: string;
   provider: string;
   isReadOnly: boolean;
-  setOpenAgentListDialog: (isOpen: boolean) => void;
-  setAgentDialogState: (state: {
-    agentId: string | null;
-    isOpen: boolean;
-    isSubmitting: boolean;
-  }) => void;
 }>) {
   const searchParams = useSearchParams();
+  const { openAgentListDialog } = useSidebar();
   const [attachments, setAttachments] = useLocalStorage<Array<Attachment>>(
     'input-attachments',
     [],
@@ -68,9 +62,10 @@ export function ChatProvider({
   const [isExtendedThinking, setIsExtendedThinking] = useState(false);
   const { set: setProgress, stop: stopProgress } = useProgress();
 
-  const { currentTab } = useCurrentAgentTab();
-  const { tabs } = useAgentTabs();
-  const { data: agents = [] } = useSWR<AgentDTO[]>('/api/agents', null);
+  const [temperature, setTemperature] = useState(0.7);
+  const [topP, setTopP] = useState(0.9);
+  const [presencePenalty, setPresencePenalty] = useState(0);
+  const [frequencyPenalty, setFrequencyPenalty] = useState(0);
 
   const getLocalStorageInput = useCallback(() => {
     if (typeof window !== 'undefined') {
@@ -93,16 +88,24 @@ export function ChatProvider({
   } = useChat({
     id: chat?.id,
     initialMessages,
+    generateId: generateUUID,
     initialInput: getLocalStorageInput(),
     sendExtraMessageFields: true,
     experimental_throttle: 100,
     body: {
       isExtendedThinking,
+      modelId: selectedModelId,
+      provider: selectedProvider,
+      temperature,
+      topP,
+      presencePenalty,
+      frequencyPenalty,
     },
   });
 
-  const { mutate } = useSWRConfig();
+  const { mutate, cache } = useSWRConfig();
   const router = useRouter();
+  const { agent: currentAgent } = useCurrentAgent();
 
   const shouldSubmit = !!searchParams.get('submit');
   const _input = isMounted.current ? input : '';
@@ -141,23 +144,14 @@ export function ChatProvider({
   }, [modelId]);
 
   const getOrCreateChat = useCallback(
-    async (messages: Message[], tab: string) => {
+    async (messages: Message[], agentId: string) => {
       if (!chat) {
         setProgress(0.1);
-        const { errors, data } = await createChatAction(tab, messages);
+        const { errors, data } = await createChatAction(agentId, messages);
 
         if (errors) {
           stopProgress();
           toast.error(errors._errors?.[0] || 'Failed to create chat');
-        }
-
-        if (data) {
-          mutate(`/api/history?agentId=${tab}`, data, {
-            revalidate: false,
-            populateCache: (data, history = []) => {
-              return [data, ...history];
-            },
-          });
         }
 
         return data;
@@ -165,18 +159,13 @@ export function ChatProvider({
 
       return chat;
     },
-    [chat, mutate, setProgress, stopProgress],
+    [chat, setProgress, stopProgress],
   );
 
-  const reloadMessage = useCallback(() => {
-    return reload({
-      body: {
-        id: chat?.id,
-        modelId: selectedModelId,
-        provider: selectedProvider,
-      },
-    });
-  }, [reload, chat?.id, selectedModelId, selectedProvider]);
+  const reloadMessage = useCallback(async () => {
+    await reload();
+    mutate(`/api/history?agentId=${currentAgent?.id}`);
+  }, [reload, currentAgent?.id, mutate]);
 
   // Really weird error when a stream overflows or something like that
   const isStreamInputError =
@@ -192,25 +181,14 @@ export function ChatProvider({
     async (
       content: string,
       newAttachments: Array<Attachment>,
-      currentAgent: string | null,
-      currentAgents: AgentDTO[],
-      currentTabs: string[],
+      agentId: string | undefined,
     ) => {
       if (content.trim().length === 0) {
         return;
       }
 
-      if (currentAgents.length === 0) {
-        setAgentDialogState({
-          agentId: null,
-          isOpen: true,
-          isSubmitting: true,
-        });
-        return;
-      }
-
-      if (currentTabs.length === 0 || !currentAgent) {
-        setOpenAgentListDialog(true);
+      if (!agentId) {
+        openAgentListDialog(true);
         return;
       }
 
@@ -224,7 +202,7 @@ export function ChatProvider({
 
       setIsSubmitting(true);
       try {
-        const data = await getOrCreateChat([message], currentAgent);
+        const data = await getOrCreateChat([message], agentId);
         if (!data) {
           setIsSubmitting(false);
           return;
@@ -243,13 +221,20 @@ export function ChatProvider({
         }
 
         await append(message, {
-          body: {
-            id: data.id,
-            modelId: selectedModelId,
-            provider: selectedProvider,
-          },
+          body: { id: data.id },
           experimental_attachments: newAttachments,
         });
+
+        const recentAgents = cache.get('/api/agents/recent');
+        const hasAgent = !!recentAgents?.data?.some(
+          (agent: AgentWithMessagesDTO) => agent.id === agentId,
+        );
+
+        if (!hasAgent) {
+          mutate('/api/agents/recent');
+        }
+
+        mutate(`/api/history?agentId=${agentId}`);
 
         if (shouldSubmit) {
           router.replace(`/chat/${data.id}`);
@@ -262,15 +247,14 @@ export function ChatProvider({
     [
       getOrCreateChat,
       setInput,
+      mutate,
       setAttachments,
       shouldRemoveLastMessage,
       append,
-      selectedModelId,
-      selectedProvider,
       chat,
+      cache,
       shouldSubmit,
-      setAgentDialogState,
-      setOpenAgentListDialog,
+      openAgentListDialog,
       setMessages,
       router,
     ],
@@ -287,11 +271,11 @@ export function ChatProvider({
       return;
     }
 
-    if (shouldSubmit && currentTab && tabs.length > 0) {
+    if (shouldSubmit && currentAgent) {
       isAutoSubmitting.current = true;
-      onSubmit(input, attachments, currentTab, agents, tabs);
+      onSubmit(input, attachments, currentAgent.id);
     }
-  }, [shouldSubmit, onSubmit, input, attachments, currentTab, agents, tabs]);
+  }, [shouldSubmit, onSubmit, input, attachments, currentAgent]);
 
   const isLoading = status === 'submitted' || status === 'streaming';
   const chatContextValue = useMemo(() => {
@@ -328,8 +312,19 @@ export function ChatProvider({
     return {
       input: _input,
       attachments,
+      temperature,
+      topP,
+      presencePenalty,
+      frequencyPenalty,
     };
-  }, [_input, attachments]);
+  }, [
+    _input,
+    attachments,
+    temperature,
+    topP,
+    presencePenalty,
+    frequencyPenalty,
+  ]);
 
   const chatHandlersContextValue = useMemo(() => {
     return {
@@ -338,6 +333,10 @@ export function ChatProvider({
       setInput,
       setAttachments,
       setMessages,
+      setTemperature,
+      setTopP,
+      setPresencePenalty,
+      setFrequencyPenalty,
       stop,
       append,
       toggleExtendedThinking: () => setIsExtendedThinking((state) => !state),

@@ -17,16 +17,30 @@ import {
   getAgentChats,
   getChat as getChatRepository,
 } from '@/lib/repositories/chat';
-import type { Chat } from '@/lib/db/schema';
+import type { Chat, Agent } from '@/lib/db/schema';
 
 import { type DataResponse, handleDataError } from './index.server';
 import { DataStatus } from '.';
 
-export async function getChat(id: string): Promise<DataResponse<Chat>> {
+export type ChatDTO = Chat & {
+  agent: Omit<Agent, 'systemPrompt'>;
+};
+
+const toChatDTO = ({
+  agent: { systemPrompt: _, ...agent },
+  ...chat
+}: Chat & { agent: Agent }): ChatDTO => {
+  return {
+    ...chat,
+    agent,
+  };
+};
+
+export async function getChat(id: string): Promise<DataResponse<ChatDTO>> {
   const session = await getUser();
   try {
     const chat = await getChatRepository(id, session.user.id);
-    return { status: DataStatus.Success, data: chat };
+    return { status: DataStatus.Success, data: toChatDTO(chat) };
   } catch (error) {
     return handleDataError(error);
   }

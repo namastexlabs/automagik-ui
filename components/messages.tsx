@@ -34,6 +34,8 @@ export function Messages({ votes }: MessagesProps) {
             key={message.id}
             chatId={chat?.id}
             message={message}
+            agentName={chat?.agent?.name}
+            agentAvatarUrl={chat?.agent?.avatarUrl}
             isLoading={isLoading && messages.length - 1 === index}
             vote={
               votes
@@ -46,7 +48,12 @@ export function Messages({ votes }: MessagesProps) {
 
         {isLoading &&
           messages.length > 0 &&
-          messages[messages.length - 1].role === 'user' && <ThinkingMessage />}
+          messages[messages.length - 1].role === 'user' && (
+            <ThinkingMessage
+              agentAvatarUrl={chat?.agent?.avatarUrl}
+              agentName={chat?.agent?.name}
+            />
+          )}
 
         {error && (
           <div className="mx-auto max-w-3xl w-full">

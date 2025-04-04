@@ -3,19 +3,16 @@
 import type { Message, ToolInvocation as AIToolInvocation } from 'ai';
 import cx from 'classnames';
 import { AnimatePresence, motion } from 'framer-motion';
-import useSWR from 'swr';
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
+import { Bot } from 'lucide-react';
 
-import {
-  castToolType,
-  type InternalToolInvocationPayload,
-} from '@/lib/agents/tool-declarations/client';
+import type { InternalToolInvocationPayload } from '@/lib/agents/tool-declarations/client';
 import type { Vote } from '@/lib/db/schema';
-import { cn, fetcher } from '@/lib/utils';
-import type { AgentDTO } from '@/lib/data/agent';
+import { cn } from '@/lib/utils';
+import { getToolName, getToolSource } from '@/lib/agents/client';
 
 import { Markdown } from './markdown';
-import { PencilEditIcon, SparklesIcon } from './icons';
+import { PencilEditIcon } from './icons';
 import { MessageActions } from './message-actions';
 import { PreviewAttachment } from './preview-attachment';
 import { Button } from './ui/button';
@@ -23,8 +20,8 @@ import { Tooltip, TooltipContent, TooltipTrigger } from './ui/tooltip';
 import { MessageEditor } from './message-editor';
 import { ToolInvocation } from './internal-tool-invocation';
 import { Badge } from './ui/badge';
-import { Skeleton } from './ui/skeleton';
 import { MessageReasoning } from './message-reasoning';
+import { Avatar, AvatarFallback, AvatarImage } from './ui/avatar';
 
 export function PreviewMessage({
   chatId,
@@ -32,49 +29,41 @@ export function PreviewMessage({
   vote,
   isLoading,
   isReadonly,
+  agentName,
+  agentAvatarUrl,
 }: {
   chatId?: string;
+  agentName?: string | null;
+  agentAvatarUrl?: string | null;
   message: Message;
   vote: Vote | undefined;
   isLoading: boolean;
   isReadonly: boolean;
 }) {
   const [mode, setMode] = useState<'view' | 'edit'>('view');
-  const { data: agents = [], isLoading: isAgentsLoading } = useSWR<
-    AgentDTO[]
-  >('/api/agents', fetcher, { revalidateOnMount: false });
-
-  const tools = useMemo(() => {
-    return agents.flatMap((agent) => agent.tools);
-  }, [agents]);
 
   const renderToolInvocation = (toolInvocation: AIToolInvocation) => {
-    if (isAgentsLoading) {
-      return <Skeleton key={toolInvocation.toolCallId} className="h-6" />;
-    }
+    const source = getToolSource(toolInvocation.toolName);
 
-    const userTool = tools.find(
-      (tool) => tool.name === toolInvocation.toolName,
-    );
-
-    if (!userTool) {
-      return null;
-    }
-
-    switch (true) {
-      case castToolType('automagik', userTool):
+    switch (source) {
+      case 'automagik':
         return (
           <div key={`${toolInvocation.toolCallId} ${toolInvocation.state}`}>
             <Badge variant="secondary" className="text-md">
-              Running Flow #{userTool.data.flowId.slice(0, 8)}...
+              Running Flow...
             </Badge>
           </div>
         );
-      case castToolType('internal', userTool):
+      case 'internal':
         return (
           <ToolInvocation
             key={`${toolInvocation.toolCallId} ${toolInvocation.state}`}
-            toolInvocation={toolInvocation as InternalToolInvocationPayload}
+            toolInvocation={
+              {
+                ...toolInvocation,
+                toolName: getToolName(toolInvocation.toolName),
+              } as InternalToolInvocationPayload
+            }
             isReadonly={isReadonly}
           />
         );
@@ -100,9 +89,18 @@ export function PreviewMessage({
           )}
         >
           {message.role === 'assistant' && (
-            <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border bg-background">
+            <div className="size-12 flex items-center rounded-full justify-center shrink-0">
               <div className="translate-y-px">
-                <SparklesIcon size={14} />
+                <Avatar className="size-12 text-md font-bold">
+                  <AvatarImage
+                    className="object-cover"
+                    src={agentAvatarUrl || undefined}
+                    alt={agentName || ''}
+                  />
+                  <AvatarFallback className="bg-transparent">
+                    <Bot className="size-12" />
+                  </AvatarFallback>
+                </Avatar>
               </div>
             </div>
           )}
@@ -135,7 +133,7 @@ export function PreviewMessage({
                         className={cn(
                           'flex flex-col max-w-full gap-4 break-words',
                           {
-                            'bg-primary text-primary-foreground px-3 py-2 rounded-xl':
+                            'bg-white text-black px-3 py-2 rounded-xl':
                               message.role === 'user',
                           },
                         )}
@@ -204,7 +202,13 @@ export function PreviewMessage({
   );
 }
 
-export const ThinkingMessage = () => {
+export const ThinkingMessage = ({
+  agentAvatarUrl,
+  agentName,
+}: {
+  agentAvatarUrl?: string | null;
+  agentName?: string | null;
+}) => {
   const role = 'assistant';
 
   return (
@@ -222,13 +226,22 @@ export const ThinkingMessage = () => {
           },
         )}
       >
-        <div className="size-8 flex items-center rounded-full justify-center ring-1 shrink-0 ring-border">
-          <SparklesIcon size={14} />
+        <div className="size-12 flex items-center rounded-full justify-center shrink-0">
+          <Avatar className="size-12 text-md font-bold">
+            <AvatarImage
+              className="object-cover"
+              src={agentAvatarUrl || undefined}
+              alt={agentName || ''}
+            />
+            <AvatarFallback className="bg-transparent">
+              <Bot className="size-12" />
+            </AvatarFallback>
+          </Avatar>
         </div>
 
         <div className="flex flex-col gap-2 w-full">
           <div className="flex flex-col gap-4 text-muted-foreground">
-            Thinking...
+            {agentName} is typing...
           </div>
         </div>
       </div>

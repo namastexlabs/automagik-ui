@@ -4,6 +4,9 @@ import { generateUUID } from '../utils';
 
 type ImageSource = 'document' | 'input';
 
+const DEFAULT_CHAT_KEY = 'no-chat';
+const ONE_DAY_IN_SECONDS = 60 * 60 * 24;
+
 let minioClient: Minio.Client | null = null;
 const S3_STORAGE_BUCKET_NAME = process.env.S3_STORAGE_BUCKET_NAME as string;
 
@@ -33,13 +36,56 @@ const getMinioClient = () => {
   return minioClient;
 };
 
-const DEFAULT_CHAT_KEY = 'no-chat';
-
-export function getMessageKey(name: string, chatId?: string) {
-  return `messages/${chatId ? `chat-${chatId}` : DEFAULT_CHAT_KEY}/${name.replace(
+const sanitizeName = (name: string) => {
+  return name.replace(
     /[^a-zA-Z0-9._-]/g,
     '',
-  )}`;
+  );
+};
+
+export function getUrlFromKey(key: string) {
+  const S3_CUSTOM_ENDPOINT = process.env.S3_CUSTOM_ENDPOINT;
+  const S3_STORAGE_BUCKET_NAME = process.env.S3_STORAGE_BUCKET_NAME;
+  return `https://${S3_CUSTOM_ENDPOINT}/${S3_STORAGE_BUCKET_NAME}/${key}`;
+}
+
+export function getMessageKey(name: string, chatId?: string) {
+  return `messages/${chatId ? `chat-${chatId}` : DEFAULT_CHAT_KEY}/${sanitizeName(name)}`;
+}
+
+export function getAgentKey(id: string, name: string) {
+  return `public/agents/avatar-${id}-${sanitizeName(name)}`;
+}
+
+export function getFilenameFromKey(key: string) {
+  return key.split('-').pop() || '';
+}
+
+export async function saveAgentAvatar(id: string, name: string, buffer: Buffer) {
+  try {
+    const key = getAgentKey(id, name);
+    await getMinioClient().putObject(
+      S3_STORAGE_BUCKET_NAME,
+      key,
+      buffer,
+      buffer.length,
+    );
+
+    return key;
+  } catch (e) {
+    console.log(`Failed to save agent avatar ${e}`);
+    throw e;
+  }
+}
+
+export async function deleteAgentAvatar(id: string, name: string) {
+  try {
+    const key = getAgentKey(id, name);
+    await getMinioClient().removeObject(S3_STORAGE_BUCKET_NAME, key);
+  } catch (e) {
+    console.log(`Failed to delete agent avatar ${e}`);
+    throw e;
+  }
 }
 
 export function createMessageKey(
@@ -47,10 +93,7 @@ export function createMessageKey(
   source: ImageSource = 'input',
   chatId?: string,
 ) {
-  return getMessageKey(
-    `${source}-${name}`,
-    chatId,
-  );
+  return getMessageKey(`${source}-${name}`, chatId);
 }
 
 export function isKeyWithChatId(key: string) {
@@ -117,6 +160,7 @@ export async function getMessageFile(name: string, chatId?: string) {
     const data = await getMinioClient().presignedGetObject(
       S3_STORAGE_BUCKET_NAME,
       getMessageKey(name, chatId),
+      ONE_DAY_IN_SECONDS,
     );
     return data;
   } catch (e) {
@@ -137,4 +181,20 @@ export function isSignedUrlExpired(url: string) {
   const now = new Date();
 
   return now.getTime() > signedDate.getTime() + expirationTime * 1000;
+}
+
+export async function getAgentAvatar(id: string, name: string) {
+  try {
+    const key = getAgentKey(id, name);
+    const data = await getMinioClient().presignedGetObject(
+      S3_STORAGE_BUCKET_NAME,
+      key,
+      ONE_DAY_IN_SECONDS * 30,
+    );
+
+    return data;
+  } catch (e) {
+    console.log(`Failed to get agent avatar ${e}`);
+    throw e;
+  }
 }

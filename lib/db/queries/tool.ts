@@ -4,8 +4,7 @@ import type { SzObject } from 'zodex';
 
 import type { Source, ToolData } from '@/lib/agents/types';
 
-import * as schema from '../schema';
-import { db } from './index';
+import { db, schema } from './index';
 
 export async function getToolById({ id }: { id: string }) {
   try {
@@ -111,4 +110,3 @@ export async function deleteToolById({ id }: { id: string }) {
     throw error;
   }
 }
- 

@@ -83,17 +83,19 @@ export type Tool = InferSelectModel<typeof tool>;
 export const agent = pgTable(
   'agent',
   {
-    id: uuid().primaryKey().notNull().defaultRandom(),
-    name: text().notNull(),
+    id: uuid('id').primaryKey().notNull().defaultRandom(),
+    name: text('name').notNull(),
     systemPrompt: text('system_prompt').notNull(),
-    createdAt: timestamp('created_at').notNull().defaultNow(),
+    userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
     visibility: varchar('visibility', { enum: ['public', 'private'] })
       .notNull()
       .default('private'),
-    userId: uuid('user_id').references(() => user.id, { onDelete: 'cascade' }),
+    avatarUrl: text('avatar_url'),
+    description: text('description').notNull().default(''),
+    heartbeat: boolean('heartbeat').notNull().default(false),
+    createdAt: timestamp('created_at').notNull().defaultNow(),
   },
   (table) => [
-    unique('agent_unique_user_name').on(table.name, table.userId),
     uniqueIndex('agent_unique_private_user')
       .on(table.userId, table.name)
       .where(sql`${table.visibility} = 'private'`),
@@ -194,6 +196,13 @@ export const chat = pgTable('chat', {
 
 export type Chat = InferSelectModel<typeof chat>;
 
+export const chatRelations = relations(chat, ({ one }) => ({
+  agent: one(agent, {
+    fields: [chat.agentId],
+    references: [agent.id],
+  }),
+}));
+
 export const message = pgTable('message', {
   id: uuid('id').primaryKey().notNull().defaultRandom(),
   chatId: uuid('chat_id')
@@ -286,3 +295,18 @@ export const suggestion = pgTable(
 );
 
 export type Suggestion = InferSelectModel<typeof suggestion>;
+
+export const waitlist = pgTable('waitlist', {
+  id: uuid('id').primaryKey().notNull().defaultRandom(),
+  name: text('name').notNull(),
+  email: text('email').notNull(),
+  isApproved: boolean('is_approved').notNull().default(false),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow().$onUpdate(() => new Date()),
+  },
+  (table) => [
+    unique('waitlist_unique_email').on(table.email),
+  ],
+);
+
+export type Waitlist = InferSelectModel<typeof waitlist>;

@@ -48,12 +48,20 @@ export async function POST(request: NextRequest) {
     provider,
     modelId,
     isExtendedThinking,
+    temperature,
+    topP,
+    presencePenalty,
+    frequencyPenalty,
   }: {
     id: string;
     messages: Message[];
     provider: string;
     modelId: string;
     isExtendedThinking: boolean;
+    temperature?: number;
+    topP?: number;
+    presencePenalty?: number;
+    frequencyPenalty?: number;
   } = await request.json();
 
   try {
@@ -145,6 +153,10 @@ export async function POST(request: NextRequest) {
         const result = streamText({
           model,
           system,
+          temperature,
+          topP,
+          presencePenalty,
+          frequencyPenalty,
           abortSignal: request.signal,
           experimental_generateMessageId: generateUUID,
           messages: [...coreMessages.slice(0, -1), userMessageWithAttachments],

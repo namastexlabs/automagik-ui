@@ -2,11 +2,47 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { Bot } from 'lucide-react';
 
 import { useResolvedTheme } from '@/hooks/use-resolved-theme';
+import { useCurrentAgent } from '@/hooks/use-current-agent';
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar';
 
 export const Overview = () => {
   const colorMode = useResolvedTheme();
+  const { agent } = useCurrentAgent();
+
+  if (agent) {
+    return (
+      <motion.div
+        className="motion max-w-3xl w-full mx-auto md:mt-[20vh]"
+        initial={{ opacity: 0, scale: 0.98 }}
+        animate={{ opacity: 1, scale: 1 }}
+        exit={{ opacity: 0, scale: 0.98 }}
+        transition={{ delay: 0.5 }}
+      >
+        <div className="rounded-xl w-full p-6 flex gap-6">
+          <Avatar className="size-36 text-4xl font-bold">
+            <AvatarImage
+              src={agent.avatarUrl || undefined}
+              className="object-cover"
+            />
+            <AvatarFallback className="bg-transparent">
+              <Bot className="size-16" />
+            </AvatarFallback>
+          </Avatar>
+          <div className="flex flex-col flex-1 gap-3 my-auto min-w-0">
+            <h1 className="text-3xl text-start font-bold">
+              {agent.name}
+            </h1>
+            <p className="text-md text-muted-foreground break-words whitespace-pre-wrap">
+              {agent.description || 'Hello there!'}
+            </p>
+          </div>
+        </div>
+      </motion.div>
+    );
+  }
 
   return (
     <motion.div
@@ -30,7 +66,7 @@ export const Overview = () => {
             className="w-[600px] h-[100px] object-cover mb-5"
           />
         </p>
-        <p>Because magic shouldn&apos;t be complicated.</p>
+        <p>Because magic shouldn&apos;t be complica ,ted.</p>
       </div>
     </motion.div>
   );
