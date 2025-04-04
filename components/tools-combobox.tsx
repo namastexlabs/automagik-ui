@@ -79,14 +79,14 @@ export function ToolsCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          className="justify-between bg-transparent hover:bg-transparent p-0 border-none"
+          className="group/tools-combobox justify-between bg-transparent hover:bg-transparent p-0 border-none"
         >
           <div className="w-full text-start px-3 py-2 rounded-lg bg-dark-background border border-muted hover:bg-dark-background">
             <span className="w-96 truncate block">
               {selected.length > 0 ? selectedTools : 'Select tools...'}
             </span>
           </div>
-          <ChevronsUpDown className="ml-2 size-4 shrink-0 opacity-50" />
+          <ChevronsUpDown className="opacity-0 group-hover/tools-combobox:opacity-100 ml-2 size-4 shrink-0 transition-opacity" />
         </Button>
       </PopoverTrigger>
       <PopoverContent

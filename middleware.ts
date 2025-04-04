@@ -21,12 +21,17 @@ export async function middleware(request: NextRequest) {
     const { data: { user } } = await supabase.auth.getUser();
 
     const isHomePage = request.nextUrl.pathname === '/';
+    const isWelcomePage = request.nextUrl.pathname === '/chat/welcome';
     const isUpdatePasswordPage =
       request.nextUrl.pathname.startsWith('/update-password');
     const isAuthPage =
       request.nextUrl.pathname.startsWith('/login') ||
       request.nextUrl.pathname.startsWith('/register') ||
       request.nextUrl.pathname.startsWith('/reset-password');
+
+    if (isWelcomePage) {
+      return NextResponse.redirect(new URL('/chat', request.url));
+    }
 
     if (isUpdatePasswordPage || isHomePage) {
       return response;
