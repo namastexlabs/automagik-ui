@@ -38,7 +38,7 @@ export function CodeBlock({
 
   if (!inline) {
     return (
-      <div className="group/code-block not-prose flex flex-col relative  text-muted-foreground">
+      <div className="group/code-block not-prose flex flex-col relative text-muted-foreground">
         {tab === 'code' && (
           <pre
             {...props}

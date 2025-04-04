@@ -85,7 +85,10 @@ export function SidebarAgentItem({ agent, isOpen }: AgentItemProps) {
   }, [isOpen, mutate, history]);
 
   const currentChat = history ? history[0] : agent.chat;
-  const recentMessage = history ? history[0]?.latestMessage : agent.recentMessage;
+  const recentMessage = history
+    ? history[0]?.latestMessage
+    : agent.recentMessage;
+
   const groupedChats = useMemo(() => {
     if (!history) {
       return null;
@@ -173,7 +176,7 @@ export function SidebarAgentItem({ agent, isOpen }: AgentItemProps) {
               </div>
             </Link>
             <div className="flex items-center justify-between gap-2">
-              <p className="text-xs text-muted-foreground group-hover/agent-card:text-white truncate w-4/5">
+              <p className="text-xs text-muted-foreground group-hover/agent-card:text-foreground truncate w-4/5">
                 <Link href={`/chat/${currentChat.id}`}>
                   {recentMessage.content.content}
                 </Link>
@@ -277,9 +280,9 @@ function GroupedChats({
             key={chat.id}
             href={`/chat/${chat.id}`}
             className={cn(
-              'flex items-center gap-2 pl-[3.25rem] rounded-md text-muted-foreground hover:text-white transition-colors',
+              'flex items-center gap-2 pl-[3.25rem] rounded-md text-muted-foreground hover:text-foreground transition-colors',
               {
-                'text-white': currentChatId === chat.id,
+                'text-foreground': currentChatId === chat.id,
               },
             )}
             onClick={() => onClose()}

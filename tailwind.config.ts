@@ -124,7 +124,23 @@ const config: Config = {
   		animation: {
   			'accordion-down': 'accordion-down 0.2s ease-out',
   			'accordion-up': 'accordion-up 0.2s ease-out'
-  		}
+  		},
+			typography: () => ({
+				DEFAULT: {
+					css: {
+						'--tw-prose-body': 'hsl(var(--foreground))',
+						'--tw-prose-headings': 'hsl(var(--foreground))',
+						'--tw-prose-links': 'hsl(var(--foreground))',
+						'--tw-prose-bold': 'hsl(var(--foreground))',
+						'--tw-prose-italic': 'hsl(var(--foreground))',
+						'--tw-prose-underline': 'hsl(var(--foreground))',
+						'--tw-prose-strikethrough': 'hsl(var(--foreground))',
+						'--tw-prose-bullets': 'hsl(var(--foreground))',
+						'--tw-prose-hr': 'hsl(var(--foreground))',
+						'--tw-prose-quote-borders': 'hsl(var(--foreground))',
+					}
+				}
+			})
   	}
   },
   plugins: [require('tailwindcss-animate'), require('@tailwindcss/typography')],

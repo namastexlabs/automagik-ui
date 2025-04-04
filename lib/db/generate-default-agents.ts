@@ -64,6 +64,8 @@ const run = async () => {
       systemPrompt: agent.systemPrompt,
       visibility: 'public',
       userId: null,
+      heartbeat: false,
+      description: agent.description,
     } as const;
 
     if (createdAgent) {

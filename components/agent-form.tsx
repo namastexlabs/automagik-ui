@@ -168,7 +168,7 @@ export function AgentForm({
             <div className="flex items-center gap-2 bg-muted w-fit p-3 rounded-md">
               <Label
                 htmlFor="visibility"
-                className="text-md text-white font-bold"
+                className="text-md text-foreground font-bold"
               >
                 Private agent
               </Label>
@@ -188,7 +188,7 @@ export function AgentForm({
             <div className="flex items-center gap-2 bg-muted w-fit p-3 rounded-md">
               <Label
                 htmlFor="heartbeat"
-                className="text-md text-white font-bold"
+                className="text-md text-foreground font-bold"
               >
                 Heartbeat
               </Label>

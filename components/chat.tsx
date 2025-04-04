@@ -8,17 +8,15 @@ import { ChatHeader } from '@/components/chat-header';
 import { fetcher } from '@/lib/utils';
 import { useBlockSelector } from '@/hooks/use-block';
 
-import type { VisibilityType } from './visibility-selector';
-import { MultimodalInput } from './multimodal-input';
-import { Messages } from './messages';
 import { ChatProvider } from './chat-provider';
 import type { ChatDTO } from '@/lib/data/chat';
 import type { AgentDTO } from '@/lib/data/agent';
 import { useCurrentAgent } from '@/hooks/use-current-agent';
+import { Block } from '@/components/block';
 
-const Block = lazy(() =>
-  import('./block').then((mod) => ({ default: mod.Block })),
-);
+import { Messages } from './messages';
+import type { VisibilityType } from './visibility-selector';
+import { MultimodalInput } from './multimodal-input';
 
 export function Chat({
   chat,
@@ -71,9 +69,7 @@ export function Chat({
           {!isReadonly && <MultimodalInput />}
         </form>
       </div>
-      <Suspense fallback={null}>
-        <Block votes={votes} />
-      </Suspense>
+      <Block votes={votes} />
     </ChatProvider>
   );
 }

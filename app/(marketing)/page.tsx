@@ -15,7 +15,7 @@ import {
 
 export default function Home() {
   return (
-    <div className="font-nunito min-h-screen text-white bg-accent">
+    <div className="font-nunito min-h-screen text-foreground bg-accent">
       <section className="lg:min-h-screen mx-auto py-10 max-w-[1440px] flex flex-col justify-center">
         <div className="flex flex-col md:flex-row justify-center">
           <div className="w-full hidden lg:flex justify-center mb-10 md:mb-0">
@@ -164,7 +164,7 @@ export default function Home() {
               <WaitlistForm />
             </div>
           </section>
-          <footer className="container mx-auto px-4 py-6 text-center text-white text-sm">
+          <footer className="container mx-auto px-4 py-6 text-center text-foreground text-sm">
             <p>
               Namastex Labs Serviços Em Tecnologia Ltda - CNPJ
               48.158.454/0001-82
