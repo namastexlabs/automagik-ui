@@ -7,7 +7,7 @@ import { useSWRConfig } from 'swr';
 import { useRouter } from 'next/navigation';
 import { useProgress } from '@bprogress/next';
 
-import type { AgentDTO } from '@/lib/data/agent';
+import type { AgentDTO, AgentDTOWithSystemPrompt } from '@/lib/data/agent';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { Label } from '@/components/ui/label';
 import { Switch } from '@/components/ui/switch';
@@ -28,7 +28,7 @@ import type { VisibilityType } from './visibility-selector';
 export function AgentForm({
   isEditable,
   agent,
-}: { isEditable: boolean; agent?: AgentDTO }) {
+}: { isEditable: boolean; agent?: AgentDTOWithSystemPrompt }) {
   usePageUnloadWarning(isEditable);
 
   const formId = useId();
@@ -113,7 +113,11 @@ export function AgentForm({
   };
 
   return (
-    <form action={formAction} id={formId} className="flex flex-col gap-6 w-full">
+    <form
+      action={formAction}
+      id={formId}
+      className="flex flex-col gap-6 w-full"
+    >
       {agent ? <input type="hidden" name="id" value={agent.id} /> : null}
       <h1 className="text-2xl">Profile</h1>
       <div className="flex items-center gap-8">

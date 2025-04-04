@@ -10,7 +10,7 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from '@/components/ui/breadcrumb';
-import { getAgent } from '@/lib/data/agent';
+import { getAgentWithSystemPrompt } from '@/lib/data/agent';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import { getUser } from '@/lib/auth';
 import { AgentForm } from '@/components/agent-form';
@@ -27,7 +27,7 @@ export default async function AgentPage({
     notFound();
   }
 
-  const { data: agent, errors } = await getAgent(id);
+  const { data: agent, errors } = await getAgentWithSystemPrompt(id);
 
   if (errors || !agent) {
     throw new Error(JSON.stringify(errors));

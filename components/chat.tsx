@@ -1,6 +1,6 @@
 'use client';
 
-import { Suspense, lazy, useEffect } from 'react';
+import { useEffect } from 'react';
 import type { Message } from 'ai';
 import useSWR from 'swr';
 import type { Vote } from '@/lib/db/schema';

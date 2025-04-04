@@ -31,7 +31,7 @@ export function EditableInput({
     return <div className={cn('py-2 px-3', className)}>{defaultValue}</div>;
   }
 
-  if (!isEditing) {
+  if (!isEditing && props.value) {
     return (
       <Button
         type="button"

@@ -88,20 +88,18 @@ export function toAgentWithMessagesDTO({
 
 export type AgentWithMessagesDTO = ReturnType<typeof toAgentWithMessagesDTO>;
 
-export function toAgentDTO(
-  {
-    id,
-    name,
-    userId,
-    visibility,
-    systemPrompt,
-    description,
-    heartbeat,
-    tools,
-    dynamicBlocks,
-    avatarUrl,
-  }: AgentData,
-) {
+export function toAgentDTO({
+  id,
+  name,
+  userId,
+  visibility,
+  description,
+  heartbeat,
+  tools,
+  dynamicBlocks,
+  avatarUrl,
+  createdAt,
+}: AgentData) {
   return {
     id,
     name,
@@ -110,7 +108,7 @@ export function toAgentDTO(
     avatarUrl,
     description,
     heartbeat,
-    systemPrompt: systemPrompt,
+    createdAt,
     tools: tools.map(
       ({ tool: { id, name, verboseName, visibility, data, source } }) => ({
         id,
@@ -133,12 +131,26 @@ export function toAgentDTO(
 
 export type AgentDTO = ReturnType<typeof toAgentDTO>;
 
+export function toAgentDTOWithSystemPrompt(agent: AgentData): AgentDTO & {
+  systemPrompt: string;
+} {
+  return {
+    ...toAgentDTO(agent),
+    systemPrompt: agent.systemPrompt,
+  };
+}
+
+export type AgentDTOWithSystemPrompt = ReturnType<
+  typeof toAgentDTOWithSystemPrompt
+>;
+
 export async function getAgent(
   id: string,
 ): Promise<DataResponse<AgentDTO, any>> {
   try {
     const session = await getUser();
     const agent = await getAgentRepository(id, session.user.id);
+
     return {
       status: DataStatus.Success,
       data: toAgentDTO(agent),
@@ -148,6 +160,17 @@ export async function getAgent(
   }
 }
 
+export async function getAgentWithSystemPrompt(
+  id: string,
+): Promise<DataResponse<AgentDTOWithSystemPrompt, any>> {
+  const session = await getUser();
+  const agent = await getAgentRepository(id, session.user.id);
+
+  return {
+    status: DataStatus.Success,
+    data: toAgentDTOWithSystemPrompt(agent),
+  };
+}
 export async function getMostRecentAgents(): Promise<
   DataResponse<AgentWithMessagesDTO[], any>
 > {
