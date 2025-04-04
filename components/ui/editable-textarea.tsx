@@ -35,7 +35,7 @@ export function EditableTextarea({
     );
   }
 
-  if (!isEditing) {
+  if (!isEditing && props.value) {
     return (
       <Button
         type="button"

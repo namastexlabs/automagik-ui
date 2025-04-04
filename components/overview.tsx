@@ -15,14 +15,14 @@ export const Overview = () => {
   if (agent) {
     return (
       <motion.div
-        className="motion max-w-3xl mx-auto md:mt-20"
+        className="motion max-w-3xl w-full mx-auto md:mt-[20vh]"
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.98 }}
         transition={{ delay: 0.5 }}
       >
-        <div className="rounded-xl p-6 flex items-center gap-6">
-          <Avatar className="size-[100px] text-4xl font-bold">
+        <div className="rounded-xl w-full p-6 flex gap-6">
+          <Avatar className="size-36 text-4xl font-bold">
             <AvatarImage
               src={agent.avatarUrl || undefined}
               className="object-cover"
@@ -31,7 +31,14 @@ export const Overview = () => {
               <Bot className="size-16" />
             </AvatarFallback>
           </Avatar>
-          <h1 className="text-4xl font-bold">Hello there!</h1>
+          <div className="flex flex-col flex-1 gap-3 my-auto min-w-0">
+            <h1 className="text-3xl text-start font-bold">
+              {agent.name}
+            </h1>
+            <p className="text-md text-muted-foreground break-words whitespace-pre-wrap">
+              {agent.description || 'Hello there!'}
+            </p>
+          </div>
         </div>
       </motion.div>
     );
@@ -59,7 +66,7 @@ export const Overview = () => {
             className="w-[600px] h-[100px] object-cover mb-5"
           />
         </p>
-        <p>Because magic shouldn&apos;t be complicated.</p>
+        <p>Because magic shouldn&apos;t be complica ,ted.</p>
       </div>
     </motion.div>
   );

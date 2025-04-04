@@ -1,15 +1,9 @@
 import useSWR from 'swr';
 import { useCallback } from 'react';
 
-import type { VisibilityType } from '@/components/visibility-selector';
+import type { Agent } from '@/lib/db/schema';
 
-export type CurrentAgent = {
-  id: string;
-  name: string;
-  avatarUrl: string | null;
-  visibility: VisibilityType;
-  userId: string | null;
-};
+export type CurrentAgent = Omit<Agent, 'systemPrompt'>;
 
 export function useCurrentAgent() {
   const { data: agent, mutate } = useSWR<CurrentAgent>('_currentAgent', null);
