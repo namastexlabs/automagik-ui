@@ -53,16 +53,7 @@ export default function WelcomePage() {
           <div className="relative p-[2px] rounded-lg bg-gradient-to-r from-accent-magenta to-accent-cyan">
             <div className="relative bg-background rounded-lg aspect-video">
               <div className="absolute inset-0 flex items-center justify-center">
-                <iframe
-                  width="560"
-                  height="315"
-                  src="https://www.youtube.com/embed/dQw4w9WgXcQ?autoplay=1&mute=1"
-                  title="Welcome to Namastex"
-                  frameBorder="0"
-                  allow="autoplay"
-                  referrerPolicy="strict-origin-when-cross-origin"
-                  className="size-full p-1"
-                />
+                
               </div>
             </div>
           </div>
