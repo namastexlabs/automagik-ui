@@ -31,9 +31,11 @@ import {
 import { DataStatus } from '.';
 
 const agentSchema = z.object({
-  name: z.string().trim(),
-  systemPrompt: z.string(),
+  name: z.string().trim().min(1),
+  systemPrompt: z.string().min(1),
   visibility: z.enum(['public', 'private']).default('private'),
+  description: z.string(),
+  heartbeat: z.boolean().default(false),
   avatarFile: z
     .instanceof(Blob)
     .optional()
@@ -41,9 +43,12 @@ const agentSchema = z.object({
     .refine((file) => !file || file.size <= 10 * 1024 * 1024, {
       message: 'File size should be less than 10MB',
     })
-    .refine((file) => !file || ['image/jpeg', 'image/png'].includes(file.type), {
-      message: 'File type should be JPEG or PNG',
-    }),
+    .refine(
+      (file) => !file || ['image/jpeg', 'image/png'].includes(file.type),
+      {
+        message: 'File type should be JPEG or PNG',
+      },
+    ),
   tools: z.array(z.string()).default([]),
   dynamicBlocks: z
     .array(
@@ -84,13 +89,14 @@ export function toAgentWithMessagesDTO({
 export type AgentWithMessagesDTO = ReturnType<typeof toAgentWithMessagesDTO>;
 
 export function toAgentDTO(
-  authUserId: string,
   {
     id,
     name,
     userId,
     visibility,
     systemPrompt,
+    description,
+    heartbeat,
     tools,
     dynamicBlocks,
     avatarUrl,
@@ -102,7 +108,9 @@ export function toAgentDTO(
     userId,
     visibility,
     avatarUrl,
-    systemPrompt: userId !== authUserId ? undefined : systemPrompt,
+    description,
+    heartbeat,
+    systemPrompt: systemPrompt,
     tools: tools.map(
       ({ tool: { id, name, verboseName, visibility, data, source } }) => ({
         id,
@@ -114,7 +122,8 @@ export function toAgentDTO(
       }),
     ),
     dynamicBlocks: dynamicBlocks.map(
-      ({ dynamicBlock: { name, visibility } }) => ({
+      ({ dynamicBlock: { id, name, visibility } }) => ({
+        id,
         name,
         visibility,
       }),
@@ -124,13 +133,15 @@ export function toAgentDTO(
 
 export type AgentDTO = ReturnType<typeof toAgentDTO>;
 
-export async function getAgent(id: string): Promise<DataResponse<AgentDTO, any>> {
+export async function getAgent(
+  id: string,
+): Promise<DataResponse<AgentDTO, any>> {
   try {
     const session = await getUser();
     const agent = await getAgentRepository(id, session.user.id);
     return {
       status: DataStatus.Success,
-      data: toAgentDTO(session.user.id, agent),
+      data: toAgentDTO(agent),
     };
   } catch (error) {
     return handleDataError(error);
@@ -162,7 +173,7 @@ export async function getInitialAgents(): Promise<
     const agents = await getUserAgents(session.user.id);
     return {
       status: DataStatus.Success,
-      data: agents.map((agent) => toAgentDTO(session.user.id, agent)),
+      data: agents.map((agent) => toAgentDTO(agent)),
     };
   } catch (error) {
     return handleDataError(error, []);
@@ -182,10 +193,12 @@ export async function saveAgent(
       ...validatedData,
     };
 
-    const agent = await (id ? updateAgent({ id, ...data }) : createAgent(data));
+    const agent = await (id
+      ? updateAgent({ id, ...data }, session.user.id)
+      : createAgent(data, session.user.id));
     return {
       status: DataStatus.Success,
-      data: toAgentDTO(session.user.id, agent),
+      data: toAgentDTO(agent),
     };
   } catch (error) {
     return handleDataError(error);
@@ -201,7 +214,7 @@ export async function duplicateAgent(
     const agent = await duplicateAgentRepository(id, session.user.id);
     return {
       status: DataStatus.Success,
-      data: toAgentDTO(session.user.id, agent),
+      data: toAgentDTO(agent),
     };
   } catch (error) {
     if (error instanceof ApplicationError) {

@@ -36,6 +36,8 @@ export async function saveAgentAction(
     systemPrompt: formData.get('systemPrompt'),
     tools: formData.getAll('tools'),
     visibility: formData.get('visibility'),
+    heartbeat: formData.has('heartbeat'),
+    description: formData.get('description'),
     avatarFile: formData.has('avatarFile')
       ? formData.get('avatarFile')
       : undefined,

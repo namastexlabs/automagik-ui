@@ -20,6 +20,9 @@ export const tools = [
   InternalToolName.runWorkflow,
 ];
 
+export const description =
+  'Automagik Genie is an interactive assistant for managing Automagik deployments with remote workflow sources.';
+
 export const systemPrompt = `\
 # **System Prompt – Automagik Genie**
 

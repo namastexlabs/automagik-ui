@@ -2,12 +2,9 @@
 
 import Link from 'next/link';
 import Image from 'next/image';
-import { usePathname } from 'next/navigation';
 
 import { Plus, ShapesIcon } from 'lucide-react';
 import { MenuIcon } from '@/components/icons';
-import { SidebarHistory } from '@/components/sidebar-history';
-import { SidebarUserNav } from '@/components/sidebar-user-nav';
 import { Button } from '@/components/ui/button';
 import {
   Sidebar,
@@ -27,13 +24,16 @@ import type { AgentWithMessagesDTO } from '@/lib/data/agent';
 import { useCurrentAgent } from '@/hooks/use-current-agent';
 import { cn } from '@/lib/utils';
 
+import { SidebarHistory } from './sidebar-history';
+import { SidebarUserNav } from './sidebar-user-nav';
+import { AgentListDialog } from './agent-list-dialog';
+
 export function AppSidebar({
   initialAgents,
 }: {
   initialAgents: AgentWithMessagesDTO[];
 }) {
   const colorMode = useResolvedTheme();
-  const pathname = usePathname();
   const { agent: currentAgent } = useCurrentAgent();
   const { setOpenMobile, toggleSidebar, openAgentListDialog, state } =
     useSidebar();
@@ -131,6 +131,7 @@ export function AppSidebar({
         </Button>
         <SidebarUserNav />
       </SidebarFooter>
+      <AgentListDialog />
     </Sidebar>
   );
 }

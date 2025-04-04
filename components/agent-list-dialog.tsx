@@ -1,7 +1,9 @@
-import React, { useState } from 'react';
+import React, { useCallback, useState } from 'react';
 import { CopyPlus, PlusIcon } from 'lucide-react';
 import { toast } from 'sonner';
+import Link from 'next/link';
 import { useRouter } from 'next/navigation';
+import useSWR from 'swr';
 
 import { deleteAgentAction, duplicateAgentAction } from '@/app/(chat)/actions';
 import {
@@ -29,35 +31,50 @@ import {
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
 import { Label } from '@/components/ui/label';
+import { useSidebar } from '@/components/ui/sidebar';
 import { useUser } from '@/contexts/user';
 import type { AgentDTO } from '@/lib/data/agent';
 
 import { PrivateAgentActions } from './private-agent-actions';
+import { fetcher } from '@/lib/utils';
 
-export function AgentListDialog({
-  agents,
-  openAgentDialog,
-  isAgentDialogOpen,
-  isOpenAgentListDialog,
-  openAgentListDialog,
-  onRemoveAgent,
-  onSaveAgent,
-  isLoading,
-}: {
-  agents: AgentDTO[];
-  isLoading: boolean;
-  onRemoveAgent: (agentId: string) => void;
-  onSaveAgent: (agent: AgentDTO) => void;
-  isAgentDialogOpen: boolean;
-  openAgentDialog: (agentId?: string) => void;
-  openAgentListDialog: (isOpen: boolean) => void;
-  isOpenAgentListDialog: boolean;
-}) {
+export function AgentListDialog() {
+  const { user } = useUser();
+  const { openAgentListDialog, isAgentListDialogOpen } = useSidebar();
+  const router = useRouter();
+
+  const {
+    data: agents = [],
+    mutate,
+    isLoading,
+  } = useSWR<AgentDTO[]>('/api/agents', fetcher);
+
   const [isDuplicatingAgent, setIsDuplicatingAgent] = useState(false);
   const [agentDelete, setAgentDelete] = useState<string | null>(null);
   const [isDeletingAgent, setIsDeletingAgent] = useState(false);
-  const router = useRouter();
-  const { user } = useUser();
+
+  const onRemoveAgent = useCallback(
+    (agentId: string) => {
+      mutate((agents = []) => {
+        const newAgents = agents.filter((agent) => agent.id !== agentId);
+
+        if (newAgents.length === 0) {
+          router.push('/chat');
+          openAgentListDialog(false);
+        }
+
+        return newAgents;
+      });
+    },
+    [mutate, openAgentListDialog, router],
+  );
+
+  const onSaveAgent = useCallback(
+    (agent: AgentDTO) => {
+      mutate((agents = []) => [...agents, agent]);
+    },
+    [mutate],
+  );
 
   const handleDelete = async (agentId: string) => {
     toast.promise(
@@ -120,17 +137,7 @@ export function AgentListDialog({
   };
 
   return (
-    <Dialog
-      modal={!isAgentDialogOpen}
-      open={isOpenAgentListDialog}
-      onOpenChange={(open) => {
-        if (!open && isAgentDialogOpen) {
-          return;
-        }
-
-        openAgentListDialog(open);
-      }}
-    >
+    <Dialog open={isAgentListDialogOpen} onOpenChange={openAgentListDialog}>
       <DialogContent className="w-[600px]">
         <DialogHeader>
           <DialogTitle>Agents</DialogTitle>
@@ -149,7 +156,7 @@ export function AgentListDialog({
                 tabIndex={-1}
                 onClick={() => {
                   openAgentListDialog(false);
-                  router.push(`/?agent=${agent.id}`);
+                  router.push(`/chat?agent=${agent.id}`);
                 }}
                 className="relative flex justify-between items-center px-2 py-1 rounded-md border hover:border-zinc-300 cursor-pointer"
               >
@@ -171,7 +178,6 @@ export function AgentListDialog({
                 <div className="absolute top-0 right-0">
                   {agent.userId === user.id ? (
                     <PrivateAgentActions
-                      openAgentDialog={openAgentDialog}
                       setAgentDelete={setAgentDelete}
                       agent={agent}
                     />
@@ -202,11 +208,13 @@ export function AgentListDialog({
         <Button
           variant="outline"
           type="button"
-          onClick={() => openAgentDialog()}
           className="flex items-center justify-center w-full mt-1 space-x-2"
+          asChild
         >
-          New Agent
-          <PlusIcon />
+          <Link href="/agents/new">
+            New Agent
+            <PlusIcon />
+          </Link>
         </Button>
         <DialogFooter>
           <DialogClose asChild>

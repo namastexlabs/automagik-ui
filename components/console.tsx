@@ -97,7 +97,7 @@ export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
         style={{ height }}
       >
         <div className="flex flex-row justify-between items-center w-full h-fit border-b dark:border-zinc-700 border-zinc-200 px-2 py-1 sticky top-0 z-50 bg-muted">
-          <div className="text-sm pl-2 dark:text-zinc-50 text-zinc-800 flex flex-row gap-3 items-center">
+          <div className="text-sm pl-2 text-muted-foreground flex flex-row gap-3 items-center">
             <div className="text-muted-foreground">
               <TerminalWindowIcon />
             </div>
@@ -149,7 +149,7 @@ export function Console({ consoleOutputs, setConsoleOutputs }: ConsoleProps) {
                   </div>
                 </div>
               ) : (
-                <div className="dark:text-zinc-50 text-zinc-900 w-full flex flex-col gap-2 overflow-x-auto">
+                <div className="text-muted-foreground w-full flex flex-col gap-2 overflow-x-auto">
                   {consoleOutput.contents.map((content, index) =>
                     content.type === 'image' ? (
                       <picture key={`${consoleOutput.id}-${index}`}>

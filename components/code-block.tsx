@@ -38,18 +38,18 @@ export function CodeBlock({
 
   if (!inline) {
     return (
-      <div className="not-prose flex flex-col relative">
+      <div className="group/code-block not-prose flex flex-col relative text-muted-foreground">
         {tab === 'code' && (
           <pre
             {...props}
-            className={`text-sm w-full overflow-x-auto dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-700 rounded-xl dark:text-zinc-50 text-zinc-900`}
+            className={`text-sm w-full overflow-x-auto bg-dark-background p-4 border border-muted rounded-xl`}
           >
             <code className="whitespace-pre-wrap break-words">{children}</code>
           </pre>
         )}
 
         {tab === 'run' && output && (
-          <div className="text-sm w-full overflow-x-auto bg-zinc-800 dark:bg-zinc-900 p-4 border border-zinc-200 dark:border-zinc-700 border-t-0 rounded-b-xl text-zinc-50">
+          <div className="text-sm w-full overflow-x-auto rounded-b-xl">
             <code>{output}</code>
           </div>
         )}
@@ -57,7 +57,7 @@ export function CodeBlock({
           <Tooltip>
             <TooltipTrigger asChild>
               <Button
-                className="absolute py-1 px-2 right-3 top-3 size-fit text-muted-foreground"
+                className="absolute hidden group-hover/code-block:block py-1 px-2 right-3 top-3 size-fit"
                 variant="outline"
                 onClick={async () => {
                   await copyToClipboard(codeContent);
@@ -75,7 +75,7 @@ export function CodeBlock({
   } else {
     return (
       <code
-        className={`${className} text-sm bg-zinc-100 dark:bg-zinc-800 py-0.5 px-1 rounded-md`}
+        className={`${className} text-sm bg-dark-background border border-muted text-muted-foreground py-0.5 px-1 rounded-md`}
         {...props}
       >
         {children}

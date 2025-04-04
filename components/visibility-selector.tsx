@@ -12,7 +12,6 @@ import { cn } from '@/lib/utils';
 
 import {
   CheckCircleFillIcon,
-  ChevronDownIcon,
   GlobeIcon,
   LockIcon,
 } from './icons';
@@ -59,7 +58,7 @@ export function VisibilitySelector({
       <DropdownMenuTrigger
         asChild
         className={cn(
-          'w-fit data-[state=open]:bg-accent data-[state=open]:text-white',
+          'w-fit data-[state=open]:bg-accent data-[state=open]:text-foreground',
           className,
         )}
       >

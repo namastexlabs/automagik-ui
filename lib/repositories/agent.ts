@@ -5,7 +5,6 @@ import {
   getDefaultAgents,
   getAvailableAgents,
   getAgentById,
-  getAgentByNameAndUserId,
   deleteAgentById,
   createAgentTransaction,
   updateAgentTransaction,
@@ -39,11 +38,10 @@ export async function getMostRecentAgents(
   userId: string,
 ): Promise<AgentWithMessages[]> {
   const data = await getLatestAgentMessages(userId, 10);
-
-  const agents = data.map(({ chat, agent, message }) => ({
-    ...agent,
-    recentMessage: message,
-    chat,
+  const agents = data.map(({ agent, chat, message }) => ({
+    ...(agent as Agent),
+    chat: chat as Chat,
+    recentMessage: message as Message,
   }));
 
   return agents;
@@ -67,34 +65,33 @@ export async function getAgent(id: string, userId: string): Promise<AgentData> {
   return agent;
 }
 
-export async function findAgentByName(
-  name: string,
-  userId: string,
-  visibility: 'private' | 'public',
-): Promise<Agent | undefined> {
-  return await getAgentByNameAndUserId({ name, userId, visibility });
-}
-
-export async function createAgent({
-  name,
-  systemPrompt,
-  userId,
-  visibility = 'private',
-  tools = [],
-  dynamicBlocks = [],
-  avatarFile,
-}: {
-  name: string;
-  systemPrompt: string;
-  userId: string;
-  visibility?: 'private' | 'public';
-  tools?: string[];
-  avatarFile?: Blob | null;
-  dynamicBlocks?: { name: string; visibility: 'private' | 'public' }[];
-}): Promise<AgentData> {
-  const agentTools = await getToolsByIds(tools, userId);
-  const agentDynamicBlocks = await getOrCreateDynamicBlocks(
+export async function createAgent(
+  {
+    name,
+    systemPrompt,
     userId,
+    description,
+    visibility = 'private',
+    heartbeat = false,
+    tools = [],
+    dynamicBlocks = [],
+    avatarFile,
+  }: {
+    name: string;
+    systemPrompt: string;
+    userId: string;
+    description: string;
+    visibility?: 'private' | 'public';
+    heartbeat?: boolean;
+    tools?: string[];
+    dynamicBlocks?: Array<{ name: string; visibility: 'private' | 'public' }>;
+    avatarFile?: Blob | null;
+  },
+  authenticatedUserId: string,
+): Promise<AgentData> {
+  const agentTools = await getToolsByIds(tools, authenticatedUserId);
+  const agentDynamicBlocks = await getOrCreateDynamicBlocks(
+    authenticatedUserId,
     dynamicBlocks,
   );
 
@@ -104,6 +101,8 @@ export async function createAgent({
       systemPrompt,
       userId,
       visibility,
+      description,
+      heartbeat,
       tools: agentTools.map((tool) => tool.id),
       dynamicBlocks: agentDynamicBlocks.map((block) => block.id),
     });
@@ -139,51 +138,56 @@ export async function createAgent({
   }
 }
 
-export async function updateAgent({
-  tools,
-  dynamicBlocks,
-  ...data
-}: {
-  id: string;
-  userId?: string;
-  name?: string;
-  systemPrompt?: string;
-  visibility?: 'private' | 'public';
-  avatarFile?: Blob | null;
-  tools?: string[];
-  dynamicBlocks?: { name: string; visibility: 'private' | 'public' }[];
-}): Promise<AgentData> {
+export async function updateAgent(
+  {
+    visibility,
+    tools,
+    dynamicBlocks,
+    avatarFile,
+    ...data
+  }: {
+    id: string;
+    name?: string;
+    systemPrompt?: string;
+    visibility?: 'private' | 'public';
+    description?: string;
+    heartbeat?: boolean;
+    tools?: string[];
+    dynamicBlocks?: Array<{ name: string; visibility: 'private' | 'public' }>;
+    avatarFile?: Blob | null;
+  },
+  authenticatedUserId: string,
+): Promise<AgentData> {
   const agent = await getAgentById({ id: data.id });
   if (!agent) {
     throw new NotFoundError('Agent not found');
   }
-  if (agent.userId !== data.userId) {
-    throw new UnauthorizedError('Not authorized to update this agent');
-  }
 
   let avatarUrl: string | null = null;
-  if (data.avatarFile) {
-    const filename = (data.avatarFile as File).name;
+  if (avatarFile) {
+    const filename = (avatarFile as File).name;
     if (agent.avatarUrl) {
       await deleteAgentAvatar(agent.id, getFilenameFromKey(agent.avatarUrl));
     }
     await saveAgentAvatar(
       agent.id,
       filename,
-      Buffer.from(await data.avatarFile.arrayBuffer()),
+      Buffer.from(await avatarFile.arrayBuffer()),
     );
     avatarUrl = getUrlFromKey(getAgentKey(agent.id, filename));
-  } else if (data.avatarFile === null && agent.avatarUrl) {
+  } else if (avatarFile === null && agent.avatarUrl) {
     await deleteAgentAvatar(agent.id, getFilenameFromKey(agent.avatarUrl));
   } else {
     avatarUrl = agent.avatarUrl;
   }
 
   const formTools =
-    tools && tools.length > 0 ? await getToolsByIds(tools, data.userId) : [];
+    tools && tools.length > 0
+      ? await getToolsByIds(tools, authenticatedUserId)
+      : [];
   const formDynamicBlocks =
     dynamicBlocks && dynamicBlocks.length > 0
-      ? await getOrCreateDynamicBlocks(data.userId, dynamicBlocks)
+      ? await getOrCreateDynamicBlocks(authenticatedUserId, dynamicBlocks)
       : [];
 
   const [removedTools, newTools] = formTools
@@ -223,7 +227,7 @@ export async function updateAgent({
     };
   } catch (error) {
     if (isUniqueConstraintError(error)) {
-      const message = `An ${data.visibility} agent with this name already exists`;
+      const message = `An ${visibility} agent with this name already exists`;
       throw new ConflictError(message, { name: [message] });
     }
     throw error;
@@ -251,6 +255,8 @@ export async function duplicateAgent(
       dynamicBlocks: agent.dynamicBlocks.map(
         ({ dynamicBlock }) => dynamicBlock.id,
       ),
+      description: agent.description,
+      heartbeat: agent.heartbeat,
     });
 
     return {

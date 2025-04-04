@@ -1,7 +1,8 @@
 import 'server-only';
-import { and, desc, eq, inArray } from 'drizzle-orm';
+import { and, desc, eq, getTableColumns, inArray } from 'drizzle-orm';
 
 import { db, schema } from './index';
+import { aliasedColumn } from '@/lib/utils.server';
 
 const AGENT_RELATION_QUERY = {
   dynamicBlocks: {
@@ -52,8 +53,31 @@ export async function getLatestAgentMessages(
   offset?: number,
 ) {
   try {
-    const query = db
-      .selectDistinctOn([schema.agent.id])
+    const prefixedAgentColumns = Object.fromEntries(
+      Object.entries(getTableColumns(schema.agent)).map(([key, value]) => [
+        key,
+        aliasedColumn(value, `agent_${value.name}`),
+      ]),
+    );
+    const prefixedChatColumns = Object.fromEntries(
+      Object.entries(getTableColumns(schema.chat)).map(([key, value]) => [
+        key,
+        aliasedColumn(value, `chat_${value.name}`),
+      ]),
+    );
+    const prefixedMessageColumns = Object.fromEntries(
+      Object.entries(getTableColumns(schema.message)).map(([key, value]) => [
+        key,
+        aliasedColumn(value, `message_${value.name}`),
+      ]),
+    );
+
+    const innerQuery = db
+      .selectDistinctOn([schema.agent.id], {
+        agent: prefixedAgentColumns,
+        chat: prefixedChatColumns,
+        message: prefixedMessageColumns,
+      })
       .from(schema.agent)
       .innerJoin(
         schema.chat,
@@ -66,14 +90,18 @@ export async function getLatestAgentMessages(
       .orderBy(schema.agent.id, desc(schema.message.createdAt));
 
     if (limit) {
-      query.limit(limit);
+      innerQuery.limit(limit);
     }
 
     if (offset) {
-      query.offset(offset);
+      innerQuery.offset(offset);
     }
 
-    return await query;
+    const innerQueryAlias = innerQuery.as('inner_query');
+    return await db
+      .select()
+      .from(innerQueryAlias)
+      .orderBy(desc(innerQueryAlias.message.createdAt));
   } catch (error) {
     console.error('Failed to get latest agent messages in database');
     throw error;
@@ -94,36 +122,14 @@ export async function getAgentById({
   }
 }
 
-export async function getAgentByNameAndUserId({
-  name,
-  userId,
-  visibility,
-}: {
-  name: string;
-  userId: string;
-  visibility: 'private' | 'public';
-}) {
-  try {
-    return await db.query.agent.findFirst({
-      where: (agent, { and, eq }) =>
-        and(
-          eq(agent.name, name),
-          eq(agent.userId, userId),
-          eq(agent.visibility, visibility),
-        ),
-    });
-  } catch (error) {
-    console.error('Failed to get agent in database');
-    throw error;
-  }
-}
-
 export async function createAgent(data: {
   name: string;
   systemPrompt: string;
   userId: string | null;
   visibility?: 'private' | 'public';
   avatarUrl?: string | null;
+  description: string;
+  heartbeat: boolean;
 }) {
   try {
     const [createdAgent] = await db
@@ -248,6 +254,8 @@ export async function createAgentTransaction(data: {
   tools?: string[];
   dynamicBlocks?: string[];
   avatarUrl?: string | null;
+  description: string;
+  heartbeat: boolean;
 }) {
   return await db.transaction(async () => {
     const agent = await createAgent({
@@ -256,6 +264,8 @@ export async function createAgentTransaction(data: {
       userId: data.userId,
       visibility: data.visibility,
       avatarUrl: data.avatarUrl,
+      description: data.description,
+      heartbeat: data.heartbeat,
     });
 
     if (data.tools && data.tools.length > 0) {
@@ -285,6 +295,8 @@ export async function updateAgentTransaction(data: {
   name?: string;
   systemPrompt?: string;
   visibility?: 'private' | 'public';
+  description?: string;
+  heartbeat?: boolean;
   avatarUrl?: string | null;
   newTools?: string[];
   newDynamicBlocks?: string[];

@@ -2,6 +2,7 @@
 
 import { motion } from 'framer-motion';
 import Image from 'next/image';
+import { Bot } from 'lucide-react';
 
 import { useResolvedTheme } from '@/hooks/use-resolved-theme';
 import { useCurrentAgent } from '@/hooks/use-current-agent';
@@ -22,9 +23,12 @@ export const Overview = () => {
       >
         <div className="rounded-xl p-6 flex items-center gap-6">
           <Avatar className="size-[100px] text-4xl font-bold">
-            <AvatarImage src={agent.avatarUrl || '/default-avatar.png'} />
-            <AvatarFallback>
-              {agent.name.slice(0, 2).toUpperCase()}
+            <AvatarImage
+              src={agent.avatarUrl || undefined}
+              className="object-cover"
+            />
+            <AvatarFallback className="bg-transparent">
+              <Bot className="size-16" />
             </AvatarFallback>
           </Avatar>
           <h1 className="text-4xl font-bold">Hello there!</h1>

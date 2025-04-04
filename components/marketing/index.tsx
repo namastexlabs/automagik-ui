@@ -16,7 +16,7 @@ const WaitListInput = ({ className, ...props }: InputProps) => {
     <Input
       {...props}
       className={cn(
-        'w-full border border-dark-gray rounded-full p-6 md:text-xl text-white',
+        'w-full border border-dark-gray rounded-full p-6 md:text-xl text-foreground',
         className,
       )}
     />

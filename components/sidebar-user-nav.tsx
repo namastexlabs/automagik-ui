@@ -1,5 +1,5 @@
 'use client';
-import { ChevronUp } from 'lucide-react';
+import { ChevronUp, UserRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
 import { useTheme } from 'next-themes';
 
@@ -51,8 +51,8 @@ export function SidebarUserNav() {
             <SidebarMenuButton className="data-[state=open]:bg-sidebar-accent rounded-full bg-accent border border-dark-gray data-[state=open]:text-sidebar-accent-foreground h-12">
               <Avatar className="size-8 font-bold">
                 <AvatarImage src="" alt="User Avatar" />
-                <AvatarFallback className="bg-red-500">
-                  {user?.email?.slice(0, 2).toUpperCase()}
+                <AvatarFallback>
+                  <UserRound />
                 </AvatarFallback>
               </Avatar>
               {state === 'expanded' && (

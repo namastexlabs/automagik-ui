@@ -247,7 +247,7 @@ function PureBlock({
 
         {!isMobile && (
           <motion.div
-            className="motion relative w-[400px] bg-muted dark:bg-background h-dvh shrink-0"
+            className="motion relative w-[400px] bg-dark-background h-dvh shrink-0"
             initial={{ opacity: 0, x: 10, scale: 1 }}
             animate={{
               opacity: block.isVisible ? 1 : 0,
@@ -291,7 +291,7 @@ function PureBlock({
         )}
 
         <motion.div
-          className="motion fixed dark:bg-muted bg-background h-dvh flex flex-col md:border-l dark:border-zinc-700 border-zinc-200"
+          className="motion fixed bg-black-white-gradient h-dvh flex flex-col md:border-l dark:border-zinc-700 border-zinc-200"
           variants={
             isMobile
               ? {
@@ -400,7 +400,7 @@ function PureBlock({
 
           <div
             className={cn(
-              'dark:bg-muted bg-background h-full overflow-y-auto !max-w-full items-center',
+              'bg-transparent h-full overflow-y-auto !max-w-full items-center',
               {
                 'py-2 px-2': block.kind === 'code',
                 'py-8 md:p-20 px-4': block.kind === 'text',

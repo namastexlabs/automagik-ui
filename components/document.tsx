@@ -128,7 +128,7 @@ function PureDocumentToolCall({
       }}
     >
       <div className="flex flex-row gap-3 items-start">
-        <div className="text-zinc-500 mt-1">
+        <div className="text-muted-foreground mt-1">
           {type === 'create' ? (
             <FileIcon />
           ) : type === 'update' ? (

@@ -1,10 +1,10 @@
 import 'server-only';
 
-import { convertToCoreMessages, type Message } from 'ai';
+import { convertToCoreMessages, type Message as AIMessage } from 'ai';
 
 import { generateTitleFromUserMessage } from '@/lib/ai/generate-title';
 import { getMostRecentUserMessage } from '@/lib/utils.server';
-import type { Chat } from '@/lib/db/schema';
+import type { Chat, Message } from '@/lib/db/schema';
 import {
   saveChat,
   getChatById,
@@ -18,6 +18,10 @@ import {
   UnauthorizedError,
 } from '@/lib/errors';
 import { getAgent } from './agent';
+
+export type ChatWithLatestMessage = Chat & {
+  latestMessage: Message;
+};
 
 export function verifyChatWritePermission(chat: Chat, userId: string) {
   if (chat.userId !== userId) {
@@ -41,9 +45,14 @@ export async function getChat(id: string, userId: string) {
 export async function getAgentChats(
   userId: string,
   agentId: string,
-): Promise<Chat[]> {
+): Promise<ChatWithLatestMessage[]> {
   const agent = await getAgent(agentId, userId);
-  const chats = await getChats({ userId, agentId: agent.id });
+  const chats = (await getChats({ userId, agentId: agent.id })).map(
+    ({ message, chat }) => ({
+      ...(chat as Chat),
+      latestMessage: message as Message,
+    }),
+  );
 
   return chats;
 }
@@ -55,7 +64,7 @@ export async function createChat({
 }: {
   agentId: string;
   userId: string;
-  messages: Message[];
+  messages: AIMessage[];
 }): Promise<Chat> {
   const agent = await getAgent(agentId, userId);
 
