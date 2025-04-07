@@ -2,7 +2,7 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter } from 'next/navigation';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { useActionState, useEffect, useState } from 'react';
 import { useProgress } from '@bprogress/next';
 
@@ -14,6 +14,7 @@ import { DataStatus } from '@/lib/data';
 export default function Page() {
   const router = useRouter();
   const { set, stop } = useProgress();
+  const searchParams = useSearchParams();
 
   const [email, setEmail] = useState('');
 
@@ -75,7 +76,7 @@ export default function Page() {
   };
 
   return (
-    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-accent bg-gradient-to-tl from-accent from-40% to-white/15">
+    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-black-white-gradient">
       <div className="w-full max-w-md overflow-hidden rounded-2xl flex flex-col">
         <Image
           src="/images/automagik-logo-white.svg"
@@ -86,8 +87,13 @@ export default function Page() {
         />
         <AuthForm action={handleSubmit} defaultEmail={email}>
           {errors._errors && (
-            <span className="text-sm text-destructive">
+            <span className="text-md text-destructive">
               {errors._errors.join(', ')}
+            </span>
+          )}
+          {searchParams.get('signup') && (
+            <span className="text-md text-green-400">
+              Check your email to confirm your account
             </span>
           )}
           <SubmitButton variant="gradient" className="rounded-full mt-4">

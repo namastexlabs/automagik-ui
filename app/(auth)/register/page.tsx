@@ -3,7 +3,6 @@
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useActionState, useState, useEffect } from 'react';
-import { toast } from 'sonner';
 import { useProgress } from '@bprogress/next';
 import Image from 'next/image';
 
@@ -63,8 +62,7 @@ export default function Page() {
           };
         }
 
-        toast.success('Check your email to confirm your account');
-        router.replace('/login');
+        router.replace('/login?signup=true');
 
         return { status: DataStatus.Success };
       } catch (error) {
