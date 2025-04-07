@@ -209,6 +209,7 @@ export async function updateAgent(
     await updateAgentTransaction({
       ...data,
       avatarUrl,
+      visibility,
       newTools: newTools?.map((tool) => tool),
       newDynamicBlocks: newDynamicBlocks?.map((block) => block),
       removedTools: removedTools?.map((tool) => tool.id),
