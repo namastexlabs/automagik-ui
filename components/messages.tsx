@@ -23,12 +23,12 @@ export function Messages({ votes }: MessagesProps) {
 
   return (
     <div
-      className="flex flex-col min-w-0 flex-1 overflow-y-auto py-4"
+      className="flex flex-col min-w-0 flex-1 overflow-y-auto py-4 pb-16"
       ref={containerRef}
     >
       {messages.length === 0 && <Overview />}
 
-      <div className="flex flex-col mx-auto w-full max-w-3xl gap-6">
+      <div className="flex flex-col mx-auto w-full max-w-4xl gap-6">
         {messages.map((message, index) => (
           <PreviewMessage
             key={message.id}
@@ -56,7 +56,7 @@ export function Messages({ votes }: MessagesProps) {
           )}
 
         {error && (
-          <div className="mx-auto max-w-3xl w-full">
+          <div className="mx-auto max-w-4xl w-full">
             <Alert variant="destructive" className="ml-4 w-max">
               <AlertCircle className="size-5" />
               <AlertTitle>Error</AlertTitle>

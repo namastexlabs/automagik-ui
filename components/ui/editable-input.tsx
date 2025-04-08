@@ -28,7 +28,7 @@ export function EditableInput({
   const [value, setValue] = useState(defaultValue);
 
   if (!isEditable) {
-    return <div className={cn('py-2 px-3', className)}>{defaultValue}</div>;
+    return <div className={cn('py-2', className)}>{defaultValue}</div>;
   }
 
   if (!isEditing) {

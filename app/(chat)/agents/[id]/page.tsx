@@ -38,7 +38,7 @@ export default async function AgentPage({
   return (
     <div className="flex flex-col h-full bg-black-white-gradient border-none">
       <header>
-        <div className="container flex items-center h-14 px-4">
+        <div className="container flex items-center h-16 px-4">
           <Breadcrumb>
             <BreadcrumbList>
               <BreadcrumbItem>

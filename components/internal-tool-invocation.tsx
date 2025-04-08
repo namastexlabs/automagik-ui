@@ -90,7 +90,7 @@ export function ToolInvocation<T extends InternalToolName>({
       requestSuggestions: (toolInvocation) =>
         renderBlockToolInvocation('request-suggestions', toolInvocation),
       saveMemories: (toolInvocation) => (
-        <div className="flex text-sm leading-relaxed max-w-3xl gap-1 flex-wrap">
+        <div className="flex text-sm leading-relaxed max-w-4xl gap-1 flex-wrap">
           <div className="flex items-center mb-1">
             <Bookmark className="mr-1" size={24} />
             <span className="mr-3 font-bold">Updated Memories</span>
@@ -107,84 +107,84 @@ export function ToolInvocation<T extends InternalToolName>({
         </div>
       ),
       listRemoteSources: () => (
-        <div className="flex text-lg leading-relaxed max-w-3xl">
+        <div className="flex text-lg leading-relaxed max-w-4xl">
           <Badge variant="secondary" className="text-md">
             List RemoteSources Called
           </Badge>
         </div>
       ),
       createRemoteSource: () => (
-        <div className="flex text-lg leading-relaxed max-w-3xl">
+        <div className="flex text-lg leading-relaxed max-w-4xl">
           <Badge variant="secondary" className="text-md">
             create RemoteSource Called
           </Badge>
         </div>
       ),
       syncWorkflow: () => (
-        <div className="flex text-lg leading-relaxed  max-w-3xl">
+        <div className="flex text-lg leading-relaxed  max-w-4xl">
           <Badge variant="secondary" className="text-md">
             sync Workflow Called
           </Badge>
         </div>
       ),
       listWorkflows: () => (
-        <div className="flex leading-relaxed max-w-3xl">
+        <div className="flex leading-relaxed max-w-4xl">
           <Badge variant="secondary" className="text-md">
             list Workflows Called
           </Badge>
         </div>
       ),
       listRemoteWorkflows: () => (
-        <div className="flex text-lg leading-relaxed max-w-3xl">
+        <div className="flex text-lg leading-relaxed max-w-4xl">
           <Badge variant="secondary" className="text-md">
             List Remote Workflows Called
           </Badge>
         </div>
       ),
       scheduleWorkflow: () => (
-        <div className="flex text-lg leading-relaxed max-w-3xl">
+        <div className="flex text-lg leading-relaxed max-w-4xl">
           <Badge variant="secondary" className="text-md">
             Schedule Workflow Called
           </Badge>
         </div>
       ),
       listTasks: () => (
-        <div className="flex text-lg leading-relaxed max-w-3xl">
+        <div className="flex text-lg leading-relaxed max-w-4xl">
           <Badge variant="secondary" className="text-md">
             List Tasks Called
           </Badge>
         </div>
       ),
       listSchedules: () => (
-        <div className="flex text-lg leading-relaxed max-w-3xl">
+        <div className="flex text-lg leading-relaxed max-w-4xl">
           <Badge variant="secondary" className="text-md">
             List Schedules Called
           </Badge>
         </div>
       ),
       deleteRemoteSource: () => (
-        <div className="flex text-lg leading-relaxed max-w-3xl">
+        <div className="flex text-lg leading-relaxed max-w-4xl">
           <Badge variant="secondary" className="text-md">
             Delete Remote Source Called
           </Badge>
         </div>
       ),
       deleteSchedule: () => (
-        <div className="flex text-lg leading-relaxed max-w-3xl">
+        <div className="flex text-lg leading-relaxed max-w-4xl">
           <Badge variant="secondary" className="text-md">
             Delete Schedule Called
           </Badge>
         </div>
       ),
       runWorkflow: () => (
-        <div className="flex text-lg leading-relaxed max-w-3xl">
+        <div className="flex text-lg leading-relaxed max-w-4xl">
           <Badge variant="secondary" className="text-md">
             Run Workflow Called
           </Badge>
         </div>
       ),
       enableDisableSchedule: () => (
-        <div className="flex text-lg leading-relaxed max-w-3xl">
+        <div className="flex text-lg leading-relaxed max-w-4xl">
           <Badge variant="secondary" className="text-md">
             Enable/Disable Schedule Called
           </Badge>

@@ -15,7 +15,7 @@ export const Overview = () => {
   if (agent) {
     return (
       <motion.div
-        className="motion max-w-3xl w-full mx-auto md:mt-[20vh]"
+        className="motion max-w-4xl w-full mx-auto md:mt-[20vh]"
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.98 }}
@@ -28,7 +28,7 @@ export const Overview = () => {
               className="object-cover"
             />
             <AvatarFallback className="bg-transparent">
-              <Bot className="size-16" />
+              <Bot className="size-24" />
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col flex-1 gap-3 my-auto min-w-0">
@@ -46,7 +46,7 @@ export const Overview = () => {
 
   return (
     <motion.div
-      className="motion max-w-3xl mx-auto md:mt-20"
+      className="motion max-w-4xl mx-auto md:mt-20"
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
@@ -66,7 +66,7 @@ export const Overview = () => {
             className="w-[600px] h-[100px] object-cover mb-5"
           />
         </p>
-        <p>Because magic shouldn&apos;t be complica ,ted.</p>
+        <p>Because magic shouldn&apos;t be complicated.</p>
       </div>
     </motion.div>
   );

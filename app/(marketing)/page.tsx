@@ -44,7 +44,7 @@ export default function Home() {
               height={20}
               className="aspect-[16/3] w-[250px] sm:w-[302px] object-cover z-20 mx-auto lg:hidden"
             />
-            <h2 className="leading-none text-3xl !mt-4 sm:text-[2.5rem] px-4 md:p-0 mx-auto max-lg:!mb-0 lg:!mt-0 lg:mx-0 lg:text-left lg:text-[2.5rem] xl:text-5xl">
+            <h2 className="leading-none text-3xl !mt-4 sm:text-[2.5rem] px-4 md:p-0 mx-auto max-lg:!mb-0 lg:!mt-0 lg:mx-0 lg:text-left lg:text-[2.5rem] xl:text-[3.35rem]">
               <p className="font-extralight">
                 <GradientText>Effortless productivity.</GradientText>
               </p>
@@ -59,8 +59,8 @@ export default function Home() {
               height={500}
               className="z-10 object-contain object-top aspect-square mx-auto !my-0 lg:hidden"
             />
-            <div className="!mb-12 !mt-2 lg:order-1 text-center lg:text-left lg:!mb-0 lg:!mt-auto px-4 lg:p-0">
-              <div className="flex flex-col lg:flex-row lg:gap-2 font-bold text-lg xl:text-xl">
+            <div className="!mb-12 !mt-2 lg:order-1 text-center lg:text-left lg:!mb-0 lg:!mt-auto px-8 lg:p-0">
+              <div className="flex flex-col lg:flex-row lg:gap-2 font-bold text-2xl xl:text-[1.4rem]">
                 <p>Unleash your potential.</p>
                 <p>Redefine your limits.</p>
               </div>
@@ -139,7 +139,7 @@ export default function Home() {
           </div>
         </section>
         <section className="flex flex-col justify-center bg-accent-cyan lg:min-h-screen py-12 px-4">
-          <div className="max-w-4xl font-extralight text-[2rem] sm:text-[2.5rem] md:text-[3.5rem] lg:text-[4.5rem] mx-auto flex flex-col">
+          <div className="max-w-5xl font-extralight text-[2rem] sm:text-[2.5rem] md:text-[3.5rem] lg:text-[5rem] mx-auto flex flex-col">
             <h2 className="w-fit mb-8 lg:mb-24 lg:mx-0">
               <GradientText variant="2">Your data, your rules</GradientText>
             </h2>
@@ -154,7 +154,7 @@ export default function Home() {
         <div id="waitlist" className="flex flex-col min-h-screen">
           <section className="container mx-auto px-4 py-20 flex flex-col justify-center flex-1">
             <div className="max-w-lg mx-auto text-center">
-              <h2 className="text-6xl font-extralight mb-6">
+              <h2 className="text-7xl font-extralight mb-6">
                 <GradientText>Join the waitlist</GradientText>
               </h2>
               <p className="mb-10 text-xl font-bold">
@@ -167,7 +167,7 @@ export default function Home() {
           <footer className="container mx-auto px-4 py-6 text-center text-foreground text-sm">
             <p>
               Namastex Labs Serviços Em Tecnologia Ltda - CNPJ
-              48.158.454/0001-82
+              46.156.854/0001-62
             </p>
           </footer>
         </div>
