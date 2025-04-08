@@ -20,12 +20,10 @@ import {
   type AgentWithMessages,
 } from '@/lib/repositories/agent';
 import { getUser } from '@/lib/auth';
-import { ApplicationError } from '@/lib/errors';
 
 import {
   type DataResponse,
   type ZodLooseInfer,
-  handleApplicationError,
   handleDataError,
 } from './index.server';
 import { DataStatus } from '.';
@@ -240,11 +238,7 @@ export async function duplicateAgent(
       data: toAgentDTO(agent),
     };
   } catch (error) {
-    if (error instanceof ApplicationError) {
-      return handleApplicationError(error);
-    }
-
-    throw error;
+    return handleDataError(error);
   }
 }
 

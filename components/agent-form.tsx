@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { usePageUnloadWarning } from '@/hooks/use-page-unload-warning';
 import { DataStatus } from '@/lib/data';
-import { saveAgentAction } from '@/app/(chat)/actions';
+import { duplicateAgentAction, saveAgentAction } from '@/app/(chat)/actions';
 
 import { ToolsCombobox } from './tools-combobox';
 import { PromptTemplate } from './prompt-template';
@@ -49,11 +49,16 @@ export function AgentForm({
     FormData
   >(
     async (state, formData) => {
-      if (avatarFile) {
-        formData.append('avatarFile', avatarFile);
-      }
+      let newState: Awaited<ReturnType<typeof saveAgentAction>>;
+      if (agent && !isEditable) {
+        newState = await duplicateAgentAction(state, agent.id);
+      } else {
+        if (avatarFile) {
+          formData.append('avatarFile', avatarFile);
+        }
 
-      const newState = await saveAgentAction(state, formData);
+        newState = await saveAgentAction(state, formData);
+      }
 
       if (newState.status === DataStatus.Success && newState.data) {
         toast.success(`${agent ? 'Updated' : 'Created'} agent successfully`);
@@ -90,13 +95,13 @@ export function AgentForm({
   }, [previewImage]);
 
   const errorMessages = Object.entries(errors).flatMap(([key, value]) => {
-    if (key !== '_errors') {
-      return value.map(
-        (error) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${error}`,
-      );
+    if (key === '_errors') {
+      return value;
     }
 
-    return value;
+    return value.map(
+      (error) => `${key.charAt(0).toUpperCase() + key.slice(1)}: ${error}`,
+    );
   });
 
   const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
@@ -176,9 +181,9 @@ export function AgentForm({
               >
                 Private agent
               </Label>
+              <input type="hidden" name="visibility" value={visibility} />
               <Switch
                 id="visibility"
-                name="visibility"
                 value={visibility}
                 checked={visibility === 'private'}
                 disabled={!isEditable}
@@ -225,6 +230,7 @@ export function AgentForm({
           name="systemPrompt"
           dynamicBlocksName="dynamicBlocks"
           placeholder="Enter your agent prompt here..."
+          isDisabled={!isEditable}
           template={template}
           onChange={setTemplate}
           initialDynamicBlocks={agent?.dynamicBlocks}
@@ -235,6 +241,7 @@ export function AgentForm({
         <ToolsCombobox
           formId={formId}
           initialSelected={agent?.tools.map((tool) => tool.id) || []}
+          isDisabled={!isEditable}
         />
       </div>
 
@@ -246,7 +253,11 @@ export function AgentForm({
       <div className="flex">
         {agent && isEditable && <AgentDeleteDialog agentId={agent.id} />}
         <SubmitButton className="font-bold ml-auto bg-accent-cyan transition-colors text-accent hover:bg-accent-cyan/80">
-          {agent ? 'SAVE CHANGES' : 'CREATE AGENT'}
+          {agent
+            ? isEditable
+              ? 'SAVE CHANGES'
+              : 'DUPLICATE AGENT'
+            : 'CREATE AGENT'}
         </SubmitButton>
       </div>
     </form>

@@ -198,3 +198,20 @@ export async function getAgentAvatar(id: string, name: string) {
     throw e;
   }
 }
+
+export async function copyAgentAvatar(
+  sourceId: string,
+  destinationId: string,
+  name: string,
+) {
+  try {
+    await getMinioClient().copyObject(
+      S3_STORAGE_BUCKET_NAME,
+      getAgentKey(destinationId, name),
+      `${S3_STORAGE_BUCKET_NAME}/${getAgentKey(sourceId, name)}`,
+    );
+  } catch (e) {
+    console.log(`Failed to copy agent avatar ${e}`);
+    throw e;
+  }
+}

@@ -2,7 +2,6 @@ import 'server-only';
 
 import type { Agent, Message, Chat } from '@/lib/db/schema';
 import {
-  getDefaultAgents,
   getAvailableAgents,
   getAgentById,
   deleteAgentById,
@@ -19,6 +18,7 @@ import {
   deleteAgentAvatar,
   getFilenameFromKey,
   getUrlFromKey,
+  copyAgentAvatar,
 } from '@/lib/services/minio';
 
 import { isUniqueConstraintError } from '../db/queries';
@@ -29,10 +29,6 @@ export type AgentWithMessages = Agent & {
   recentMessage: Message;
   chat: Chat;
 };
-
-export async function getSystemAgents(): Promise<AgentData[]> {
-  return await getDefaultAgents();
-}
 
 export async function getMostRecentAgents(
   userId: string,
@@ -259,6 +255,16 @@ export async function duplicateAgent(
       description: agent.description,
       heartbeat: agent.heartbeat,
     });
+
+    if (agent.avatarUrl) {
+      const filename = getFilenameFromKey(agent.avatarUrl);
+      await copyAgentAvatar(id, newAgent.id, filename);
+      const avatarUrl = getUrlFromKey(getAgentKey(newAgent.id, filename));
+      await updateAgentTransaction({
+        id: newAgent.id,
+        avatarUrl,
+      });
+    }
 
     return {
       ...newAgent,

@@ -60,7 +60,7 @@ export function handleZodError<MODEL>(
 export function handleApplicationError<
   ERROR extends FieldBasedError<any> | ApplicationError,
 >(error: ERROR): DataResponse<null, ExtractModel<ERROR>> {
-  if (error instanceof FieldBasedError && error.errors) {
+  if (error instanceof FieldBasedError && Object.keys(error.errors).length > 1) {
     return {
       status: error.status,
       data: null,
