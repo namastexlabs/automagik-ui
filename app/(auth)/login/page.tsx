@@ -2,8 +2,8 @@
 
 import Image from 'next/image';
 import Link from 'next/link';
-import { useRouter, useSearchParams } from 'next/navigation';
-import { useActionState, useEffect, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { use, useActionState, useEffect, useState } from 'react';
 import { useProgress } from '@bprogress/next';
 
 import { AuthForm } from '@/components/auth-form';
@@ -12,10 +12,12 @@ import { createBrowserClient } from '@/lib/supabase/client';
 
 import { login } from '../actions';
 
-export default function Page() {
+export default function Page({
+  searchParams,
+}: { searchParams: Promise<{ signup?: string }> }) {
   const router = useRouter();
   const { set, stop } = useProgress();
-  const searchParams = useSearchParams();
+  const { signup } = use(searchParams);
 
   const [email, setEmail] = useState('');
 
@@ -75,7 +77,7 @@ export default function Page() {
         />
         <AuthForm action={handleSubmit} defaultEmail={email}>
           {error && <span className="text-md text-destructive">{error}</span>}
-          {searchParams.get('signup') && (
+          {signup && (
             <span className="text-md text-green-400">
               Check your email to confirm your account
             </span>
