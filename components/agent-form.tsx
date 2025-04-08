@@ -51,7 +51,7 @@ export function AgentForm({
     async (state, formData) => {
       let newState: Awaited<ReturnType<typeof saveAgentAction>>;
       if (agent && !isEditable) {
-        newState = await duplicateAgentAction(state, agent.id);
+        newState = await duplicateAgentAction(agent.id);
       } else {
         if (avatarFile) {
           formData.append('avatarFile', avatarFile);

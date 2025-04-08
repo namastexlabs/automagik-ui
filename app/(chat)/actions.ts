@@ -50,10 +50,7 @@ export async function saveAgentAction(
   return saveAgent(data, id);
 }
 
-export async function duplicateAgentAction(
-  _: Awaited<ReturnType<typeof saveAgent>>,
-  id: string,
-) {
+export async function duplicateAgentAction(id: string) {
   return duplicateAgent(id);
 }
 
