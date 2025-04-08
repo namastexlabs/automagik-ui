@@ -149,11 +149,83 @@ export async function convertCoreMessageAttachments(
   };
 }
 
-export function sanitizeMessages(
+export function handleClaudeReasoning(message: CoreMessage) {
+  if (message.role === 'assistant' && Array.isArray(message.content)) {
+    const reasoningParts = message.content.filter(
+      (content) => content.type === 'reasoning',
+    );
+
+    const textPartIndex = message.content.findIndex(
+      (content) => content.type === 'text',
+    );
+
+    return {
+      ...message,
+      content: message.content
+        .filter((content) => content.type !== 'reasoning')
+        .map((part, index) => {
+          if (index === textPartIndex) {
+            const text = reasoningParts
+              .map((part) => `<thinking>${part.text}</thinking>`)
+              .join('\n');
+            return {
+              text,
+              type: 'text' as const,
+            };
+          }
+
+          return part;
+        }),
+    };
+  }
+
+  return message;
+}
+
+export function handleAnthropicEmptyContent(messages: CoreMessage[]) {
+  return messages.reduce<CoreMessage[]>((acc, message) => {
+    switch (message.role) {
+      case 'system':
+      case 'tool': {
+        acc.push(message);
+        break;
+      }
+      case 'assistant':
+      case 'user': {
+        if (!Array.isArray(message.content)) {
+          if (message.content.trim().length > 0) {
+            acc.push(message);
+          }
+        } else {
+          // Filter out empty text/reasoning content
+          const filteredContent = message.content.filter((content) => {
+            const isReasoningOrText =
+              content.type === 'text' || content.type === 'reasoning';
+
+            if (!isReasoningOrText) return true;
+            return content.text.trim().length > 0;
+          });
+
+          if (filteredContent.length > 0) {
+            acc.push({
+              ...message,
+              content: filteredContent,
+            } as CoreMessage);
+          }
+        }
+        break;
+      }
+    }
+    return acc;
+  }, []);
+}
+
+export async function sanitizeMessages(
   messages: CoreMessage[],
   provider: string,
   modelId: string,
-): CoreMessage[] {
+  chatId: string,
+): Promise<CoreMessage[]> {
   let result = messages;
   if (provider === 'anthropic') {
     /*
@@ -161,77 +233,22 @@ export function sanitizeMessages(
      * This function removes the reasoning messages from the array back to XML thiking tags
      */
     if (!modelId.includes('claude-3-7-sonnet')) {
-      result = messages.map((message) => {
-        if (message.role === 'assistant' && Array.isArray(message.content)) {
-          const reasoningParts = message.content.filter(
-            (content) => content.type === 'reasoning',
-          );
-
-          const textPartIndex = message.content.findIndex(
-            (content) => content.type === 'text',
-          );
-
-          return {
-            ...message,
-            content: message.content
-              .filter((content) => content.type !== 'reasoning')
-              .map((part, index) => {
-                if (index === textPartIndex) {
-                  const text = reasoningParts
-                    .map((part) => `<thinking>${part.text}</thinking>`)
-                    .join('\n');
-                  return {
-                    text,
-                    type: 'text' as const,
-                  };
-                }
-
-                return part;
-              }),
-          };
-        }
-
-        return message;
-      });
+      result = messages.map(handleClaudeReasoning);
     }
 
     // Anthropic doesn't allow empty content messages
-    result = result.reduce<CoreMessage[]>((acc, message) => {
-      switch (message.role) {
-        case 'system':
-        case 'tool': {
-          acc.push(message);
-          break;
-        }
-        case 'assistant':
-        case 'user': {
-          if (!Array.isArray(message.content)) {
-            if (message.content.trim().length > 0) {
-              acc.push(message);
-            }
-          } else {
-            // Filter out empty text/reasoning content
-            const filteredContent = message.content.filter(content => {
-              const isReasoningOrText = 
-                content.type === 'text' || content.type === 'reasoning';
-              
-              if (!isReasoningOrText) return true;
-              return content.text.trim().length > 0;
-            });
-
-            if (filteredContent.length > 0) {
-              acc.push({
-                ...message,
-                content: filteredContent,
-              } as CoreMessage);
-            }
-          }
-          break;
-        }
-      }
-      return acc;
-    }, []);
+    result = handleAnthropicEmptyContent(result);
   }
+
+  result = await Promise.all(
+    messages.map(async (message) => {
+      if (message.role === 'user') {
+        return convertCoreMessageAttachments(message, chatId);
+      }
+      return message;
+    }),
+  );
+
   return result;
 }
 
@@ -254,5 +271,5 @@ export const aliasedColumn = <T extends AnyColumn>(
   column: T,
   alias: string,
 ): SQL.Aliased<GetColumnData<T>> => {
-  return column.getSQL().mapWith(column.mapFromDriverValue).as(alias)
-}
+  return column.getSQL().mapWith(column.mapFromDriverValue).as(alias);
+};

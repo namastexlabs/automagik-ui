@@ -24,7 +24,6 @@ import {
   getMostRecentUserMessage,
   hasAttachment,
   sanitizeResponseMessages,
-  convertCoreMessageAttachments,
   sanitizeMessages,
 } from '@/lib/utils.server';
 import { generateUUID } from '@/lib/utils';
@@ -94,10 +93,11 @@ export async function POST(request: NextRequest) {
         }));
 
     const agent = await getAgent(chat.agentId, userId);
-    const coreMessages = sanitizeMessages(
+    const coreMessages = await sanitizeMessages(
       convertToCoreMessages(sanitizedMessages),
       provider,
       modelId,
+      chat.id,
     );
     const lastMessage = messages.at(-1);
     const userMessage = getMostRecentUserMessage(coreMessages);
@@ -105,11 +105,6 @@ export async function POST(request: NextRequest) {
     if (!userMessage || !lastMessage) {
       return new Response('No user message found', { status: 400 });
     }
-
-    const userMessageWithAttachments = await convertCoreMessageAttachments(
-      userMessage,
-      chat.id,
-    );
 
     await createMessages([
       {
@@ -159,7 +154,7 @@ export async function POST(request: NextRequest) {
           frequencyPenalty,
           abortSignal: request.signal,
           experimental_generateMessageId: generateUUID,
-          messages: [...coreMessages.slice(0, -1), userMessageWithAttachments],
+          messages: coreMessages,
           maxSteps: 5,
           tools,
           providerOptions:

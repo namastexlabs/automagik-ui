@@ -1,6 +1,7 @@
 import 'server-only';
 import * as Minio from 'minio';
 import { generateUUID } from '../utils';
+import { parse } from 'date-fns';
 
 type ImageSource = 'document' | 'input';
 
@@ -171,8 +172,10 @@ export async function getMessageFile(name: string, chatId?: string) {
 
 export function isSignedUrlExpired(url: string) {
   const urlObject = new URL(url);
-  const signedDate = new Date(
+  const signedDate = parse(
     urlObject.searchParams.get('X-Amz-Date') as string,
+    "yyyyMMdd'T'HHmmssX",
+    new Date(),
   );
   const expirationTime = Number.parseInt(
     urlObject.searchParams.get('X-Amz-Expires') as string,
