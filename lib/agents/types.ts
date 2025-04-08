@@ -1,7 +1,7 @@
 import type { ToolCall, ToolResult, DataStreamWriter, Message } from 'ai';
 import type { z } from 'zod';
 
-import type { Document, Chat } from '@/lib/db/schema';
+import type { Document } from '@/lib/db/schema';
 import type { AgentData } from '../db/queries/agent';
 
 export type InferParameters<T> = T extends z.ZodTypeAny
@@ -13,7 +13,7 @@ export type ToolRequestContext = {
   userId: string;
   userMessage: Message;
   agent: AgentData;
-  chat: Chat;
+  chatId: string;
   abortSignal: AbortSignal;
 };
 

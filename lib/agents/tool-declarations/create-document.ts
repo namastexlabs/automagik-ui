@@ -34,7 +34,7 @@ export const createDocumentTool = createToolDefinition({
     { title, description, kind },
     context,
   ): Promise<DocumentExecuteReturn> => {
-    const { dataStream, userId, chat, agent, userMessage, abortSignal } =
+    const { dataStream, userId, chatId, agent, userMessage, abortSignal } =
       context;
     const id = generateUUID();
     let draftText = '';
@@ -85,7 +85,7 @@ export const createDocumentTool = createToolDefinition({
           metadata: {
             user_id: userId,
             document_id: id,
-            thread_id: chat.id,
+            thread_id: chatId,
             agent_id: agent.id,
           },
         },
@@ -121,7 +121,7 @@ export const createDocumentTool = createToolDefinition({
           metadata: {
             user_id: userId,
             document_id: id,
-            thread_id: chat.id,
+            thread_id: chatId,
             agent_id: agent.id,
           },
         },
@@ -160,10 +160,10 @@ export const createDocumentTool = createToolDefinition({
       const name = await saveMessageFile(
         title,
         Buffer.from(image.uint8Array),
-        chat.id,
+        chatId,
         'document',
       );
-      draftText = await getMessageFile(name, chat.id);
+      draftText = await getMessageFile(name, chatId);
       dataStream.writeData({
         type: 'image-delta',
         content: draftText,
@@ -185,7 +185,7 @@ export const createDocumentTool = createToolDefinition({
           metadata: {
             user_id: userId,
             document_id: id,
-            thread_id: chat.id,
+            thread_id: chatId,
             agent_id: agent.id,
           },
         },

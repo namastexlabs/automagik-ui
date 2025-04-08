@@ -49,9 +49,7 @@ export function Chat({
   const isBlockVisible = useBlockSelector((state) => state.isVisible);
 
   useEffect(() => {
-    if (currentAgent) {
-      updateAgent(currentAgent);
-    }
+    updateAgent(currentAgent || null);
   }, [currentAgent, updateAgent]);
 
   return (

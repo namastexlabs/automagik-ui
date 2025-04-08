@@ -10,7 +10,7 @@ import { PreviewMessage, ThinkingMessage } from './message';
 
 import { Overview } from './overview';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-
+import { useCurrentAgent } from '@/hooks/use-current-agent';
 interface MessagesProps {
   votes: Array<Vote> | undefined;
   isBlockVisible: boolean;
@@ -18,12 +18,13 @@ interface MessagesProps {
 
 export function Messages({ votes }: MessagesProps) {
   const { chat, error, isReadOnly, isLoading } = useChat();
+  const { agent } = useCurrentAgent();
   const { messages } = useChatMessages();
   const containerRef = useScrollToBottom<HTMLDivElement>(messages, isLoading);
 
   return (
     <div
-      className="flex flex-col min-w-0 flex-1 overflow-y-auto py-4"
+      className="flex flex-col min-w-0 flex-1 overflow-y-auto py-4 pb-16"
       ref={containerRef}
     >
       {messages.length === 0 && <Overview />}
@@ -34,8 +35,8 @@ export function Messages({ votes }: MessagesProps) {
             key={message.id}
             chatId={chat?.id}
             message={message}
-            agentName={chat?.agent?.name}
-            agentAvatarUrl={chat?.agent?.avatarUrl}
+            agentName={agent?.name}
+            agentAvatarUrl={agent?.avatarUrl}
             isLoading={isLoading && messages.length - 1 === index}
             vote={
               votes
@@ -50,8 +51,8 @@ export function Messages({ votes }: MessagesProps) {
           messages.length > 0 &&
           messages[messages.length - 1].role === 'user' && (
             <ThinkingMessage
-              agentAvatarUrl={chat?.agent?.avatarUrl}
-              agentName={chat?.agent?.name}
+              agentAvatarUrl={agent?.avatarUrl}
+              agentName={agent?.name}
             />
           )}
 

@@ -5,10 +5,12 @@ import { db, schema } from './index';
 import { aliasedColumn } from '@/lib/utils.server';
 
 export async function saveChat({
+  id,
   userId,
   title,
   agentId,
 }: {
+  id?: string;
   userId: string;
   title: string;
   agentId: string;
@@ -21,6 +23,7 @@ export async function saveChat({
         userId,
         title,
         agentId,
+        id,
       })
       .returning();
 

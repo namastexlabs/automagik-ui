@@ -3,7 +3,6 @@ import 'server-only';
 import { convertToCoreMessages, type Message as AIMessage } from 'ai';
 
 import { generateTitleFromUserMessage } from '@/lib/ai/generate-title';
-import { getMostRecentUserMessage } from '@/lib/utils.server';
 import type { Chat, Message } from '@/lib/db/schema';
 import {
   saveChat,
@@ -58,10 +57,12 @@ export async function getAgentChats(
 }
 
 export async function createChat({
+  id,
   agentId,
   userId,
   messages,
 }: {
+  id?: string;
   agentId: string;
   userId: string;
   messages: AIMessage[];
@@ -78,7 +79,9 @@ export async function createChat({
   }
 
   const coreMessages = convertToCoreMessages(messages);
-  const userMessage = getMostRecentUserMessage(coreMessages);
+  const userMessage = coreMessages.findLast(
+    (message) => message.role === 'user',
+  );
 
   if (!userMessage) {
     throw new InvalidDataError('No user message found');
@@ -88,7 +91,23 @@ export async function createChat({
     userId,
     agentId,
     title: await generateTitleFromUserMessage({ message: userMessage }),
+    id,
   });
+}
+
+export async function getOrCreateChat(
+  id: string,
+  agentId: string,
+  userId: string,
+  messages: AIMessage[],
+) {
+  const chat = await getChatById({ id });
+
+  if (chat) {
+    return chat;
+  }
+
+  return await createChat({ id, agentId, userId, messages });
 }
 
 export async function removeChatById(

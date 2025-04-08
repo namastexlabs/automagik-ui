@@ -18,10 +18,10 @@ const FloatingInput = React.forwardRef<
       placeholder=" "
       variant="floating"
       className={cn(
-        'peer bg-transparent',
-        '!ring-2 !ring-muted-foreground border-transparent !ring-offset-4 !ring-offset-background',
+        'peer !bg-accent',
+        '!ring-0 !ring-offset-0 border-2 border-muted-foreground p-4',
         {
-          '!ring-ring': isFocused,
+          '!border-accent-cyan': isFocused,
         },
         className,
       )}
@@ -41,7 +41,7 @@ const FloatingLabel = React.forwardRef<
   return (
     <Label
       className={cn(
-        'absolute top-0 translate-y-[-1rem] scale-75 rtl:left-auto rtl:translate-x-1/4 start-[1.65rem] cursor-text z-20 origin-[0] transform text-sm text-muted-foreground duration-300 peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:scale-100',
+        'absolute top-0 ml-2 translate-y-[-0.8em] scale-75 start-[1.65rem] cursor-text z-20 origin-[0] transform text-md text-muted-foreground duration-300 peer-placeholder-shown:top-1/2 peer-placeholder-shown:-translate-y-1/2 peer-placeholder-shown:scale-100',
         {
           'text-accent-foreground': isFocused,
         },
@@ -142,16 +142,12 @@ export const FloatingLabelInput = React.forwardRef<
       </FloatingLabel>
       <div
         className={cn(
-          'absolute block peer-placeholder-shown:hidden -top-[6px] z-10 h-[2px] ml-5 bg-muted-foreground mix-blend-difference pointer-events-none',
-          {
-            'bg-ring': isFocused,
-          },
+          'absolute block peer-placeholder-shown:opacity-0 transition-opacity duration-300 top-[0px] z-10 h-[5px] ml-7 bg-black pointer-events-none',
         )}
-        style={{ width: `calc(${labelWidth}px + 0.8rem)` }}
+        style={{ width: `calc(${labelWidth}px + 0.9rem)` }}
         aria-hidden="true"
       />
     </div>
   );
 });
 FloatingLabelInput.displayName = 'FloatingLabelInput';
-

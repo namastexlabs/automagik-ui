@@ -61,15 +61,15 @@ function PureModelSelector({
       >
         <Button
           variant="ghost"
-          className="group/model-selector flex items-center h-full gap-2 bg-dark-gray py-1.5 px-3 rounded-xl text-start"
+          className="group/model-selector flex items-center h-full gap-2 bg-dark-gray py-1.5 px-3 rounded-lg text-start"
         >
           {modelIcon && (
-            <div className="size-7 shrink-0 rounded-full bg-white flex items-center justify-center">
+            <div className="size-8 shrink-0 rounded-full bg-white flex items-center justify-center">
               <Image
                 src={modelIcon}
                 alt={selectedProvider}
-                width={24}
-                height={24}
+                width={28}
+                height={28}
               />
             </div>
           )}
@@ -77,7 +77,7 @@ function PureModelSelector({
             <span className="text-xs capitalize text-muted-foreground">
               {selectedProvider}
             </span>
-            <span className="text-xs font-bold text-foreground">{modelData?.name}</span>
+            <span className="text-sm font-bold text-foreground">{modelData?.name}</span>
           </div>
           <ChevronRightIcon size={24} className="ml-2 text-muted-foreground" />
         </Button>
@@ -97,16 +97,16 @@ function PureModelSelector({
                 heading={
                   <div className="flex items-center gap-1">
                     {getModelIcon(provider) && (
-                      <div className="size-5 shrink-0 rounded-full bg-white flex items-center justify-center">
+                      <div className="size-6 shrink-0 rounded-full bg-white flex items-center justify-center">
                         <Image
                           src={getModelIcon(provider) as string}
                           alt={provider}
-                          width={16}
-                          height={16}
+                          width={20}
+                          height={20}
                         />
                       </div>
                     )}
-                    <span className="text-xs">{provider}</span>
+                    <span className="text-sm">{provider}</span>
                   </div>
                 }
                 className="capitalize"

@@ -66,7 +66,7 @@ export function ChatHeader({
   };
 
   return (
-    <header className="flex sticky top-0 py-1.5 items-center px-5 gap-2">
+    <header className="flex sticky top-0 py-3 items-center px-5 gap-2">
       {!isReadOnly && (
         <ModelSelector
           selectedModelId={modelId}
@@ -76,7 +76,7 @@ export function ChatHeader({
         />
       )}
 
-      <div className="flex items-center gap-1 bg-dark-gray rounded-lg h-full px-3 py-1.5 text-sm">
+      <div className="flex items-center gap-1 bg-dark-gray rounded-lg h-full px-3 py-1.5">
         <Smile size={20} />
         <span>0 tokens</span>
       </div>

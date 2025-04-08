@@ -8,7 +8,7 @@ import { useProgress } from '@bprogress/next';
 
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
-import { createBrowserClient } from '@/lib/supabase/client';
+import { resetPassword } from '../actions';
 
 export default function Page() {
   const { set, stop } = useProgress();
@@ -21,12 +21,9 @@ export default function Page() {
     set(0.4);
 
     try {
-      const supabase = createBrowserClient();
-      const { error } = await supabase.auth.resetPasswordForEmail(email, {
-        redirectTo: `${window.location.origin}/update-password`,
-      });
+      const data = await resetPassword(email);
 
-      if (error) {
+      if (data?.error) {
         toast.error('Failed to send reset password email');
         stop();
         return;
