@@ -28,6 +28,7 @@ export function PromptTemplate({
   onChange,
   dynamicBlocksName,
   initialDynamicBlocks,
+  isDisabled = false,
 }: {
   template: string;
   onChange: (template: string) => void;
@@ -36,6 +37,7 @@ export function PromptTemplate({
   placeholder: string;
   agent?: AgentDTO | null;
   initialDynamicBlocks?: { name: string; visibility: 'private' | 'public' }[];
+  isDisabled?: boolean;
 }) {
   const [open, setOpen] = useState<number | null>(null);
   const [openDialog, setOpenDialog] = useState(false);
@@ -159,11 +161,12 @@ export function PromptTemplate({
           name={name}
           value={template}
           placeholder={placeholder}
+          disabled={isDisabled}
           onChange={(e) => onChange(e.target.value)}
           rows={5}
           className="min-h-[80px] resize-none cursor-pointer flex-1 bg-dark-background border border-muted p-3 pb-0 rounded-lg text-left"
         />
-        <div className="opacity-0 group-hover:opacity-100 transition-opacity">
+        <div>
           <PencilIcon className="size-4" />
         </div>
       </Button>
