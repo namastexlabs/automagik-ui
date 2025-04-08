@@ -24,10 +24,12 @@ export function ToolsCombobox({
   initialSelected,
   formId,
   isDisabled = false,
+  isPrefetch = true,
 }: {
   initialSelected: string[];
   formId: string;
   isDisabled?: boolean;
+  isPrefetch?: boolean;
 }) {
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [openToolForm, setOpenToolForm] = useState(false);
@@ -35,6 +37,9 @@ export function ToolsCombobox({
   const { data: tools = [], isLoading } = useSWR<ToolDTO[]>(
     '/api/tools',
     fetcher,
+    {
+      revalidateOnMount: !isPrefetch,
+    },
   );
 
   const toggleTool = useCallback((toolId: string) => {

@@ -46,8 +46,6 @@ export async function updatePassword(password: string) {
 
   const { error } = await supabase.auth.updateUser({ password });
 
-  console.log(error);
-
   if (error) {
     return { error };
   }

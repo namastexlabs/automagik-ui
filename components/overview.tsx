@@ -12,8 +12,6 @@ export const Overview = () => {
   const colorMode = useResolvedTheme();
   const { agent } = useCurrentAgent();
 
-  console.log(agent);
-
   if (agent) {
     return (
       <motion.div

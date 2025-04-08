@@ -32,7 +32,6 @@ export default function Page() {
       set(0.4);
       try {
         const { error } = await updatePassword(password);
-        console.log(error);
 
         if (error) {
           stop();
