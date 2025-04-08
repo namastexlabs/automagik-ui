@@ -10,7 +10,7 @@ import { PreviewMessage, ThinkingMessage } from './message';
 
 import { Overview } from './overview';
 import { Alert, AlertDescription, AlertTitle } from './ui/alert';
-
+import { useCurrentAgent } from '@/hooks/use-current-agent';
 interface MessagesProps {
   votes: Array<Vote> | undefined;
   isBlockVisible: boolean;
@@ -18,6 +18,7 @@ interface MessagesProps {
 
 export function Messages({ votes }: MessagesProps) {
   const { chat, error, isReadOnly, isLoading } = useChat();
+  const { agent } = useCurrentAgent();
   const { messages } = useChatMessages();
   const containerRef = useScrollToBottom<HTMLDivElement>(messages, isLoading);
 
@@ -28,14 +29,14 @@ export function Messages({ votes }: MessagesProps) {
     >
       {messages.length === 0 && <Overview />}
 
-      <div className="flex flex-col mx-auto w-full max-w-4xl gap-6">
+      <div className="flex flex-col mx-auto w-full max-w-3xl gap-6">
         {messages.map((message, index) => (
           <PreviewMessage
             key={message.id}
             chatId={chat?.id}
             message={message}
-            agentName={chat?.agent?.name}
-            agentAvatarUrl={chat?.agent?.avatarUrl}
+            agentName={agent?.name}
+            agentAvatarUrl={agent?.avatarUrl}
             isLoading={isLoading && messages.length - 1 === index}
             vote={
               votes
@@ -50,13 +51,13 @@ export function Messages({ votes }: MessagesProps) {
           messages.length > 0 &&
           messages[messages.length - 1].role === 'user' && (
             <ThinkingMessage
-              agentAvatarUrl={chat?.agent?.avatarUrl}
-              agentName={chat?.agent?.name}
+              agentAvatarUrl={agent?.avatarUrl}
+              agentName={agent?.name}
             />
           )}
 
         {error && (
-          <div className="mx-auto max-w-4xl w-full">
+          <div className="mx-auto max-w-3xl w-full">
             <Alert variant="destructive" className="ml-4 w-max">
               <AlertCircle className="size-5" />
               <AlertTitle>Error</AlertTitle>

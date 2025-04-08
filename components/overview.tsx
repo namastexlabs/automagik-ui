@@ -12,10 +12,12 @@ export const Overview = () => {
   const colorMode = useResolvedTheme();
   const { agent } = useCurrentAgent();
 
+  console.log(agent);
+
   if (agent) {
     return (
       <motion.div
-        className="motion max-w-4xl w-full mx-auto md:mt-[20vh]"
+        className="motion max-w-3xl w-full mx-auto md:mt-[20vh]"
         initial={{ opacity: 0, scale: 0.98 }}
         animate={{ opacity: 1, scale: 1 }}
         exit={{ opacity: 0, scale: 0.98 }}
@@ -46,7 +48,7 @@ export const Overview = () => {
 
   return (
     <motion.div
-      className="motion max-w-4xl mx-auto md:mt-20"
+      className="motion max-w-3xl mx-auto md:mt-20"
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
       exit={{ opacity: 0, scale: 0.98 }}
