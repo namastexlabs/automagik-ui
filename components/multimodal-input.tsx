@@ -42,11 +42,11 @@ export function MultimodalInput({
   const {
     chat,
     isLoading,
+    isSubmitting,
     isImageAllowed,
     modelId,
     provider,
     isExtendedThinking,
-    isSubmitting,
   } = useChat();
   const {
     input,
@@ -263,7 +263,7 @@ export function MultimodalInput({
             </div>
           )}
           <div className="ml-auto">
-            {isLoading ? (
+            {isLoading || isSubmitting ? (
               <StopButton stop={stop} setMessages={setMessages} />
             ) : (
               <SendButton

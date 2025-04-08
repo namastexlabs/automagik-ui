@@ -27,7 +27,6 @@ export default function Page() {
         set(0.4);
         const { error } = await signup(formData);
 
-        stop();
         return {
           error: error?.message || 'An unexpected error occurred',
         };

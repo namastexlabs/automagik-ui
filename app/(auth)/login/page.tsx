@@ -42,7 +42,6 @@ export default function Page() {
       try {
         const { error } = await login(formData);
 
-        stop();
         return {
           error: error.message,
         };

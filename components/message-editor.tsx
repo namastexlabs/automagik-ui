@@ -15,6 +15,7 @@ import { Button } from './ui/button';
 import { Textarea } from './ui/textarea';
 import { useChat, useChatHandlers, useChatMessages } from '@/contexts/chat';
 import { toast } from 'sonner';
+import { DataStatus } from '@/lib/data';
 
 export type MessageEditorProps = {
   message: Message;
@@ -82,6 +83,11 @@ export function MessageEditor({ message, setMode }: MessageEditorProps) {
             setIsSubmitting(true);
 
             const response = await deleteTrailingMessagesAction(message.id);
+
+            if (response.status === DataStatus.NotFound) {
+              reload();
+              return;
+            }
 
             if (response.errors) {
               toast.error(
