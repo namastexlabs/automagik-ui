@@ -1,36 +1,19 @@
 'use client';
 
-import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
-import { useActionState, useEffect } from 'react';
+import { useActionState } from 'react';
 import Form from 'next/form';
 import { useProgress } from '@bprogress/next';
 import Image from 'next/image';
 
-import { createBrowserClient } from '@/lib/supabase/client';
 import { SubmitButton } from '@/components/submit-button';
 import { DataStatus } from '@/lib/data';
 import { FloatingLabelInput } from '@/components/ui/floating-input';
 
+import { updatePassword } from '../actions';
+
 export default function Page() {
-  const router = useRouter();
   const { set, stop } = useProgress();
-
-  useEffect(() => {
-    const checkSession = async () => {
-      const supabase = createBrowserClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        router.replace('/chat/welcome');
-      }
-    };
-
-    checkSession();
-  }, [router]);
-
   const [{ errors = {} }, formAction] = useActionState<
     { status: DataStatus; errors?: { _errors?: string[] } },
     FormData
@@ -48,20 +31,9 @@ export default function Page() {
 
       set(0.4);
       try {
-        const supabase = createBrowserClient();
+        const { error } = await updatePassword(password);
+        console.log(error);
 
-        const {
-          data: { user },
-        } = await supabase.auth.getUser();
-        if (!user) {
-          stop();
-          return {
-            status: DataStatus.InvalidData,
-            errors: { _errors: ['User not found'] },
-          };
-        }
-
-        const { error } = await supabase.auth.updateUser({ password });
         if (error) {
           stop();
           return {
@@ -71,8 +43,6 @@ export default function Page() {
         }
 
         toast.success('Password updated successfully');
-        router.replace('/chat/welcome');
-
         return { status: DataStatus.Success };
       } catch (error) {
         stop();
@@ -86,7 +56,7 @@ export default function Page() {
   );
 
   return (
-    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-accent bg-gradient-to-tl from-accent from-40% to-white/15">
+    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-black-white-gradient">
       <div className="w-full max-w-md overflow-hidden rounded-2xl flex flex-col gap-12">
         <Image
           src="/images/automagik-logo-white.svg"

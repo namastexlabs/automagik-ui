@@ -9,7 +9,8 @@ import { useProgress } from '@bprogress/next';
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
 import { createBrowserClient } from '@/lib/supabase/client';
-import { DataStatus } from '@/lib/data';
+
+import { login } from '../actions';
 
 export default function Page() {
   const router = useRouter();
@@ -33,39 +34,27 @@ export default function Page() {
     checkSession();
   }, [router]);
 
-  const [{ errors = {} }, formAction] = useActionState<
-    { status: DataStatus; errors?: { _errors?: string[] } },
+  const [{ error }, formAction] = useActionState<
+    { error: string | null },
     FormData
   >(
     async (_, formData) => {
-      const supabase = createBrowserClient();
       try {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: formData.get('email') as string,
-          password: formData.get('password') as string,
-        });
+        const { error } = await login(formData);
 
-        if (error) {
-          stop();
-          return {
-            status: DataStatus.InvalidData,
-            errors: { _errors: [error.message] },
-          };
-        }
-
-        router.replace('/chat/welcome');
-
-        return { status: DataStatus.Success };
+        stop();
+        return {
+          error: error.message,
+        };
       } catch (error) {
         stop();
         return {
-          status: DataStatus.Unexpected,
-          errors: { _errors: ['An unexpected error occurred'] },
+          error: 'An unexpected error occurred',
         };
       }
     },
     {
-      status: DataStatus.Success,
+      error: null,
     },
   );
 
@@ -86,11 +75,7 @@ export default function Page() {
           className="z-10 aspect-[12/3] object-cover mb-10"
         />
         <AuthForm action={handleSubmit} defaultEmail={email}>
-          {errors._errors && (
-            <span className="text-md text-destructive">
-              {errors._errors.join(', ')}
-            </span>
-          )}
+          {error && <span className="text-md text-destructive">{error}</span>}
           {searchParams.get('signup') && (
             <span className="text-md text-green-400">
               Check your email to confirm your account
@@ -108,7 +93,10 @@ export default function Page() {
             </Link>
             <div className="text-foreground">
               Don&apos;t have one?{' '}
-              <Link href="/register" className="text-accent-cyan hover:underline">
+              <Link
+                href="/register"
+                className="text-accent-cyan hover:underline"
+              >
                 Sign up for free!
               </Link>
             </div>
