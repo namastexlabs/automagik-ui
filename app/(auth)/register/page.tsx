@@ -2,15 +2,14 @@
 
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useActionState, useState, useEffect } from 'react';
-import { toast } from 'sonner';
+import { useActionState, useState } from 'react';
 import { useProgress } from '@bprogress/next';
 import Image from 'next/image';
 
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
-import { createBrowserClient } from '@/lib/supabase/client';
-import { DataStatus } from '@/lib/data';
+
+import { signup } from '../actions';
 
 export default function Page() {
   const router = useRouter();
@@ -18,81 +17,34 @@ export default function Page() {
 
   const [email, setEmail] = useState('');
 
-  useEffect(() => {
-    const checkSession = async () => {
-      const supabase = createBrowserClient();
-      const {
-        data: { user },
-      } = await supabase.auth.getUser();
-
-      if (user) {
-        router.replace('/chat');
-      }
-    };
-
-    checkSession();
-  }, [router]);
-
-  const [{ errors = {} }, formAction] = useActionState<
-    { status: DataStatus; errors?: { _errors?: string[] } },
+  const [{ error }, formAction] = useActionState<
+    { error: string | null },
     FormData
   >(
     async (_, formData) => {
-      const supabase = createBrowserClient();
+      setEmail(formData.get('email') as string);
       try {
-        const email = formData.get('email') as string;
-        const { error } = await supabase.auth.signUp({
-          email,
-          password: formData.get('password') as string,
-          options: {
-            emailRedirectTo: `${window.location.origin}/chat/welcome`,
-          },
-        });
+        set(0.4);
+        const { error } = await signup(formData);
 
-        if (error) {
-          stop();
-          return {
-            status: DataStatus.InvalidData,
-            errors: {
-              _errors: [
-                email.includes('@automagik.ai')
-                  ? error.message
-                  : 'Invalid email',
-              ],
-            },
-          };
-        }
-
-        toast.success('Check your email to confirm your account');
-        router.replace('/login');
-
-        return { status: DataStatus.Success };
+        return {
+          error: error?.message || 'An unexpected error occurred',
+        };
       } catch (error) {
+        console.error('Registration error:', error);
         stop();
         return {
-          status: DataStatus.Unexpected,
-          errors: { _errors: ['An unexpected error occurred'] },
+          error: 'An unexpected error occurred',
         };
       }
     },
     {
-      status: DataStatus.Success,
+      error: null,
     },
   );
 
-  const handleSubmit = (formData: FormData) => {
-    try {
-      setEmail(formData.get('email') as string);
-      set(0.4);
-      formAction(formData);
-    } catch (error) {
-      stop();
-      console.error('Registration error:', error);
-    }
-  };
-
   return (
-    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-accent bg-gradient-to-tl from-accent to-light-gray/10">
+    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-black-white-gradient">
       <div className="w-full max-w-md overflow-hidden rounded-2xl gap-12 flex flex-col">
         <Image
           src="/images/automagik-logo-white.svg"
@@ -101,10 +53,10 @@ export default function Page() {
           height={160}
           className="z-10 aspect-[12/3] object-cover mb-10"
         />
-        <AuthForm action={handleSubmit} defaultEmail={email}>
-          {errors._errors && (
+        <AuthForm action={formAction} defaultEmail={email}>
+          {error && (
             <span className="text-sm text-destructive">
-              {errors._errors.join(', ')}
+              {error}
             </span>
           )}
           <SubmitButton variant="gradient" className="rounded-full">

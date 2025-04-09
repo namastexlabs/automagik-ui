@@ -28,7 +28,7 @@ export const Overview = () => {
               className="object-cover"
             />
             <AvatarFallback className="bg-transparent">
-              <Bot className="size-16" />
+              <Bot className="size-24" />
             </AvatarFallback>
           </Avatar>
           <div className="flex flex-col flex-1 gap-3 my-auto min-w-0">
@@ -66,7 +66,7 @@ export const Overview = () => {
             className="w-[600px] h-[100px] object-cover mb-5"
           />
         </p>
-        <p>Because magic shouldn&apos;t be complica ,ted.</p>
+        <p>Because magic shouldn&apos;t be complicated.</p>
       </div>
     </motion.div>
   );

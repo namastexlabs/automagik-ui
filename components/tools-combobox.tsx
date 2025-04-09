@@ -23,9 +23,13 @@ import { FlowFormDialog } from './flow-form-dialog';
 export function ToolsCombobox({
   initialSelected,
   formId,
+  isDisabled = false,
+  isPrefetch = true,
 }: {
   initialSelected: string[];
   formId: string;
+  isDisabled?: boolean;
+  isPrefetch?: boolean;
 }) {
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [openToolForm, setOpenToolForm] = useState(false);
@@ -33,6 +37,9 @@ export function ToolsCombobox({
   const { data: tools = [], isLoading } = useSWR<ToolDTO[]>(
     '/api/tools',
     fetcher,
+    {
+      revalidateOnMount: !isPrefetch,
+    },
   );
 
   const toggleTool = useCallback((toolId: string) => {
@@ -53,7 +60,7 @@ export function ToolsCombobox({
   const toolCommands = tools.map((tool) => (
     <CommandItem
       key={tool.id}
-      className="cursor-pointer py-1 text-[0.85rem]"
+      className="cursor-pointer py-1 text-[0.85rem] text-foreground"
       onSelect={() => toggleTool(tool.id)}
     >
       <Checkbox checked={selected.includes(tool.id)} />
@@ -79,20 +86,25 @@ export function ToolsCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
+          disabled={isLoading || isDisabled}
           className="group/tools-combobox justify-between bg-transparent hover:bg-transparent p-0 border-none"
         >
-          <div className="w-full text-start px-3 py-2 rounded-lg bg-dark-background border border-muted hover:bg-dark-background">
-            <span className="w-96 truncate block">
-              {selected.length > 0 ? selectedTools : 'Select tools...'}
-            </span>
+          <div className="min-w-0 flex-1 text-start px-3 py-2 rounded-lg bg-dark-background border border-muted hover:bg-dark-background">
+            {isLoading ? (
+              <Skeleton className="h-4" />
+            ) : (
+              <span className="truncate block">
+                {selected.length > 0 ? selectedTools : 'Select tools...'}
+              </span>
+            )}
           </div>
-          <ChevronsUpDown className="opacity-0 group-hover/tools-combobox:opacity-100 ml-2 size-4 shrink-0 transition-opacity" />
+          <ChevronsUpDown className="ml-2 size-4 shrink-0" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
         forceMount
         className={`mt-3 p-0 w-[260px] h-[400px] ${open ? '' : 'hidden'}`}
-        align="start"
+        align="end"
       >
         {isLoading ? (
           <div className="flex flex-col gap-2 p-2">

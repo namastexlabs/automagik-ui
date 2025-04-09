@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { DataStatus } from '@/lib/data';
 import { joinWaitlistAction } from '@/app/(marketing)/actions';
 import { cn } from '@/lib/utils';
+import { SubmitButton } from '@/components/submit-button';
 
 const WaitListInput = ({ className, ...props }: InputProps) => {
   return (
@@ -50,7 +51,7 @@ export const WaitlistForm = () => {
           required
         />
         {errors.name && (
-          <span className="text-sm text-red-400">{errors.name.join(', ')}</span>
+          <span className="text-md text-red-400">{errors.name.join(', ')}</span>
         )}
       </div>
       <div>
@@ -61,16 +62,16 @@ export const WaitlistForm = () => {
           required
         />
         {errors.email && (
-          <span className="text-sm text-red-400">
+          <span className="text-md text-red-400">
             {errors.email.join(', ')}
           </span>
         )}
       </div>
       {errors._errors && (
-        <p className="text-sm text-red-400">{errors._errors.join(', ')}</p>
+        <p className="text-md text-red-400">{errors._errors.join(', ')}</p>
       )}
       {hasSubmitted && status === DataStatus.Success && (
-        <p className="text-sm text-green-400">
+        <p className="text-md text-green-400">
           You&apos;ve been added to the waitlist!
         </p>
       )}
@@ -134,7 +135,7 @@ export const FeatureTitle = ({
   children,
   className = '',
 }: PropsWithChildren<{ className?: string }>) => (
-  <p className={cn('text-gradient font-bold text-2xl xl:text-3xl', className)}>
+  <p className={cn('text-gradient font-bold text-3xl xl:text-4xl', className)}>
     {children}
   </p>
 );
@@ -151,18 +152,20 @@ export const FeatureBody = ({
 export const GradientButton = ({
   children,
   className = '',
+  type = 'button',
   ...props
 }: ButtonProps) => {
+  const Comp = type === 'submit' ? SubmitButton : Button;
   return (
-    <Button
+    <Comp
       className={cn(
-        'bg-gradient rounded-full h-12 text-lg font-bold',
+        'bg-gradient rounded-full h-12 text-xl font-bold',
         className,
       )}
       {...props}
     >
       {children}
-    </Button>
+    </Comp>
   );
 };
 
@@ -172,7 +175,7 @@ export const HeroParagraph = ({
 }: PropsWithChildren<{ className?: string }>) => (
   <p
     className={cn(
-      'px-4 md:p-0 mx-auto lg:mx-0 max-lg:max-w-[480px]',
+      'px-6 !leading-relaxed md:p-0 mx-auto text-xl lg:mx-0 max-lg:max-w-[480px]',
       className,
     )}
   >

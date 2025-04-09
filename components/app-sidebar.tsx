@@ -56,7 +56,7 @@ export function AppSidebar({
                   )}
                   onClick={toggleSidebar}
                 >
-                  <MenuIcon size={24} />
+                  <MenuIcon size={20} />
                 </Button>
               </TooltipTrigger>
               <TooltipContent align="end">Toggle sidebar</TooltipContent>
@@ -67,7 +67,7 @@ export function AppSidebar({
                 onClick={() => {
                   setOpenMobile(false);
                 }}
-                className="flex flex-row gap-3 items-center"
+                className="flex flex-row gap-3 items-center ml-3"
               >
                 <span className="font-semibold cursor-pointer">
                   <Image
@@ -77,7 +77,7 @@ export function AppSidebar({
                         : '/images/automagik-logo.svg'
                     }
                     alt="logo"
-                    width={220}
+                    width={180}
                     height={30}
                     className="aspect-[12/2] object-cover"
                   />

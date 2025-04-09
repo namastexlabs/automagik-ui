@@ -21,16 +21,14 @@ import {
 } from '@/lib/ai/models';
 import { getModel } from '@/lib/ai/models.server';
 import {
-  getMostRecentUserMessage,
   hasAttachment,
   sanitizeResponseMessages,
-  convertCoreMessageAttachments,
   sanitizeMessages,
 } from '@/lib/utils.server';
 import { generateUUID } from '@/lib/utils';
 import { toCoreTools } from '@/lib/agents/tool';
 import { insertDynamicBlocksIntoPrompt } from '@/lib/agents/dynamic-blocks';
-import { getChat, verifyChatWritePermission } from '@/lib/repositories/chat';
+import { getOrCreateChat } from '@/lib/repositories/chat';
 import { getAgent } from '@/lib/repositories/agent';
 import { createMessages } from '@/lib/repositories/message';
 import { ApplicationError } from '@/lib/errors';
@@ -44,6 +42,7 @@ export const maxDuration = 300;
 export async function POST(request: NextRequest) {
   const {
     id,
+    agentId,
     messages,
     provider,
     modelId,
@@ -54,6 +53,7 @@ export async function POST(request: NextRequest) {
     frequencyPenalty,
   }: {
     id: string;
+    agentId: string;
     messages: Message[];
     provider: string;
     modelId: string;
@@ -83,8 +83,7 @@ export async function POST(request: NextRequest) {
     }
 
     const userId = session.user.id;
-    const chat = await getChat(id, userId);
-    verifyChatWritePermission(chat, userId);
+    const chat = getOrCreateChat(id, agentId, userId, messages);
 
     const sanitizedMessages = isReasoningAllowed(modelData)
       ? messages
@@ -93,38 +92,18 @@ export async function POST(request: NextRequest) {
           parts: message.parts?.filter((part) => part.type !== 'reasoning'),
         }));
 
-    const agent = await getAgent(chat.agentId, userId);
-    const coreMessages = sanitizeMessages(
+    const agent = await getAgent(agentId, userId);
+    const coreMessages = await sanitizeMessages(
       convertToCoreMessages(sanitizedMessages),
       provider,
       modelId,
+      id,
     );
     const lastMessage = messages.at(-1);
-    const userMessage = getMostRecentUserMessage(coreMessages);
 
-    if (!userMessage || !lastMessage) {
+    if (!lastMessage) {
       return new Response('No user message found', { status: 400 });
     }
-
-    const userMessageWithAttachments = await convertCoreMessageAttachments(
-      userMessage,
-      chat.id,
-    );
-
-    await createMessages([
-      {
-        id: lastMessage.id,
-        chatId: chat.id,
-        content: {
-          content: lastMessage.content,
-          parts: lastMessage.parts,
-          annotations: lastMessage.annotations,
-          experimental_attachments: lastMessage.experimental_attachments,
-        },
-        role: 'user',
-        createdAt: new Date(),
-      },
-    ]);
 
     const agentTools = agent.tools.map(({ tool }) => tool);
     const formattedSystemPrompt = insertDynamicBlocksIntoPrompt(
@@ -139,7 +118,7 @@ export async function POST(request: NextRequest) {
               userId,
               dataStream,
               agent,
-              chat,
+              chatId: id,
               userMessage: lastMessage,
               abortSignal: request.signal,
             })
@@ -159,7 +138,7 @@ export async function POST(request: NextRequest) {
           frequencyPenalty,
           abortSignal: request.signal,
           experimental_generateMessageId: generateUUID,
-          messages: [...coreMessages.slice(0, -1), userMessageWithAttachments],
+          messages: coreMessages,
           maxSteps: 5,
           tools,
           providerOptions:
@@ -173,6 +152,20 @@ export async function POST(request: NextRequest) {
           experimental_transform: smoothStream({ chunking: 'word' }),
           onFinish: async ({ response, finishReason }) => {
             if (finishReason !== 'error') {
+              const userMessage = {
+                id: lastMessage.id,
+                chatId: id,
+                content: {
+                  content: lastMessage.content,
+                  parts: lastMessage.parts,
+                  annotations: lastMessage.annotations,
+                  experimental_attachments:
+                    lastMessage.experimental_attachments,
+                },
+                role: 'user' as const,
+                createdAt: new Date(),
+              };
+
               try {
                 const updatedMessages = appendResponseMessages({
                   messages,
@@ -181,17 +174,19 @@ export async function POST(request: NextRequest) {
                   }),
                 }).slice(-1);
 
-                await createMessages(
-                  updatedMessages.map(
-                    ({ id, createdAt, role, ...message }) => ({
+                await chat;
+                await createMessages([
+                  userMessage,
+                  ...updatedMessages.map(
+                    ({ createdAt, role, ...message }) => ({
                       content: message,
-                      id,
+                      id: message.id,
                       createdAt: createdAt ?? new Date(),
-                      chatId: chat.id,
+                      chatId: id,
                       role,
                     }),
                   ),
-                );
+                ]);
               } catch (error) {
                 console.log(error);
                 throw new Error('Failed to save messages');
@@ -209,7 +204,7 @@ export async function POST(request: NextRequest) {
                 functionId: 'tool-repair',
                 metadata: {
                   user_id: userId,
-                  thread_id: chat.id,
+                  thread_id: id,
                   agent_id: agent.id,
                 },
               },
@@ -257,7 +252,7 @@ export async function POST(request: NextRequest) {
             functionId: 'stream-text',
             metadata: {
               user_id: userId,
-              thread_id: chat.id,
+              thread_id: id,
               agent_id: agent.id,
             },
           },

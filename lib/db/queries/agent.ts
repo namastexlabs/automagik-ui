@@ -153,6 +153,8 @@ export async function updateAgent({
   systemPrompt?: string;
   avatarUrl?: string | null;
   visibility?: 'private' | 'public';
+  description?: string;
+  heartbeat?: boolean;
 }) {
   try {
     const [updatedAgent] = await db

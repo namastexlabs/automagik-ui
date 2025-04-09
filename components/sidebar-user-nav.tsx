@@ -1,14 +1,13 @@
 'use client';
 import { ChevronUp, UserRound } from 'lucide-react';
 import { useRouter } from 'next/navigation';
-import { useTheme } from 'next-themes';
+import { useSWRConfig } from 'swr';
 
 import { createBrowserClient } from '@/lib/supabase/client';
 import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
-  DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from '@/components/ui/dropdown-menu';
 import {
@@ -18,12 +17,10 @@ import {
   useSidebar,
 } from '@/components/ui/sidebar';
 import { useUser } from '@/contexts/user';
-import { useResolvedTheme } from '@/hooks/use-resolved-theme';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 
 export function SidebarUserNav() {
-  const { setTheme } = useTheme();
-  const colorMode = useResolvedTheme();
+  const { mutate } = useSWRConfig();
   const router = useRouter();
   const { user } = useUser();
   const { state } = useSidebar();
@@ -37,6 +34,7 @@ export function SidebarUserNav() {
         return;
       }
 
+      mutate(() => true, undefined, false);
       router.push('/login');
     } catch (error) {
       console.error('Error during sign out:', error);
@@ -67,13 +65,6 @@ export function SidebarUserNav() {
             side="top"
             className="w-[--radix-popper-anchor-width]"
           >
-            <DropdownMenuItem
-              className="cursor-pointer"
-              onSelect={() => setTheme(colorMode === 'dark' ? 'light' : 'dark')}
-            >
-              {`Toggle ${colorMode === 'light' ? 'dark' : 'light'} mode`}
-            </DropdownMenuItem>
-            <DropdownMenuSeparator />
             <DropdownMenuItem asChild>
               <button
                 type="button"

@@ -176,6 +176,13 @@
       "when": 1743446239270,
       "tag": "0024_certain_titania",
       "breakpoints": true
+    },
+    {
+      "idx": 25,
+      "version": "7",
+      "when": 1744062332685,
+      "tag": "0025_user-functions-triggers",
+      "breakpoints": true
     }
   ]
 }

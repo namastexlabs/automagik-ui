@@ -3,17 +3,21 @@
 import Image from 'next/image';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useActionState, useEffect, useState } from 'react';
+import { use, useActionState, useEffect, useState } from 'react';
 import { useProgress } from '@bprogress/next';
 
 import { AuthForm } from '@/components/auth-form';
 import { SubmitButton } from '@/components/submit-button';
 import { createBrowserClient } from '@/lib/supabase/client';
-import { DataStatus } from '@/lib/data';
 
-export default function Page() {
+import { login } from '../actions';
+
+export default function Page({
+  searchParams,
+}: { searchParams: Promise<{ signup?: string }> }) {
   const router = useRouter();
   const { set, stop } = useProgress();
+  const { signup } = use(searchParams);
 
   const [email, setEmail] = useState('');
 
@@ -32,39 +36,26 @@ export default function Page() {
     checkSession();
   }, [router]);
 
-  const [{ errors = {} }, formAction] = useActionState<
-    { status: DataStatus; errors?: { _errors?: string[] } },
+  const [{ error }, formAction] = useActionState<
+    { error: string | null },
     FormData
   >(
     async (_, formData) => {
-      const supabase = createBrowserClient();
       try {
-        const { error } = await supabase.auth.signInWithPassword({
-          email: formData.get('email') as string,
-          password: formData.get('password') as string,
-        });
+        const { error } = await login(formData);
 
-        if (error) {
-          stop();
-          return {
-            status: DataStatus.InvalidData,
-            errors: { _errors: [error.message] },
-          };
-        }
-
-        router.replace('/chat/welcome');
-
-        return { status: DataStatus.Success };
+        return {
+          error: error.message,
+        };
       } catch (error) {
         stop();
         return {
-          status: DataStatus.Unexpected,
-          errors: { _errors: ['An unexpected error occurred'] },
+          error: 'An unexpected error occurred',
         };
       }
     },
     {
-      status: DataStatus.Success,
+      error: null,
     },
   );
 
@@ -75,7 +66,7 @@ export default function Page() {
   };
 
   return (
-    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-accent bg-gradient-to-tl from-accent from-40% to-white/15">
+    <div className="flex h-dvh w-screen items-start pt-12 md:pt-0 md:items-center justify-center bg-black-white-gradient">
       <div className="w-full max-w-md overflow-hidden rounded-2xl flex flex-col">
         <Image
           src="/images/automagik-logo-white.svg"
@@ -85,9 +76,10 @@ export default function Page() {
           className="z-10 aspect-[12/3] object-cover mb-10"
         />
         <AuthForm action={handleSubmit} defaultEmail={email}>
-          {errors._errors && (
-            <span className="text-sm text-destructive">
-              {errors._errors.join(', ')}
+          {error && <span className="text-md text-destructive">{error}</span>}
+          {signup && (
+            <span className="text-md text-green-400">
+              Check your email to confirm your account
             </span>
           )}
           <SubmitButton variant="gradient" className="rounded-full mt-4">
@@ -102,7 +94,10 @@ export default function Page() {
             </Link>
             <div className="text-foreground">
               Don&apos;t have one?{' '}
-              <Link href="/register" className="text-accent-cyan hover:underline">
+              <Link
+                href="/register"
+                className="text-accent-cyan hover:underline"
+              >
                 Sign up for free!
               </Link>
             </div>
