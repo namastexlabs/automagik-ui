@@ -19,7 +19,7 @@ const FloatingInput = React.forwardRef<
       variant="floating"
       className={cn(
         'peer !bg-accent',
-        '!ring-0 !ring-offset-0 border-2 border-muted-foreground p-4',
+        '!ring-0 !ring-offset-0 border-2 border-muted-foreground p-4 pl-7',
         {
           '!border-accent-cyan': isFocused,
         },
