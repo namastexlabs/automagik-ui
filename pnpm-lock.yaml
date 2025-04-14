@@ -179,6 +179,9 @@ importers:
       geist:
         specifier: ^1.3.1
         version: 1.3.1(next@15.1.7(@opentelemetry/api@1.9.0)(react-dom@19.0.0(react@19.0.0))(react@19.0.0))
+      gpt-tokenizer:
+        specifier: ^2.9.0
+        version: 2.9.0
       langwatch:
         specifier: ^0.1.5
         version: 0.1.5(@opentelemetry/api@1.9.0)(react@19.0.0)(sswr@2.1.0(svelte@5.20.1))(svelte@5.20.1)(vue@3.5.13(typescript@5.7.3))(ws@8.18.0(bufferutil@4.0.9))
@@ -3165,6 +3168,9 @@ packages:
   gopd@1.2.0:
     resolution: {integrity: sha512-ZUKRh6/kUFoAiTAtTYPZJ3hw9wNxx+BIBOijnlG9PnrJsCcSjs1wyyD6vJpaYtgnzDrKYRSqf3OO6Rfa93xsRg==}
     engines: {node: '>= 0.4'}
+
+  gpt-tokenizer@2.9.0:
+    resolution: {integrity: sha512-YSpexBL/k4bfliAzMrRqn3M6+it02LutVyhVpDeMKrC/O9+pCe/5s8U2hYKa2vFLD5/vHhsKc8sOn/qGqII8Kg==}
 
   graceful-fs@4.2.11:
     resolution: {integrity: sha512-RbJ5/jmFcNNCcDV5o9eTnBLJ/HszWV0P73bc+Ff4nS/rJj+YaS6IGyiOL0VoBYX+l1Wrl3k63h/KrH+nhJ0XvQ==}
@@ -7643,6 +7649,8 @@ snapshots:
       slash: 3.0.0
 
   gopd@1.2.0: {}
+
+  gpt-tokenizer@2.9.0: {}
 
   graceful-fs@4.2.11: {}
 

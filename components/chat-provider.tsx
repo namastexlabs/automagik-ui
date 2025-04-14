@@ -32,7 +32,6 @@ import {
 import { usePageUnloadWarning } from '@/hooks/use-page-unload-warning';
 
 import { DataStreamHandler } from './data-stream-handler';
-import { useSidebar } from './ui/sidebar';
 
 export function ChatProvider({
   chat,
@@ -49,7 +48,6 @@ export function ChatProvider({
   isReadOnly: boolean;
 }>) {
   const pathname = usePathname();
-  const { openAgentListDialog } = useSidebar();
   const [attachments, setAttachments] = useLocalStorage<Array<Attachment>>(
     'input-attachments',
     [],
@@ -178,8 +176,9 @@ export function ChatProvider({
       mutate('/api/agents/recent');
     }
 
+    mutate(`/api/chat?chatId=${chat?.id}`);
     mutate(`/api/history?agentId=${currentAgent?.id}`);
-  }, [mutate, currentAgent?.id, cache]);
+  }, [mutate, currentAgent?.id, cache, chat?.id]);
 
   const reloadMessage = useCallback(async () => {
     const chatId = chat?.id || generateUUID();
@@ -217,7 +216,7 @@ export function ChatProvider({
       }
 
       if (!agentId) {
-        openAgentListDialog(true);
+        router.push('/agents');
         return;
       }
 
@@ -261,7 +260,6 @@ export function ChatProvider({
       }
     },
     [
-      openAgentListDialog,
       setInput,
       setAttachments,
       shouldRemoveLastMessage,

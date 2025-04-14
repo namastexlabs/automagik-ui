@@ -1,6 +1,6 @@
 'use client';
 
-import { Smile, Settings, Trash } from 'lucide-react';
+import { Settings, Trash } from 'lucide-react';
 
 import { ModelSelector } from '@/components/model-selector';
 import {
@@ -27,6 +27,7 @@ import {
   AlertDialogFooter,
   AlertDialogCancel,
 } from '@/components/ui/alert-dialog';
+import { TokenCount } from './token-count';
 
 export function ChatHeader({
   selectedVisibilityType,
@@ -65,6 +66,9 @@ export function ChatHeader({
     router.push(agent ? `/chat?agent=${agent.id}` : '/chat');
   };
 
+  const completionTokens = chat?.completionTokens ?? 0;
+  const promptTokens = chat?.promptTokens ?? 0;
+
   return (
     <header className="flex sticky top-0 py-3 items-center px-5 gap-2">
       {!isReadOnly && (
@@ -75,11 +79,7 @@ export function ChatHeader({
           onChangeProvider={setProvider}
         />
       )}
-
-      <div className="flex items-center gap-1 bg-dark-gray rounded-lg h-full px-3 py-1.5">
-        <Smile size={20} />
-        <span>0 tokens</span>
-      </div>
+      <TokenCount chatTokens={completionTokens + promptTokens} />
       {agent && (
         <Button
           asChild

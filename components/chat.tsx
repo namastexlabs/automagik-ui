@@ -19,7 +19,7 @@ import type { VisibilityType } from './visibility-selector';
 import { MultimodalInput } from './multimodal-input';
 
 export function Chat({
-  chat,
+  chat: initialChat,
   initialMessages,
   selectedVisibilityType,
   isReadonly,
@@ -36,6 +36,16 @@ export function Chat({
   initialAgent?: AgentDTO | null;
 }) {
   const { updateAgent } = useCurrentAgent();
+  const { data: chat } = useSWR<ChatDTO>(
+    initialChat?.id ? `/api/chat?chatId=${initialChat.id}` : null,
+    fetcher,
+    {
+      fallbackData: initialChat,
+      revalidateOnFocus: false,
+      revalidateIfStale: false,
+      revalidateOnMount: false,
+    },
+  );
   const currentAgent = chat?.agent || initialAgent;
   const { data: votes } = useSWR<Array<Vote>>(
     chat?.id ? `/api/vote?chatId=${chat.id}` : null,

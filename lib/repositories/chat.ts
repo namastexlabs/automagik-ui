@@ -10,6 +10,7 @@ import {
   deleteChatById,
   updateChatVisiblityById,
   getChats,
+  updateChatTokensById,
 } from '@/lib/db/queries/chat';
 import {
   InvalidDataError,
@@ -123,6 +124,18 @@ export async function removeChatById(
   }
 
   await deleteChatById({ id: chatId });
+}
+
+export async function updateChatTokens({
+  id,
+  completionTokens,
+  promptTokens,
+}: {
+  id: string;
+  completionTokens: number;
+  promptTokens: number;
+}): Promise<void> {
+  await updateChatTokensById({ id, completionTokens, promptTokens });
 }
 
 export async function updateVisibility({
