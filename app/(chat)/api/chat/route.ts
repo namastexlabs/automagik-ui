@@ -28,7 +28,7 @@ import {
 import { generateUUID } from '@/lib/utils';
 import { toCoreTools } from '@/lib/agents/tool';
 import { insertDynamicBlocksIntoPrompt } from '@/lib/agents/dynamic-blocks';
-import { getOrCreateChat } from '@/lib/repositories/chat';
+import { getOrCreateChat, updateChatTokens } from '@/lib/repositories/chat';
 import { getAgent } from '@/lib/repositories/agent';
 import { createMessages } from '@/lib/repositories/message';
 import { ApplicationError } from '@/lib/errors';
@@ -36,8 +36,20 @@ import {
   toHTTPResponse,
   handleApplicationError,
 } from '@/lib/data/index.server';
+import { getChat } from '@/lib/data/chat';
 
 export const maxDuration = 300;
+
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const chatId = searchParams.get('chatId');
+
+  if (!chatId) {
+    return new Response('Chat ID is required', { status: 400 });
+  }
+
+  return toHTTPResponse(await getChat(chatId));
+}
 
 export async function POST(request: NextRequest) {
   const {
@@ -101,7 +113,7 @@ export async function POST(request: NextRequest) {
     );
     const lastMessage = messages.at(-1);
 
-    if (!lastMessage) {
+    if (!lastMessage || lastMessage.role !== 'user') {
       return new Response('No user message found', { status: 400 });
     }
 
@@ -150,7 +162,7 @@ export async function POST(request: NextRequest) {
                 }
               : undefined,
           experimental_transform: smoothStream({ chunking: 'word' }),
-          onFinish: async ({ response, finishReason }) => {
+          onFinish: async ({ response, finishReason, usage }) => {
             if (finishReason !== 'error') {
               const userMessage = {
                 id: lastMessage.id,
@@ -175,6 +187,11 @@ export async function POST(request: NextRequest) {
                 }).slice(-1);
 
                 await chat;
+                await updateChatTokens({
+                  id,
+                  completionTokens: usage?.completionTokens ?? 0,
+                  promptTokens: usage?.promptTokens ?? 0,
+                });
                 await createMessages([
                   userMessage,
                   ...updatedMessages.map(
@@ -221,6 +238,7 @@ export async function POST(request: NextRequest) {
                     },
                   ],
                 },
+
                 {
                   role: 'tool',
                   content: [

@@ -43,8 +43,16 @@ export async function getMostRecentAgents(
   return agents;
 }
 
-export async function getUserAgents(userId: string): Promise<AgentData[]> {
-  return await getAvailableAgents({ userId });
+export async function getUserAgents(
+  userId: string,
+  page = 1,
+  limit = 10,
+): Promise<AgentData[]> {
+  return await getAvailableAgents({
+    userId,
+    offset: (page - 1) * limit,
+    limit,
+  });
 }
 
 export async function getAgent(id: string, userId: string): Promise<AgentData> {

@@ -185,13 +185,13 @@ export async function getMostRecentAgents(): Promise<
   }
 }
 
-export async function getInitialAgents(): Promise<
+export async function getAgents(page = 1, limit = 10): Promise<
   DataResponse<AgentDTO[], any>
 > {
   try {
     const session = await getUser();
-
-    const agents = await getUserAgents(session.user.id);
+    const agents = await getUserAgents(session.user.id, page, limit);
+    
     return {
       status: DataStatus.Success,
       data: agents.map((agent) => toAgentDTO(agent)),

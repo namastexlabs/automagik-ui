@@ -166,11 +166,11 @@ export function SidebarAgentItem({ agent, isOpen }: AgentItemProps) {
         {state === 'expanded' && (
           <div className="flex flex-col flex-1 min-w-0">
             <Link href={`/chat/${currentChat.id}`}>
-              <div className="flex justify-between items-center pb-1 pr-2 pt-2">
+              <div className="flex gap-2 justify-between items-center pb-1 pr-2 pt-2">
                 <p className="text-foreground font-bold text-sm max-w-40 truncate">
                   {agent.name}
                 </p>
-                <span className="text-[0.7rem] text-muted-foreground">
+                <span className="text-[0.7rem] text-muted-foreground min-w-max">
                   {getMessageDateLabel(recentMessage)}
                 </span>
               </div>

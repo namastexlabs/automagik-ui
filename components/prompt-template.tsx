@@ -141,7 +141,8 @@ export function PromptTemplate({
           <DialogDescription>Update your system prompt.</DialogDescription>
           <Textarea
             name={name}
-            className="resize-none bg-muted text-lg flex-1"
+            disabled={isDisabled}
+            className="resize-none bg-muted text-lg flex-1 disabled:opacity-100 disabled:cursor-text"
             value={template}
             onChange={(e) => onChange(e.target.value)}
           />
@@ -161,7 +162,6 @@ export function PromptTemplate({
           name={name}
           value={template}
           placeholder={placeholder}
-          disabled={isDisabled}
           onChange={(e) => onChange(e.target.value)}
           rows={5}
           className="min-h-[80px] resize-none cursor-pointer flex-1 bg-dark-background border border-muted p-3 pb-0 rounded-lg text-left"

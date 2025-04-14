@@ -174,26 +174,30 @@ export function AgentForm({
             />
           </div>
           <div className="flex gap-6">
-            <div className="flex items-center gap-2 bg-muted w-fit p-3 rounded-md">
-              <Label
-                htmlFor="visibility"
-                className="text-md text-foreground font-bold"
-              >
-                Private agent
-              </Label>
-              <input type="hidden" name="visibility" value={visibility} />
-              <Switch
-                id="visibility"
-                value={visibility}
-                checked={visibility === 'private'}
-                disabled={!isEditable}
-                className="w-14 h-7"
-                thumbClassName="size-5"
-                onCheckedChange={() =>
-                  setVisibility(visibility === 'private' ? 'public' : 'private')
-                }
-              />
-            </div>
+            {isEditable && (
+              <div className="flex items-center gap-2 bg-muted w-fit p-3 rounded-md">
+                <Label
+                  htmlFor="visibility"
+                  className="text-md text-foreground font-bold"
+                >
+                  Private agent
+                </Label>
+                <input type="hidden" name="visibility" value={visibility} />
+                <Switch
+                  id="visibility"
+                  value={visibility}
+                  checked={visibility === 'private'}
+                  disabled={!isEditable}
+                  className="w-14 h-7"
+                  thumbClassName="size-5"
+                  onCheckedChange={() =>
+                    setVisibility(
+                      visibility === 'private' ? 'public' : 'private',
+                    )
+                  }
+                />
+              </div>
+            )}
             <div className="flex items-center gap-2 bg-muted w-fit p-3 rounded-md">
               <Label
                 htmlFor="heartbeat"
