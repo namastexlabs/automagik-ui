@@ -213,7 +213,7 @@ export function AgentForm({
                 thumbClassName="size-5 flex items-center justify-center bg-transparent data-[state=checked]:bg-accent-transparent"
                 renderThumbContent={() => (
                   <div className="relative">
-                    <Heart className="absolute inset-0 hidden text-accent-magenta opacity-50 rounded-full group-data-[state=checked]/thumb:block group-data-[state=checked]/thumb:animate-ping" />
+                    <Heart className="absolute size-5 inset-0 hidden text-accent-magenta opacity-50 rounded-full group-data-[state=checked]/thumb:block group-data-[state=checked]/thumb:animate-ping temporary-animation" />
                     <Heart className="size-5 group-data-[state=checked]/thumb:text-accent-magenta transition-colors" />
                   </div>
                 )}

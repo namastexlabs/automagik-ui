@@ -246,7 +246,7 @@
 }
 
 .bg-black-white-gradient {
-  @apply bg-accent bg-gradient-to-tl from-accent from-40% to-white/15;
+  @apply bg-accent bg-gradient-to-tl from-accent from-40% to-white/20;
 }
 
 .space-background {

@@ -43,10 +43,9 @@ export default function Page({
     async (_, formData) => {
       try {
         const { error } = await login(formData);
+        stop();
 
-        return {
-          error: error.message,
-        };
+        return { error };
       } catch (error) {
         stop();
         return {

@@ -183,6 +183,13 @@
       "when": 1744062332685,
       "tag": "0025_user-functions-triggers",
       "breakpoints": true
+    },
+    {
+      "idx": 26,
+      "version": "7",
+      "when": 1744210262474,
+      "tag": "0026_remove-email-validation-trigger",
+      "breakpoints": true
     }
   ]
 }
