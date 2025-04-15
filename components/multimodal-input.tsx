@@ -222,6 +222,7 @@ export function MultimodalInput({
             className,
           )}
           rows={1}
+          maxLength={80000}
           autoFocus
           onKeyDown={(event) => {
             if (event.key === 'Enter' && !event.shiftKey) {

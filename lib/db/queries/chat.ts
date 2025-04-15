@@ -107,6 +107,26 @@ export async function getChatById({ id }: { id: string }) {
   }
 }
 
+export async function updateChatTokensById({
+  id,
+  completionTokens,
+  promptTokens,
+}: {
+  id: string;
+  completionTokens: number;
+  promptTokens: number;
+}) {
+  try {
+    return await db
+      .update(schema.chat)
+      .set({ completionTokens, promptTokens })
+      .where(eq(schema.chat.id, id));
+  } catch (error) {
+    console.error('Failed to update chat tokens in database');
+    throw error;
+  }
+}
+
 export async function updateChatVisiblityById({
   chatId,
   visibility,

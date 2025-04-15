@@ -13,6 +13,7 @@ import {
   unique,
   uniqueIndex,
   pgTableCreator,
+  integer,
 } from 'drizzle-orm/pg-core';
 import type { ToolData } from '../agents/types';
 
@@ -192,6 +193,8 @@ export const chat = pgTable('chat', {
   visibility: varchar('visibility', { enum: ['public', 'private'] })
     .notNull()
     .default('private'),
+  completionTokens: integer('completion_tokens').notNull().default(0),
+  promptTokens: integer('prompt_tokens').notNull().default(0),
 });
 
 export type Chat = InferSelectModel<typeof chat>;
