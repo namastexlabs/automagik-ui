@@ -4,7 +4,7 @@ import { useCallback, useState } from 'react';
 import { ChevronsUpDown } from 'lucide-react';
 import useSWR from 'swr';
 
-import { fetcher } from '@/lib/utils';
+import { fetcher, cn } from '@/lib/utils';
 import type { ToolDTO } from '@/lib/data/tool';
 
 import { Popover, PopoverContent, PopoverTrigger } from './ui/popover';
@@ -24,12 +24,10 @@ export function ToolsCombobox({
   initialSelected,
   formId,
   isDisabled = false,
-  isPrefetch = true,
 }: {
   initialSelected: string[];
   formId: string;
   isDisabled?: boolean;
-  isPrefetch?: boolean;
 }) {
   const [selected, setSelected] = useState<string[]>(initialSelected);
   const [openToolForm, setOpenToolForm] = useState(false);
@@ -38,7 +36,7 @@ export function ToolsCombobox({
     '/api/tools',
     fetcher,
     {
-      revalidateOnMount: !isPrefetch,
+      revalidateOnMount: false,
     },
   );
 
@@ -57,27 +55,48 @@ export function ToolsCombobox({
     .map((tool) => tool.verboseName)
     .join(', ');
 
-  const toolCommands = tools.map((tool) => (
-    <CommandItem
-      key={tool.id}
-      className="cursor-pointer py-1 text-[0.85rem] text-foreground"
-      onSelect={() => toggleTool(tool.id)}
-    >
-      <Checkbox checked={selected.includes(tool.id)} />
-      <span className="w-96 truncate cursor-pointer">{tool.verboseName}</span>
-      <input
+  const toolCommands = tools.reduce<React.ReactNode[]>((acc, tool) => {
+    const command = (
+      <CommandItem
         key={tool.id}
-        readOnly
-        form={formId}
-        id={tool.id}
-        type="checkbox"
-        name="tools"
-        className="hidden"
-        value={tool.id}
-        checked={selected.includes(tool.id)}
-      />
-    </CommandItem>
-  ));
+        className={cn(
+          'cursor-pointer py-1 text-[0.85rem] text-foreground',
+          isDisabled && 'cursor-default',
+        )}
+        onSelect={() => {
+          if (!isDisabled) {
+            toggleTool(tool.id);
+          }
+        }}
+      >
+        {!isDisabled && <Checkbox checked={selected.includes(tool.id)} />}
+        <span className={cn('w-96 truncate', isDisabled && 'cursor-default')}>
+          {tool.verboseName}
+        </span>
+        <input
+          key={tool.id}
+          readOnly
+          form={formId}
+          id={tool.id}
+          type="checkbox"
+          name="tools"
+          className="hidden"
+          value={tool.id}
+          checked={selected.includes(tool.id)}
+        />
+      </CommandItem>
+    );
+
+    if (isDisabled) {
+      if (selected.includes(tool.id)) {
+        acc.push(command);
+      }
+    } else {
+      acc.push(command);
+    }
+
+    return acc;
+  }, []);
 
   return (
     <Popover modal={open} open={open && !openToolForm} onOpenChange={setOpen}>
@@ -86,7 +105,7 @@ export function ToolsCombobox({
           variant="outline"
           role="combobox"
           aria-expanded={open}
-          disabled={isLoading || isDisabled}
+          disabled={isLoading}
           className="group/tools-combobox justify-between bg-transparent hover:bg-transparent p-0 border-none"
         >
           <div className="min-w-0 flex-1 text-start px-3 py-2 rounded-lg bg-dark-background border border-muted hover:bg-dark-background">
@@ -120,13 +139,15 @@ export function ToolsCombobox({
             <CommandList className="flex-1 max-h-none">
               {toolCommands}
             </CommandList>
-            <div className="flex bg-dark-background border-t-2 h-min w-full">
-              <FlowFormDialog
-                onCreate={(tool) => toggleTool(tool.id)}
-                open={openToolForm}
-                setOpen={setOpenToolForm}
-              />
-            </div>
+            {!isDisabled && (
+              <div className="flex bg-dark-background border-t-2 h-min w-full">
+                <FlowFormDialog
+                  onCreate={(tool) => toggleTool(tool.id)}
+                  open={openToolForm}
+                  setOpen={setOpenToolForm}
+                />
+              </div>
+            )}
           </Command>
         )}
       </PopoverContent>

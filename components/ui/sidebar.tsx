@@ -20,7 +20,7 @@ import {
 
 const SIDEBAR_COOKIE_NAME = 'sidebar:state';
 const SIDEBAR_COOKIE_MAX_AGE = 60 * 60 * 24 * 7;
-const SIDEBAR_WIDTH = '17rem';
+const SIDEBAR_WIDTH = '260px';
 const SIDEBAR_WIDTH_COLLAPSED = '4rem';
 const SIDEBAR_WIDTH_MOBILE = '17rem';
 const SIDEBAR_WIDTH_ICON = '3rem';
@@ -34,8 +34,6 @@ type SidebarContext = {
   setOpenMobile: (open: boolean) => void;
   isMobile: boolean;
   toggleSidebar: () => void;
-  openAgentListDialog: (isOpen: boolean) => void;
-  isAgentListDialogOpen: boolean;
 };
 
 const SidebarContext = React.createContext<SidebarContext | null>(null);
@@ -71,7 +69,6 @@ const SidebarProvider = React.forwardRef<
   ) => {
     const isMobile = useIsMobile();
 
-    const [openAgentListDialog, setOpenAgentListDialog] = React.useState(false);
     const [openMobile, setOpenMobile] = React.useState(false);
 
     // This is the internal state of the sidebar.
@@ -129,8 +126,6 @@ const SidebarProvider = React.forwardRef<
         openMobile,
         setOpenMobile,
         toggleSidebar,
-        isAgentListDialogOpen: openAgentListDialog,
-        openAgentListDialog: setOpenAgentListDialog,
       }),
       [
         state,
@@ -140,7 +135,6 @@ const SidebarProvider = React.forwardRef<
         openMobile,
         setOpenMobile,
         toggleSidebar,
-        openAgentListDialog,
       ],
     );
 
@@ -191,7 +185,7 @@ const Sidebar = React.forwardRef<
     },
     ref,
   ) => {
-    const { isMobile, state, openMobile, setOpenMobile } = useSidebar();
+    const { isMobile, openMobile, setOpenMobile } = useSidebar();
 
     if (collapsible === 'none') {
       return (

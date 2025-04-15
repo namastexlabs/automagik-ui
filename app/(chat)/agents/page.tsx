@@ -1,21 +1,19 @@
-import { SWRConfig } from 'swr';
+import Link from 'next/link';
+import { Plus } from 'lucide-react';
+
+import { getAgents } from '@/lib/data/agent';
+import { AgentList } from '@/components/agent-list';
 import {
   Breadcrumb,
+  BreadcrumbSeparator,
   BreadcrumbItem,
-  BreadcrumbLink,
   BreadcrumbList,
   BreadcrumbPage,
-  BreadcrumbSeparator,
+  BreadcrumbLink,
 } from '@/components/ui/breadcrumb';
-import { AgentForm } from '@/components/agent-form';
-import { getInitialTools } from '@/lib/data/tool';
 
-export default async function NewAgentPage() {
-  const { data: tools, errors: toolsErrors } = await getInitialTools();
-
-  if (toolsErrors) {
-    throw new Error('Something went wrong');
-  }
+export default async function AgentListPage() {
+  const { data: initialAgents } = await getAgents(1, 4);
 
   return (
     <div className="flex flex-col h-full bg-black-white-gradient border-none">
@@ -31,17 +29,23 @@ export default async function NewAgentPage() {
               <BreadcrumbSeparator />
               <BreadcrumbItem>
                 <BreadcrumbPage className="font-bold">
-                  Create Agent
+                  Agents List
                 </BreadcrumbPage>
               </BreadcrumbItem>
             </BreadcrumbList>
           </Breadcrumb>
         </div>
       </header>
-      <main className="flex-1 flex items-center justify-center mx-auto py-6 max-w-[800px] w-[80vw]">
-        <SWRConfig value={{ fallback: { '/api/tools': tools } }}>
-          <AgentForm isEditable />
-        </SWRConfig>
+      <main className="pt-12 mx-auto container">
+        <div className="mx-16">
+          <div className="flex items-center justify-between border-b border-muted pb-4">
+            <h1 className="text-3xl">Explore AI Agents</h1>
+            <Link href="/agents/new" className="flex gap-2 text-md">
+              <Plus /> Create New Agent
+            </Link>
+          </div>
+          <AgentList initialAgents={initialAgents} />
+        </div>
       </main>
     </div>
   );

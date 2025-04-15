@@ -1,6 +1,11 @@
+import type { NextRequest } from 'next/server';
 import { toHTTPResponse } from '@/lib/data/index.server';
-import { getInitialAgents } from '@/lib/data/agent';
+import { getAgents } from '@/lib/data/agent';
 
-export async function GET(request: Request) {
-  return toHTTPResponse(await getInitialAgents());
+export async function GET(request: NextRequest) {
+  const { searchParams } = new URL(request.url);
+  const page = Number.parseInt(searchParams.get('page') || '1');
+  const limit = Number.parseInt(searchParams.get('limit') || '10');
+
+    return toHTTPResponse(await getAgents(page, limit));
 }

@@ -26,7 +26,6 @@ import { cn } from '@/lib/utils';
 
 import { SidebarHistory } from './sidebar-history';
 import { SidebarUserNav } from './sidebar-user-nav';
-import { AgentListDialog } from './agent-list-dialog';
 
 export function AppSidebar({
   initialAgents,
@@ -35,7 +34,7 @@ export function AppSidebar({
 }) {
   const colorMode = useResolvedTheme();
   const { agent: currentAgent } = useCurrentAgent();
-  const { setOpenMobile, toggleSidebar, openAgentListDialog, state } =
+  const { setOpenMobile, toggleSidebar, state } =
     useSidebar();
 
   return (
@@ -114,24 +113,23 @@ export function AppSidebar({
         <Button
           type="button"
           variant="ghost"
+          asChild
           className={cn(
             'group/explore-button flex justify-start gap-2 hover:bg-transparent p-0',
             {
               '!bg-transparent justify-center': state === 'collapsed',
             },
           )}
-          onClick={() => {
-            openAgentListDialog(true);
-          }}
         >
-          <div className="rounded-full border-dark-gray border p-[0.35rem] flex items-center justify-center group-hover/explore-button:border-accent-foreground">
-            <ShapesIcon size={26} />
-          </div>
-          {state === 'expanded' && <p className="text-sm">Explore Agents</p>}
+          <Link href="/agents">
+            <div className="rounded-full border-dark-gray border p-[0.35rem] flex items-center justify-center group-hover/explore-button:border-accent-foreground">
+              <ShapesIcon size={26} />
+            </div>
+            {state === 'expanded' && <p className="text-sm">Explore Agents</p>}
+          </Link>
         </Button>
         <SidebarUserNav />
       </SidebarFooter>
-      <AgentListDialog />
     </Sidebar>
   );
 }

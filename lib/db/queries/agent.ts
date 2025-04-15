@@ -31,13 +31,23 @@ export async function getDefaultAgents() {
   }
 }
 
-export async function getAvailableAgents({ userId }: { userId: string }) {
+export async function getAvailableAgents({
+  userId,
+  limit = 10,
+  offset = 0,
+}: {
+  userId: string;
+  limit?: number;
+  offset?: number;
+}) {
   try {
     return await db.query.agent.findMany({
       where: (agent, { eq, or }) =>
         or(eq(agent.userId, userId), eq(agent.visibility, 'public')),
-      orderBy: (agent, { asc }) => [asc(agent.createdAt)],
+      orderBy: (agent, { desc }) => [desc(agent.createdAt)],
       with: AGENT_RELATION_QUERY,
+      limit,
+      offset,
     });
   } catch (error) {
     console.error('Failed to get agents in database');
